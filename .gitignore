@@ -1,0 +1,16 @@
+node_modules/
+dist/
+out/
+.aider*
+.env
+*.log
+.DS_Store
+# Config files that might contain local paths
+settings.json
+materials.json
+accounts.json
+notes.json
+structure.json
+*.json
+!package.json
+!package-lock.json

@@ -1,0 +1,29 @@
+{
+  "name": "presales",
+  "productName": "Presales Manager",
+  "version": "1.0.0",
+  "description": "Aplicación de escritorio para gestión de configuración",
+  "main": "main.js",
+  "author": "Juan Romero",
+  "license": "ISC",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\""
+  },
+  "keywords": [],
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-squirrel": "^7.11.1",
+    "@electron-forge/maker-zip": "^7.11.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
+    "@electron-forge/plugin-fuses": "^7.11.1",
+    "electron": "^33.3.0"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
+    "papaparse": "^5.5.3"
+  }
+}

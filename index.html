@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1 id="app-title">Presales Manager</h1>
+        </header>
+
+        <main>
+            <!-- Screen 1: Directory Selection -->
+            <section id="directory-screen" class="screen active">
+                <div class="card">
+                    <h2>Configuración Inicial</h2>
+                    <p>Selecciona el directorio donde se alojarán todos los archivos de configuración (JSON).</p>
+                    <button id="select-dir-btn" class="primary-btn">Seleccionar Directorio</button>
+                    <p id="selected-path" class="path-display"></p>
+                    <button id="continue-btn" class="secondary-btn hidden">Continuar</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: Data Form -->
+            <section id="form-screen" class="screen">
+                <div class="card">
+                    <h2>Datos de Usuario</h2>
+                    <form id="user-form">
+                        <div class="form-group">
+                            <label for="name">Nombre Completo</label>
+                            <input type="text" id="name" required placeholder="Ej. Juan Pérez">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Correo Electrónico</label>
+                            <input type="email" id="email" required placeholder="juan@ejemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="company">Empresa</label>
+                            <input type="text" id="company" placeholder="Nombre de tu empresa">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="back-to-dir-btn" class="text-btn">Volver</button>
+                            <button type="submit" class="primary-btn">Ir al Dashboard</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Screen 3: Dashboard -->
+            <section id="dashboard-screen" class="screen main-screen">
+                <div class="dashboard-layout">
+                    <aside class="sidebar">
+                        <div class="user-info-brief">
+                            <span id="display-name">Usuario</span>
+                            <span id="display-company" class="sub-text">Empresa</span>
+                        </div>
+                        <nav>
+                            <button class="nav-btn active" data-target="opp-list-view"
+                                id="all-opps-btn">Oportunidades</button>
+
+                            <div class="nav-group-label collapsed" id="stages-toggle">
+                                <span>by Stages</span>
+                                <span class="toggle-icon">▾</span>
+                            </div>
+                            <div id="stages-submenu" class="submenu collapsed">
+                                <!-- Dynamic stage buttons -->
+                            </div>
+
+                            <div class="nav-group-label collapsed" id="classification-toggle">
+                                <span>By Classification</span>
+                                <span class="toggle-icon">▾</span>
+                            </div>
+                            <div id="classification-submenu" class="submenu collapsed">
+                                <!-- Dynamic classification buttons -->
+                            </div>
+
+                            <div
+                                style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                <button class="nav-btn" data-target="notes-history-view">Historial</button>
+                                <button class="nav-btn" data-target="todo-view">Microsoft To-Do</button>
+                                <button class="nav-btn" data-target="settings-view">Configuración</button>
+                            </div>
+                        </nav>
+                    </aside>
+
+                    <div class="content">
+                        <!-- Notes History View -->
+                        <div id="notes-history-view" class="view">
+                            <div class="toolbar">
+                                <h2>Historial Global de Notas</h2>
+                            </div>
+                            <div class="history-container">
+                                <section class="history-group">
+                                    <h3>Esta Semana</h3>
+                                    <div id="history-week" class="history-list"></div>
+                                </section>
+                                <section class="history-group">
+                                    <h3>Este Mes</h3>
+                                    <div id="history-month" class="history-list"></div>
+                                </section>
+                                <section class="history-group">
+                                    <h3>Este Año</h3>
+                                    <div id="history-year" class="history-list"></div>
+                                </section>
+                            </div>
+                        </div>
+
+                        <!-- Microsoft To-Do View -->
+                        <div id="todo-view" class="view">
+                            <webview src="https://to-do.office.com/tasks/" id="todo-webview" partition="persist:todo">
+                            </webview>
+                        </div>
+                        <!-- Opportunities View -->
+                        <div id="opp-list-view" class="view active">
+                            <div class="toolbar">
+                                <h2>Oportunidades</h2>
+                                <div class="search-container">
+                                    <input type="text" id="opp-search-input"
+                                        placeholder="Buscar por nombre, ID o cuenta...">
+                                </div>
+                                <label class="csv-upload-btn primary-btn small">
+                                    Importar CSV
+                                    <input type="file" id="csv-input" accept=".csv" hidden>
+                                </label>
+                            </div>
+
+                            <div class="table-container">
+                                <table id="opp-table">
+                                    <thead id="opp-table-head">
+                                        <!-- Dynamic headers -->
+                                    </thead>
+                                    <tbody id="opp-list-body">
+                                        <!-- Rows injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Settings View -->
+                        <div id="settings-view" class="view">
+                            <div class="toolbar">
+                                <h2>Configuración General</h2>
+                            </div>
+                            <div class="card settings-card">
+                                <div class="form-group">
+                                    <label>Tema Visual</label>
+                                    <select id="theme-select" class="form-input">
+                                        <option value="auto">Sistema (Auto)</option>
+                                        <option value="light">Claro (Blanco)</option>
+                                        <option value="dark">Oscuro (Negro)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Carpeta de Trabajo</label>
+                                    <div class="path-display" id="settings-path-display"
+                                        style="display: block; margin-bottom: 1rem;">No seleccionada</div>
+                                    <button id="change-dir-btn" class="secondary-btn small">Cambiar Carpeta</button>
+                                </div>
+                                <div class="form-group">
+                                    <label for="crm-url-template">Plantilla de URL Oportunidad (CRM)</label>
+                                    <p class="sub-text">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
+                                    <input type="text" id="crm-url-template" placeholder="https://...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="account-url-template">Plantilla de URL Account</label>
+                                    <p class="sub-text">Ejemplo: https://mycrm.com/account/{Account Name}</p>
+                                    <input type="text" id="account-url-template" placeholder="https://...">
+                                </div>
+                                <div class="form-actions">
+                                    <button id="save-settings-btn" class="primary-btn">Guardar Ajustes</button>
+                                </div>
+                            </div>
+
+                            <div class="card settings-card" style="margin-top: 2rem;">
+                                <h3>Estructura de Datos (CSV)</h3>
+                                <p class="sub-text" style="margin-bottom: 1rem;">Define las columnas que esperas en tu
+                                    CSV y sus valores de ejemplo.</p>
+
+                                <div class="table-container small" style="margin-bottom: 1rem;">
+                                    <table id="structure-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Campo (Header)</th>
+                                                <th>Muestra</th>
+                                                <th>Tipo</th>
+                                                <th>Vista</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="structure-body">
+                                            <!-- Dynamic rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="form-actions" style="margin-top: 1rem; gap: 1rem; display: flex;">
+                                    <button id="add-structure-row-btn" class="secondary-btn small">+ Agregar
+                                        Campo</button>
+                                    <button id="download-sample-btn" class="secondary-btn small">Descargar
+                                        Muestra</button>
+                                    <button id="reset-structure-btn" class="secondary-btn small"
+                                        style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">Restablecer
+                                        Estándar</button>
+                                    <button id="save-structure-btn" class="primary-btn small">Guardar
+                                        Estructura</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal for Notes -->
+            <div id="notes-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-opp-name">Oportunidad</h3>
+                        <button id="close-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="opp-details-grid">
+                            <div><strong>ID:</strong> <span id="modal-opp-id" class="dynamic-link"></span></div>
+                            <div><strong>Account:</strong> <span id="modal-opp-account"></span></div>
+                        </div>
+
+                        <div class="notes-section">
+                            <h4>Historial de Notas</h4>
+                            <div id="notes-list" class="notes-history">
+                                <!-- Notes injected here -->
+                            </div>
+
+                            <div class="add-note">
+                                <textarea id="new-note-input" placeholder="Escribe una nueva nota..."></textarea>
+                                <button id="add-note-btn" class="primary-btn">Agregar Nota</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for PoCs (List) -->
+            <div id="pocs-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>🧪 Pruebas de Concepto (PoCs)</h3>
+                        <button id="close-pocs-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="toolbar-inline">
+                            <span id="pocs-modal-opp-info" class="sub-text"></span>
+                            <button id="add-poc-row-btn" class="primary-btn small">+ Nueva PoC</button>
+                        </div>
+                        <div class="table-container small">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Descripción</th>
+                                        <th>Inicio</th>
+                                        <th>Responsable</th>
+                                        <th style="text-align: right;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pocs-list-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for PoC Detail (Add/Edit) -->
+            <div id="poc-detail-modal" class="modal hidden">
+                <div class="modal-content small">
+                    <div class="modal-header">
+                        <h3 id="poc-detail-title">Detalle de PoC</h3>
+                        <button id="close-poc-detail-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Descripción de la PoC</label>
+                            <textarea id="poc-desc" placeholder="..." rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Inicio</label>
+                            <input type="date" id="poc-start">
+                        </div>
+                        <div class="form-group">
+                            <label>Responsable (Cliente)</label>
+                            <input type="text" id="poc-owner" placeholder="Nombre del contacto">
+                        </div>
+                        <div class="form-group">
+                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documento de
+                                Aceptación</label>
+                            <div class="url-field-wrapper">
+                                <input type="text" id="poc-url-acceptance" placeholder="https://..." class="url-input">
+                                <div id="poc-url-acceptance-preview" class="url-preview hidden">
+                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material</label>
+                            <div class="url-field-wrapper">
+                                <input type="text" id="poc-url-content" placeholder="https://..." class="url-input">
+                                <div id="poc-url-content-preview" class="url-preview hidden">
+                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top: 2rem;">
+                            <h4>Actividades de Seguimiento</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Actividad / Responsable</th>
+                                            <th>Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="poc-activities-body"></tbody>
+                                </table>
+                            </div>
+                            <button id="add-poc-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                                Agregar Actividad</button>
+                        </div>
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="save-poc-detail-btn" class="primary-btn">Guardar PoC</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for RFPs/RFIs -->
+            <div id="rfp-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📄 Control de RFPs / RFIs</h3>
+                        <button id="close-rfp-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documentación</label>
+                            <div class="url-field-wrapper">
+                                <input type="text" id="rfp-url" placeholder="https://..." class="url-input">
+                                <div id="rfp-url-preview" class="url-preview hidden">
+                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                </div>
+                            </div>
+                        </div>
+                        <h4>Actividades y Seguimiento</h4>
+                        <div class="table-container small">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Actividad / Responsable</th>
+                                        <th>Comentarios</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rfp-activities-body"></tbody>
+                            </table>
+                        </div>
+                        <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                            Agregar Actividad</button>
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="save-rfp-btn" class="primary-btn">Guardar RFP</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Demos -->
+            <div id="demo-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📽️ Demos Personalizadas</h3>
+                        <button id="close-demo-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Descripción de la Demo Solicitada</label>
+                            <textarea id="demo-desc" placeholder="..." rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material</label>
+                            <div class="url-field-wrapper">
+                                <input type="text" id="demo-url" placeholder="https://..." class="url-input">
+                                <div id="demo-url-preview" class="url-preview hidden">
+                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                </div>
+                            </div>
+                        </div>
+                        <h4>Actividades de Preparación</h4>
+                        <div class="table-container small">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Actividad / Responsable</th>
+                                        <th>Comentarios</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="demo-activities-body"></tbody>
+                            </table>
+                        </div>
+                        <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                            Agregar Actividad</button>
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="save-demo-btn" class="primary-btn">Guardar Demo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Migration Question Modal -->
+            <div id="migration-modal" class="modal hidden">
+                <div class="modal-content small">
+                    <div class="modal-header">
+                        <h3>Migrar Datos</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Deseas copiar todos los archivos de configuración existentes a la nueva carpeta?</p>
+                        <div class="form-actions">
+                            <button id="no-migrate-btn" class="secondary-btn">No, empezar de cero</button>
+                            <button id="yes-migrate-btn" class="primary-btn">Sí, copiar archivos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opportunity Details Modal -->
+            <div id="details-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="details-modal-title">Detalles de la Oportunidad</h3>
+                        <button class="close-modal-btn" id="close-details-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="details-content" class="details-grid">
+                            <!-- Dynamic labels and values -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Overlay -->
+            <div id="success-toast" class="toast hidden">
+                ¡Actualizado con éxito!
+            </div>
+
+            <datalist id="responsibles-list"></datalist>
+        </main>
+    </div>
+
+    <script src="node_modules/papaparse/papaparse.min.js"></script>
+    <script src="renderer.js"></script>
+</body>
+
+</html>
