@@ -2,9 +2,9 @@
   "name": "presales",
   "productName": "Presales Manager",
   "version": "1.0.0",
-  "description": "Aplicación de escritorio para gestión de configuración",
+  "description": "Aplicación de escritorio para gestión de cuentas y oportunidades de ventas",
   "main": "main.js",
-  "author": "Juan Romero",
+  "author": "José Luis Romero",
   "license": "ISC",
   "scripts": {
     "start": "electron .",
