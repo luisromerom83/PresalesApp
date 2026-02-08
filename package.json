@@ -6,12 +6,41 @@
   "main": "main.js",
   "author": "José Luis Romero",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/luisromerom83/PresalesApp.git"
+  },
   "scripts": {
     "start": "electron .",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
+    "dist": "electron-builder",
     "lint": "echo \"No linting configured\""
+  },
+  "build": {
+    "appId": "com.presales.manager",
+    "productName": "Presales Manager",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "cscLink": null,
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "luisromerom83",
+        "repo": "PresalesApp"
+      }
+    ]
   },
   "keywords": [],
   "devDependencies": {
@@ -20,10 +49,12 @@
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
-    "electron": "^33.3.0"
+    "electron": "^33.3.0",
+    "electron-builder": "^26.7.0"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.7.3",
     "papaparse": "^5.5.3"
   }
 }

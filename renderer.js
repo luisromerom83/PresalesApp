@@ -254,6 +254,19 @@ function updateClassificationSubmenu() {
 
 // App Initialization
 async function init() {
+    // Auto-update notifications
+    if (window.electronAPI.onUpdateAvailable) {
+        window.electronAPI.onUpdateAvailable(() => {
+            showToast('Actualización disponible. Descargando...');
+        });
+    }
+
+    if (window.electronAPI.onUpdateDownloaded) {
+        window.electronAPI.onUpdateDownloaded(() => {
+            showToast('Actualización descargada. Se instalará al cerrar la app.');
+        });
+    }
+
     try {
         const settings = await window.electronAPI.getSettings();
         if (settings && settings.lastDirectory) {

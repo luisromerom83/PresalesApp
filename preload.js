@@ -8,5 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
     copyFileToDir: (sourcePath, destDir) => ipcRenderer.invoke('copy-file-to-dir', { sourcePath, destDir }),
     migrateFiles: (sourceDir, destDir) => ipcRenderer.invoke('migrate-files', { sourceDir, destDir }),
-    openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url)
+    openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+    onUpdateAvailable: (callback) => ipcRenderer.on('update-available', () => callback()),
+    onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', () => callback())
 });

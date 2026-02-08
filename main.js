@@ -1,8 +1,13 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
 
 if (require('electron-squirrel-startup')) return app.quit();
+
+// Configure autoUpdater
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow;
 
@@ -61,6 +66,22 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+
+  // Auto-Update Events
+  autoUpdater.on('update-available', () => {
+    if (mainWindow) mainWindow.webContents.send('update-available');
+  });
+
+  autoUpdater.on('update-downloaded', () => {
+    if (mainWindow) mainWindow.webContents.send('update-downloaded');
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('Update error:', err);
+  });
+
+  // Check for updates
+  autoUpdater.checkForUpdatesAndNotify();
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
