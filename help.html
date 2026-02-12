@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario - Presales LatinTool</title>
+    <style>
+        :root {
+            --brand-orange: #ff4200;
+            --brand-dark: #1a1a1a;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --bg-light: #f4f7f6;
+            --accent-blue: #0078d7;
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0;
+            background: var(--bg-light);
+            scroll-behavior: smooth;
+        }
+
+        .toc {
+            position: fixed;
+            left: 20px;
+            top: 50px;
+            width: 260px;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: none;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @media (min-width: 1400px) {
+            .toc {
+                display: block;
+            }
+        }
+
+        .content-wrapper {
+            padding: 3rem;
+            background: white;
+            margin: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        }
+
+        header {
+            border-bottom: 3px solid var(--brand-orange);
+            margin-bottom: 3rem;
+            padding-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            height: 60px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: var(--brand-dark);
+            margin: 0;
+        }
+
+        h2 {
+            color: var(--brand-orange);
+            font-size: 1.8rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+        }
+
+        h3 {
+            color: var(--brand-dark);
+            font-size: 1.4rem;
+            margin-top: 2rem;
+            border-left: 4px solid var(--brand-orange);
+            padding-left: 1rem;
+        }
+
+        h4 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .screenshot {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 1.5rem auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--brand-orange);
+            padding: 1.2rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 1rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .toc a:hover {
+            color: var(--brand-orange);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem;
+            color: var(--text-secondary);
+            border-top: 1px solid #eee;
+        }
+
+        kbd {
+            background-color: #eee;
+            border-radius: 3px;
+            border: 1px solid #b4b4b4;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+            color: #333;
+            display: inline-block;
+            font-size: .85em;
+            font-weight: 700;
+            padding: 2px 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="toc">
+        <h4 style="margin-top:0">Contenido</h4>
+        <ul>
+            <li><a href="#setup">1. Configuración Inicial</a>
+                <ul>
+                    <li><a href="#s-dir">1.1 Selección de Directorio</a></li>
+                    <li><a href="#s-user">1.2 Datos de Usuario</a></li>
+                </ul>
+            </li>
+            <li><a href="#opps">2. Oportunidades</a>
+                <ul>
+                    <li><a href="#account-details">2.1 Detalles de Cuenta</a>
+                        <ul>
+                            <li><a href="#attack-plan-btn">2.1.1 Botón Plan de Ataque</a></li>
+                            <li><a href="#contacts-btn">2.1.1.2 Botón de Contactos</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#opp-details">2.2 Detalles de Oportunidad</a>
+                        <ul>
+                            <li><a href="#fav-btn">2.2.1 Botón Favoritos</a></li>
+                            <li><a href="#notes-btn">2.2.2 Botón Notas</a></li>
+                            <li><a href="#activities-btn">2.2.3 Botón Actividades</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><a href="#calendar">3. Calendario de Actividades</a></li>
+            <li><a href="#contacts">4. Contactos</a></li>
+            <li><a href="#account-plans">5. Planes de Cuenta</a></li>
+            <li><a href="#history">6. Historial</a></li>
+            <li><a href="#todo">7. Microsoft To-Do</a></li>
+            <li><a href="#settings">8. Configuración</a>
+                <ul>
+                    <li><a href="#s-general">8.1 General</a></li>
+                    <li><a href="#s-class">8.2 Clasificaciones</a></li>
+                    <li><a href="#s-filters">8.3 Filtros Sidebar</a></li>
+                    <li><a href="#s-api">8.4 API/Integración</a></li>
+                    <li><a href="#s-csv">8.5 Estructura CSV</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="content-wrapper">
+        <header>
+            <div>
+                <h1>Presales LatinTool</h1>
+                <p style="color:var(--text-secondary)">Guía de Usuario v1.1.4</p>
+            </div>
+            <img src="assets/logo_shield.svg" alt="Presales LatinTool Logo" class="logo">
+        </header>
+
+        <!-- 1. Configuración Inicial -->
+        <section id="setup">
+            <h2>1. Configuración Inicial</h2>
+            <p>Al iniciar por primera vez, la aplicación te guiará a través de dos pasos fundamentales:</p>
+
+            <div id="s-dir">
+                <h3>1.1 Selección de Directorio</h3>
+                <p>Define dónde se guardarán tus datos locales (archivos JSON). Es recomendable elegir una carpeta vacía
+                    y segura.</p>
+                <img src="assets/screenshots/ConfigInicial.png" alt="Pantalla de Selección de Directorio"
+                    class="screenshot">
+            </div>
+
+            <div id="s-user">
+                <h3>1.2 Datos de Usuario</h3>
+                <p>Ingresa tu nombre, correo y empresa. Estos datos personalizan la aplicación y los documentos
+                    generados.</p>
+                <img src="assets/screenshots/DatosdeUsuario.png" alt="Pantalla de Datos de Usuario" class="screenshot">
+            </div>
+
+            <ul>
+                <li><strong>Carga de Datos:</strong> Una vez completado lo anterior, importa tu archivo CSV mediante el
+                    botón "Subir CSV".</li>
+            </ul>
+        </section>
+
+        <!-- 2. Oportunidades -->
+        <section id="opps">
+            <h2>2. Oportunidades</h2>
+            <p>El núcleo de la gestión diaria de tu pipeline, organizado por cuentas estratificadas.</p>
+
+            <div id="account-details">
+                <h3>2.1 Detalles de Cuenta (Cuentas Header)</h3>
+                <p>Ubicados en la cabecera gris de cada grupo de oportunidades.</p>
+                <img src="assets/screenshots/DetallesdeCuenta.png" alt="Cabecera de Cuenta" class="screenshot">
+
+                <div id="attack-plan-btn">
+                    <h4>2.1.1 Botón Plan de Ataque (🎯)</h4>
+                    <p>Define la estrategia comercial, licencias objetivo y cronograma estratégico de la cuenta.</p>
+                    <img src="assets/screenshots/PlandeAtaque.png" alt="Modal de Plan de Ataque" class="screenshot">
+                </div>
+
+                <div id="contacts-btn">
+                    <h4>2.1.1.2 Botón de Contactos (👥)</h4>
+                    <p>Gestiona los contactos clave y su nivel de influencia dentro de la cuenta.</p>
+                    <img src="assets/screenshots/Contactos.png" alt="Gestión de Contactos de Cuenta" class="screenshot">
+                </div>
+            </div>
+
+            <div id="opp-details">
+                <h3>2.2 Detalles de Oportunidad (Oportunidades Rows)</h3>
+                <p>Acciones para gestionar el ciclo de vida técnico de cada oportunidad.</p>
+                <img src="assets/screenshots/Detalles Oportunidad.png" alt="Fila de Oportunidad" class="screenshot">
+
+                <div id="fav-btn">
+                    <h4>2.2.1 Botón Favoritos (⭐)</h4>
+                    <p>Destaca oportunidades críticas para seguimiento prioritario.</p>
+                </div>
+
+                <div id="notes-btn">
+                    <h4>2.2.2 Botón Notas (📝)</h4>
+                    <p>Registra actualizaciones rápidas con guardado automático de la etapa actual.</p>
+                    <img src="assets/screenshots/Notas.png" alt="Panel de Notas" class="screenshot">
+                </div>
+
+                <div id="activities-btn">
+                    <h4>2.2.3 Botón Actividades (Actividades)</h4>
+                    <p>Acceso a las herramientas principales de ejecución técnica:</p>
+                    <ul>
+                        <li id="poc-info"><strong>2.2.3.1 PoCs (🧪):</strong> Objetivos, Casos de Uso y Documentos
+                            On-Demand.
+                            <img src="assets/screenshots/PoCs.png" alt="Sección de PoC" class="screenshot">
+                        </li>
+                        <li id="rfp-info"><strong>2.2.3.2 RFP/RFI (📄):</strong> Seguimiento de licitaciones y tareas.
+                            <img src="assets/screenshots/RFP.png" alt="Sección de RFP" class="screenshot">
+                        </li>
+                        <li id="demo-info"><strong>2.2.3.3 Demos (📽️):</strong> Checklists de preparación y
+                            grabaciones.
+                            <img src="assets/screenshots/Demos.png" alt="Sección de Demos" class="screenshot">
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Calendario de Actividades -->
+        <section id="calendar">
+            <h2>3. Calendario de Actividades</h2>
+            <p>Vista consolidada de todos los hitos y fechas clave de tus actividades técnicas.</p>
+            <img src="assets/screenshots/Calendario.png" alt="Calendario de Actividades" class="screenshot">
+        </section>
+
+        <!-- 4. Contactos -->
+        <section id="contacts">
+            <h2>4. Contactos</h2>
+            <p>Tabla maestra global con todos los contactos registrados en el sistema.</p>
+            <img src="assets/screenshots/ContactosGlobales.png" alt="Listado Global de Contactos" class="screenshot">
+        </section>
+
+        <!-- 5. Planes de Cuenta -->
+        <section id="account-plans">
+            <h2>5. Planes de Cuenta</h2>
+            <p>Resumen ejecutivo de todas las cuentas con estrategia definida.</p>
+            <img src="assets/screenshots/CuentasconPlan.png" alt="Vista de Planes de Cuenta" class="screenshot">
+        </section>
+
+        <!-- 6. Historial -->
+        <section id="history">
+            <h2>6. Historial</h2>
+            <p>Línea de tiempo detallada con toda la actividad de notas y cambios en oportunidades.</p>
+            <img src="assets/screenshots/Historial.png" alt="Historial de Actividad" class="screenshot">
+        </section>
+
+        <!-- 7. Microsoft To-Do -->
+        <section id="todo">
+            <h2>7. Microsoft To-Do</h2>
+            <p>Integración directa con tus tareas personales de Microsoft.</p>
+        </section>
+
+        <!-- 8. Configuración -->
+        <section id="settings">
+            <h2>8. Configuración</h2>
+            <p>Administra las variables del sistema y la integración con Quadient Cloud.</p>
+
+            <div id="s-general">
+                <h3>8.1 General</h3>
+                <p>Ajustes de tema, directorio y plantillas de URL para el CRM.</p>
+                <img src="assets/screenshots/Config.png" alt="Ajustes Generales" class="screenshot">
+            </div>
+
+            <div id="s-class">
+                <h3>8.2 Clasificaciones</h3>
+                <p>Personaliza las categorías de cuentas utilizadas en la organización.</p>
+                <img src="assets/screenshots/Clasificaciones.png" alt="Gestión de Clasificaciones" class="screenshot">
+            </div>
+
+            <div id="s-filters">
+                <h3>8.3 Filtros Sidebar</h3>
+                <p>Crea reglas lógicas avanzadas para segmentar tu pipeline en el sidebar.</p>
+                <img src="assets/screenshots/Filtros.png" alt="Editor de Filtros" class="screenshot">
+            </div>
+
+            <div id="s-api">
+                <h3>8.4 API/Integración (Front Office)</h3>
+                <p>Conexión segura con el API de generación de documentos de Quadient Cloud.</p>
+                <img src="assets/screenshots/API.png" alt="Configuración de API" class="screenshot">
+            </div>
+
+            <div id="s-csv">
+                <h3>8.5 Estructura CSV</h3>
+                <p>Mapeo dinámico de las columnas de tu reporte CRM con los campos del sistema.</p>
+                <img src="assets/screenshots/Estructura.png" alt="Estructura de CSV" class="screenshot">
+            </div>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Quadient - Presales Latin America Team</p>
+            <div style="margin-top:1rem; font-size: 0.8rem; opacity: 0.7;">
+                Atajos: <kbd>Ctrl + F</kbd> Buscar | <kbd>Ctrl + H</kbd> Historial | <kbd>Ctrl + T</kbd> To-Do
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>

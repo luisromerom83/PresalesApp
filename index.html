@@ -4,21 +4,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Config Manager</title>
+    <title>Presales LatinTool</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/logo_shield.svg">
 </head>
 
 <body>
     <div class="app-container">
         <header>
-            <h1 id="app-title">Presales Manager</h1>
+            <div class="header-left">
+                <img src="assets/logo_shield.svg" alt="Logo" class="app-logo">
+                <h1 id="app-title">Presales LatinTool</h1>
+            </div>
+            <div class="header-right">
+                <div id="update-badge" class="update-badge hidden" title="Nueva actualización disponible">
+                    <span class="badge-icon">☁️</span>
+                    <span class="badge-text">Update</span>
+                </div>
+                <button id="help-btn" class="help-btn" title="Manual de Ayuda">?</button>
+                <div class="header-user-info">
+                    <span id="header-display-name" style="font-weight: 600; color: var(--brand-orange);">Usuario</span>
+                    <span id="header-display-company"
+                        style="font-size: 0.8rem; color: var(--text-secondary);">Empresa</span>
+                </div>
+                <div class="header-logo">
+                    <img src="assets/logo.svg" alt="Quadient Logo" class="theme-logo">
+                </div>
+            </div>
         </header>
 
         <main>
             <!-- Screen 1: Directory Selection -->
             <section id="directory-screen" class="screen active">
-                <div class="card">
+                <div class="card center-content">
+                    <img src="assets/logo.svg" alt="Quadient Logo" class="entry-logo theme-logo">
                     <h2>Configuración Inicial</h2>
                     <p>Selecciona el directorio donde se alojarán todos los archivos de configuración (JSON).</p>
                     <button id="select-dir-btn" class="primary-btn">Seleccionar Directorio</button>
@@ -29,7 +49,8 @@
 
             <!-- Screen 2: Data Form -->
             <section id="form-screen" class="screen">
-                <div class="card">
+                <div class="card center-content">
+                    <img src="assets/logo.svg" alt="Quadient Logo" class="entry-logo theme-logo">
                     <h2>Datos de Usuario</h2>
                     <form id="user-form">
                         <div class="form-group">
@@ -46,47 +67,44 @@
                         </div>
                         <div class="form-actions">
                             <button type="button" id="back-to-dir-btn" class="text-btn">Volver</button>
-                            <button type="submit" class="primary-btn">Ir al Dashboard</button>
+                            <button type="submit" class="primary-btn">Entrar</button>
                         </div>
                     </form>
                 </div>
             </section>
 
-            <!-- Screen 3: Dashboard -->
-            <section id="dashboard-screen" class="screen main-screen">
-                <div class="dashboard-layout">
+            <!-- Screen 3: Main Screen -->
+            <section id="main-screen" class="screen main-screen">
+                <div class="main-layout">
                     <aside class="sidebar">
-                        <div class="user-info-brief">
-                            <span id="display-name">Usuario</span>
-                            <span id="display-company" class="sub-text">Empresa</span>
-                        </div>
                         <nav>
-                            <button class="nav-btn active" data-target="opp-list-view"
-                                id="all-opps-btn">Oportunidades</button>
-
-                            <div class="nav-group-label collapsed" id="stages-toggle">
-                                <span>by Stages</span>
-                                <span class="toggle-icon">▾</span>
-                            </div>
-                            <div id="stages-submenu" class="submenu collapsed">
-                                <!-- Dynamic stage buttons -->
-                            </div>
-
-                            <div class="nav-group-label collapsed" id="classification-toggle">
-                                <span>By Classification</span>
-                                <span class="toggle-icon">▾</span>
-                            </div>
-                            <div id="classification-submenu" class="submenu collapsed">
-                                <!-- Dynamic classification buttons -->
+                            <div id="opp-group-container">
+                                <div class="nav-group-label" id="toggle-opp-group">
+                                    <span>Todas las oportunidades</span><span class="toggle-icon">▾</span>
+                                </div>
+                                <div id="opp-group-submenu" class="submenu">
+                                    <button class="nav-btn active" data-target="opp-list-view"
+                                        id="all-opps-btn">Todas</button>
+                                    <button class="nav-btn" data-target="opp-list-view" id="favorites-nav-btn">⭐
+                                        Favoritos</button>
+                                    <div id="dynamic-filters-container">
+                                        <!-- Dynamic groups injected here -->
+                                    </div>
+                                </div>
                             </div>
 
                             <div
                                 style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                <button class="nav-btn" data-target="activity-calendar-view"
+                                    id="calendar-nav-btn">Calendario de Actividades</button>
+                                <button class="nav-btn" data-target="global-contacts-view">Contactos</button>
+                                <button class="nav-btn" data-target="accounts-with-plan-view">Planes de Cuenta</button>
                                 <button class="nav-btn" data-target="notes-history-view">Historial</button>
                                 <button class="nav-btn" data-target="todo-view">Microsoft To-Do</button>
                                 <button class="nav-btn" data-target="settings-view">Configuración</button>
                             </div>
                         </nav>
+                        <div id="app-version" class="sidebar-version">v1.0.0</div>
                     </aside>
 
                     <div class="content">
@@ -142,74 +160,217 @@
                             </div>
                         </div>
 
+                        <!-- Activity Calendar View -->
+                        <div id="activity-calendar-view" class="view">
+                            <div class="toolbar calendar-toolbar">
+                                <h2>Calendario de Actividades</h2>
+                                <div class="calendar-controls">
+                                    <button id="prev-month-btn" class="secondary-btn small">&larr;</button>
+                                    <h3 id="current-month-display">Mes Año</h3>
+                                    <button id="next-month-btn" class="secondary-btn small">&rarr;</button>
+                                </div>
+                            </div>
+                            <div class="calendar-container">
+                                <div class="calendar-header-grid">
+                                    <div>Dom</div>
+                                    <div>Lun</div>
+                                    <div>Mar</div>
+                                    <div>Mié</div>
+                                    <div>Jue</div>
+                                    <div>Vie</div>
+                                    <div>Sáb</div>
+                                </div>
+                                <div id="calendar-grid" class="calendar-grid">
+                                    <!-- Days injected here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Global Contacts View -->
+                        <div id="global-contacts-view" class="view">
+                            <div class="toolbar">
+                                <h2>Contactos Globales</h2>
+                                <div class="search-container">
+                                    <input type="text" id="contacts-search-input" placeholder="Buscar contactos..."
+                                        class="form-input">
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table id="global-contacts-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Posición</th>
+                                            <th>Email</th>
+                                            <th>Teléfono</th>
+                                            <th>Influencia</th>
+                                            <th>Cuenta</th>
+                                            <th>Notas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="global-contacts-body">
+                                        <!-- Contacts injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Accounts with Plan View -->
+                        <div id="accounts-with-plan-view" class="view">
+                            <div class="toolbar">
+                                <h2>Cuentas con Plan de Ataque</h2>
+                            </div>
+                            <div id="accounts-with-plan-list" class="opp-groups-container"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+                                <!-- Account plan cards injected here -->
+                            </div>
+                        </div>
+
                         <!-- Settings View -->
                         <div id="settings-view" class="view">
                             <div class="toolbar">
-                                <h2>Configuración General</h2>
-                            </div>
-                            <div class="card settings-card">
-                                <div class="form-group">
-                                    <label>Tema Visual</label>
-                                    <select id="theme-select" class="form-input">
-                                        <option value="auto">Sistema (Auto)</option>
-                                        <option value="light">Claro (Blanco)</option>
-                                        <option value="dark">Oscuro (Negro)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Carpeta de Trabajo</label>
-                                    <div class="path-display" id="settings-path-display"
-                                        style="display: block; margin-bottom: 1rem;">No seleccionada</div>
-                                    <button id="change-dir-btn" class="secondary-btn small">Cambiar Carpeta</button>
-                                </div>
-                                <div class="form-group">
-                                    <label for="crm-url-template">Plantilla de URL Oportunidad (CRM)</label>
-                                    <p class="sub-text">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
-                                    <input type="text" id="crm-url-template" placeholder="https://...">
-                                </div>
-                                <div class="form-group">
-                                    <label for="account-url-template">Plantilla de URL Account</label>
-                                    <p class="sub-text">Ejemplo: https://mycrm.com/account/{Account Name}</p>
-                                    <input type="text" id="account-url-template" placeholder="https://...">
-                                </div>
-                                <div class="form-actions">
-                                    <button id="save-settings-btn" class="primary-btn">Guardar Ajustes</button>
-                                </div>
+                                <h2>Configuración</h2>
                             </div>
 
-                            <div class="card settings-card" style="margin-top: 2rem;">
-                                <h3>Estructura de Datos (CSV)</h3>
-                                <p class="sub-text" style="margin-bottom: 1rem;">Define las columnas que esperas en tu
-                                    CSV y sus valores de ejemplo.</p>
+                            <div class="settings-tabs">
+                                <button class="settings-tab-btn active" data-tab="settings-general">General</button>
+                                <button class="settings-tab-btn"
+                                    data-tab="settings-classifications">Clasificaciones</button>
+                                <button class="settings-tab-btn" data-tab="settings-sidebar-filters">Filtros
+                                    Sidebar</button>
+                                <button class="settings-tab-btn" data-tab="settings-api">API / Integración</button>
+                                <button class="settings-tab-btn" data-tab="settings-structure">Estructura CSV</button>
+                            </div>
 
-                                <div class="table-container small" style="margin-bottom: 1rem;">
-                                    <table id="structure-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Campo (Header)</th>
-                                                <th>Muestra</th>
-                                                <th>Tipo</th>
-                                                <th>Vista</th>
-                                                <th></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="structure-body">
-                                            <!-- Dynamic rows -->
-                                        </tbody>
-                                    </table>
+                            <!-- Tab 1: General -->
+                            <div id="settings-general" class="tab-pane active">
+                                <div class="card settings-card">
+                                    <div class="form-group">
+                                        <label>Tema Visual</label>
+                                        <select id="theme-select" class="form-input">
+                                            <option value="auto">Sistema (Auto)</option>
+                                            <option value="light">Claro (Blanco)</option>
+                                            <option value="dark">Oscuro (Negro)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Carpeta de Trabajo</label>
+                                        <div class="path-display" id="settings-path-display"
+                                            style="display: block; margin-bottom: 1rem;">No seleccionada</div>
+                                        <button id="change-dir-btn" class="secondary-btn small">Cambiar Carpeta</button>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="crm-url-template">Plantilla de URL Oportunidad (CRM)</label>
+                                        <p class="sub-text">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
+                                        <input type="text" id="crm-url-template" placeholder="https://...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="account-url-template">Plantilla de URL Account</label>
+                                        <p class="sub-text">Ejemplo: https://mycrm.com/account/{Account Name}</p>
+                                        <input type="text" id="account-url-template" placeholder="https://...">
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div class="form-actions" style="margin-top: 1rem; gap: 1rem; display: flex;">
-                                    <button id="add-structure-row-btn" class="secondary-btn small">+ Agregar
-                                        Campo</button>
-                                    <button id="download-sample-btn" class="secondary-btn small">Descargar
-                                        Muestra</button>
-                                    <button id="reset-structure-btn" class="secondary-btn small"
-                                        style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">Restablecer
-                                        Estándar</button>
-                                    <button id="save-structure-btn" class="primary-btn small">Guardar
-                                        Estructura</button>
+                            <!-- Tab 2: Classifications -->
+                            <div id="settings-classifications" class="tab-pane">
+                                <div class="card settings-card">
+                                    <h3>Clasificaciones de Cuenta</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;">Administra las categorías
+                                        disponibles para clasificar cuentas.</p>
+                                    <div id="classification-manager-list" style="margin-bottom: 1rem;">
+                                        <!-- Categories injected here -->
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <input type="text" id="new-classification-input"
+                                            placeholder="Nueva categoría..." class="form-input">
+                                        <button id="add-classification-btn" class="secondary-btn">Añadir</button>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <!-- Tab 3: Sidebar Filters -->
+                            <div id="settings-sidebar-filters" class="tab-pane">
+                                <div class="card settings-card">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h3>Filtros del Sidebar</h3>
+                                        <button id="add-sidebar-filter-btn" class="secondary-btn small">+ Nuevo
+                                            Grupo</button>
+                                    </div>
+                                    <p class="sub-text" style="margin-bottom: 1.5rem;">Crea grupos de filtrado basados
+                                        en columnas del CSV o reglas lógicas.</p>
+                                    <div id="sidebar-filters-manager-list">
+                                        <!-- Dynamic filters management cards injected here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="settings-api" class="tab-pane">
+                                <div class="card settings-card">
+                                    <h3>Integración Front Office (API)</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;">Configura el endpoint y Token de
+                                        Autorización para generar tickets.</p>
+                                    <div class="form-group">
+                                        <label for="fo-api-url">Base URL (Front Office)</label>
+                                        <p class="sub-text">Ejemplo: https://company.quadientcloud.eu/</p>
+                                        <input type="text" id="fo-api-url" placeholder="https://...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-token">API KEY</label>
+                                        <input type="password" id="fo-api-token" placeholder="Introduce tu API KEY...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-template">Plantilla PoC (Resource Path)</label>
+                                        <p class="sub-text">Ejemplo:
+                                            icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/MyPoCTemplate.jld
+                                        </p>
+                                        <input type="text" id="fo-api-template"
+                                            placeholder="ej: root:S:Production//Templates/MyTemplate.jld">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-holder">Holder por Defecto (User Name)</label>
+                                        <p class="sub-text">Nombre de usuario que recibirá el ticket (ej: j.perez)</p>
+                                        <input type="text" id="fo-api-holder" placeholder="Usuario de FO...">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 4: CSV Structure -->
+                            <div id="settings-structure" class="tab-pane">
+                                <div class="card settings-card">
+                                    <h3>Estructura de Datos (CSV)</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;">Define las columnas que esperas en
+                                        tu CSV y sus valores de ejemplo.</p>
+                                    <div class="table-container small" style="margin-bottom: 1rem;">
+                                        <table id="structure-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Campo (Header)</th>
+                                                    <th>Muestra</th>
+                                                    <th>Tipo</th>
+                                                    <th>Vista</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="structure-body"></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="form-actions" style="margin-top: 1rem; gap: 1rem; display: flex;">
+                                        <button id="add-structure-row-btn" class="secondary-btn small">+ Agregar
+                                            Campo</button>
+                                        <button id="download-sample-btn" class="secondary-btn small">Descargar
+                                            Muestra</button>
+                                        <button id="reset-structure-btn" class="secondary-btn small"
+                                            style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">Restablecer
+                                            Estándar</button>
+                                        <button id="save-structure-btn" class="primary-btn small">Guardar
+                                            Estructura</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button id="save-settings-btn" class="primary-btn">Guardar Ajustes</button>
                             </div>
                         </div>
                     </div>
@@ -244,78 +405,56 @@
                 </div>
             </div>
 
-            <!-- Modal for PoCs (List) -->
-            <div id="pocs-modal" class="modal hidden">
+            <!-- Consolidated Modal for Activities (PoCs, RFPs, Demos) -->
+            <div id="activities-modal" class="modal hidden">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>🧪 Pruebas de Concepto (PoCs)</h3>
-                        <button id="close-pocs-modal-btn" class="close-btn">&times;</button>
+                        <h3 id="activities-modal-title">Actividades</h3>
+                        <button id="close-activities-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-tabs">
+                        <button class="tab-btn active" data-tab="tab-pocs">🧪 PoCs</button>
+                        <button class="tab-btn" data-tab="tab-rfp">📄 RFPs / RFIs</button>
+                        <button class="tab-btn" data-tab="tab-demo">📽️ Demos</button>
                     </div>
                     <div class="modal-body">
-                        <div class="toolbar-inline">
-                            <span id="pocs-modal-opp-info" class="sub-text"></span>
-                            <button id="add-poc-row-btn" class="primary-btn small">+ Nueva PoC</button>
+                        <!-- PoCs Tab Content -->
+                        <div id="tab-pocs" class="tab-content active">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-poc" class="sub-text"></span>
+                                <button id="add-poc-row-btn" class="primary-btn small">+ Nueva PoC</button>
+                            </div>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Descripción</th>
+                                            <th>Inicio</th>
+                                            <th>Responsable</th>
+                                            <th style="text-align: right;">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pocs-list-body"></tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div class="table-container small">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Descripción</th>
-                                        <th>Inicio</th>
-                                        <th>Responsable</th>
-                                        <th style="text-align: right;">Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="pocs-list-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Modal for PoC Detail (Add/Edit) -->
-            <div id="poc-detail-modal" class="modal hidden">
-                <div class="modal-content small">
-                    <div class="modal-header">
-                        <h3 id="poc-detail-title">Detalle de PoC</h3>
-                        <button id="close-poc-detail-modal-btn" class="close-btn">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Descripción de la PoC</label>
-                            <textarea id="poc-desc" placeholder="..." rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha de Inicio</label>
-                            <input type="date" id="poc-start">
-                        </div>
-                        <div class="form-group">
-                            <label>Responsable (Cliente)</label>
-                            <input type="text" id="poc-owner" placeholder="Nombre del contacto">
-                        </div>
-                        <div class="form-group">
-                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documento de
-                                Aceptación</label>
-                            <div class="url-field-wrapper">
-                                <input type="text" id="poc-url-acceptance" placeholder="https://..." class="url-input">
-                                <div id="poc-url-acceptance-preview" class="url-preview hidden">
-                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
-                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                        <!-- RFP Tab Content -->
+                        <div id="tab-rfp" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-rfp" class="sub-text"></span>
+                            </div>
+                            <div class="form-group">
+                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documentación</label>
+                                <div class="url-field-wrapper">
+                                    <input type="text" id="rfp-url" placeholder="https://..." class="url-input">
+                                    <div id="rfp-url-preview" class="url-preview hidden">
+                                        <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                        <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material</label>
-                            <div class="url-field-wrapper">
-                                <input type="text" id="poc-url-content" placeholder="https://..." class="url-input">
-                                <div id="poc-url-content-preview" class="url-preview hidden">
-                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
-                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group" style="margin-top: 2rem;">
-                            <h4>Actividades de Seguimiento</h4>
+                            <h4>Actividades y Seguimiento</h4>
                             <div class="table-container small">
                                 <table>
                                     <thead>
@@ -325,102 +464,190 @@
                                             <th></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="poc-activities-body"></tbody>
+                                    <tbody id="rfp-activities-body"></tbody>
                                 </table>
                             </div>
-                            <button id="add-poc-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                            <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
                                 Agregar Actividad</button>
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button id="save-rfp-btn" class="primary-btn">Guardar RFP</button>
+                            </div>
                         </div>
-                        <div class="form-actions" style="margin-top: 2rem;">
-                            <button id="save-poc-detail-btn" class="primary-btn">Guardar PoC</button>
+
+                        <!-- Demo Tab Content -->
+                        <div id="tab-demo" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-demo" class="sub-text"></span>
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción de la Demo Solicitada</label>
+                                <textarea id="demo-desc" placeholder="..." rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material</label>
+                                <div class="url-field-wrapper">
+                                    <input type="text" id="demo-url" placeholder="https://..." class="url-input">
+                                    <div id="demo-url-preview" class="url-preview hidden">
+                                        <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                        <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <h4>Actividades de Preparación</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Actividad / Responsable</th>
+                                            <th>Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="demo-activities-body"></tbody>
+                                </table>
+                            </div>
+                            <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                                Agregar Actividad</button>
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button id="save-demo-btn" class="primary-btn">Guardar Demo</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal for RFPs/RFIs -->
-            <div id="rfp-modal" class="modal hidden">
-                <div class="modal-content">
+            <!-- Modal for PoC Detail (Add/Edit) -->
+            <div id="poc-detail-modal" class="modal hidden">
+                <div class="modal-content large">
                     <div class="modal-header">
-                        <h3>📄 Control de RFPs / RFIs</h3>
-                        <button id="close-rfp-modal-btn" class="close-btn">&times;</button>
+                        <h3 id="poc-detail-title">Detalle de Prueba de Concepto (PoC)</h3>
+                        <button id="close-poc-detail-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="form-group">
-                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documentación</label>
-                            <div class="url-field-wrapper">
-                                <input type="text" id="rfp-url" placeholder="https://..." class="url-input">
-                                <div id="rfp-url-preview" class="url-preview hidden">
-                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
-                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                        <div class="poc-form-section">
+                            <h4>1. Resumen Ejecutivo</h4>
+                            <div class="form-group">
+                                <label>Proof of Concept Objective</label>
+                                <textarea id="poc-objective" placeholder="Objetivo de la PoC..." rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Proof of Concept Primary Use Case</label>
+                                <textarea id="poc-use-case" placeholder="Caso de uso principal..." rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4>2. Alcance y Cronograma</h4>
+                            <div class="form-group">
+                                <label>Proof of Concept Scope Summary</label>
+                                <div id="poc-scope-container" class="dynamic-list"></div>
+                                <button type="button" class="secondary-btn small add-list-item" data-type="scope">+
+                                    Agregar Alcance</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Timeline</label>
+                                <div class="table-container small">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Actividad</th>
+                                                <th>Fecha Milestone</th>
+                                                <th>Estado / Comentarios</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="poc-timeline-body"></tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="secondary-btn small" id="add-poc-timeline-btn">+ Agregar
+                                    Milestone</button>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4>3. Equipo y Recursos</h4>
+                            <div class="form-group">
+                                <label>Proof of Concept Resources</label>
+                                <div id="poc-resources-container" class="dynamic-list"></div>
+                                <button type="button" class="secondary-btn small add-list-item" data-type="resources">+
+                                    Agregar Recurso</button>
+                            </div>
+                            <div class="two-col-grid">
+                                <div class="form-group">
+                                    <label>Stakeholders (Cliente)</label>
+                                    <div id="poc-stakeholders-container" class="dynamic-list"></div>
+                                    <button type="button" class="secondary-btn small add-list-item"
+                                        data-type="stakeholders">+ Agregar Stakeholder</button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Squad (Interno)</label>
+                                    <div id="poc-squad-container" class="dynamic-list"></div>
+                                    <button type="button" class="secondary-btn small add-list-item" data-type="squad">+
+                                        Agregar Miembro Squad</button>
                                 </div>
                             </div>
                         </div>
-                        <h4>Actividades y Seguimiento</h4>
-                        <div class="table-container small">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Actividad / Responsable</th>
-                                        <th>Comentarios</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rfp-activities-body"></tbody>
-                            </table>
+
+                        <div class="poc-form-section">
+                            <h4>4. Logística y Finanzas</h4>
+                            <div class="form-group">
+                                <label>Assumptions</label>
+                                <textarea id="poc-assumptions" placeholder="Supuestos y premisas..."
+                                    rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Financials</label>
+                                <textarea id="poc-financials" placeholder="Detalles financieros..." rows="2"></textarea>
+                            </div>
                         </div>
-                        <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
-                            Agregar Actividad</button>
-                        <div class="form-actions" style="margin-top: 2rem;">
-                            <button id="save-rfp-btn" class="primary-btn">Guardar RFP</button>
+
+                        <div class="poc-form-section">
+                            <h4>5. Documentación</h4>
+                            <div class="two-col-grid">
+                                <div class="form-group">
+                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documento de
+                                        Aceptación</label>
+                                    <div class="url-field-wrapper">
+                                        <input type="text" id="poc-url-acceptance" placeholder="https://..."
+                                            class="url-input">
+                                        <div id="poc-url-acceptance-preview" class="url-preview hidden">
+                                            <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                            <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material de la
+                                        PoC</label>
+                                    <div class="url-field-wrapper">
+                                        <input type="text" id="poc-url-content" placeholder="https://..."
+                                            class="url-input">
+                                        <div id="poc-url-content-preview" class="url-preview hidden">
+                                            <a href="#" class="url-link" target="_blank">Abrir link</a>
+                                            <button type="button" class="text-btn edit-url-btn">(Editar)</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions"
+                            style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                            <button id="download-docx-btn" class="secondary-btn hidden"
+                                style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">
+                                <i class="fas fa-file-word"></i> Descargar DOCX</button>
+                            <button id="view-fo-ticket-btn" class="secondary-btn hidden"
+                                style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">
+                                <i class="fas fa-file-pdf"></i> Previsualizar PDF</button>
+                            <button id="generate-fo-ticket-btn" class="secondary-btn"
+                                style="background: rgba(0, 120, 215, 0.1); color: #0078d7; border-color: #0078d7;">
+                                <i class="fas fa-sync"></i> Generar Documento</button>
+                            <button id="save-poc-detail-btn" class="primary-btn">Guardar Prueba de Concepto</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal for Demos -->
-            <div id="demo-modal" class="modal hidden">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>📽️ Demos Personalizadas</h3>
-                        <button id="close-demo-modal-btn" class="close-btn">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Descripción de la Demo Solicitada</label>
-                            <textarea id="demo-desc" placeholder="..." rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material</label>
-                            <div class="url-field-wrapper">
-                                <input type="text" id="demo-url" placeholder="https://..." class="url-input">
-                                <div id="demo-url-preview" class="url-preview hidden">
-                                    <a href="#" class="url-link" target="_blank">Abrir link</a>
-                                    <button type="button" class="text-btn edit-url-btn">(Editar)</button>
-                                </div>
-                            </div>
-                        </div>
-                        <h4>Actividades de Preparación</h4>
-                        <div class="table-container small">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Actividad / Responsable</th>
-                                        <th>Comentarios</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="demo-activities-body"></tbody>
-                            </table>
-                        </div>
-                        <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
-                            Agregar Actividad</button>
-                        <div class="form-actions" style="margin-top: 2rem;">
-                            <button id="save-demo-btn" class="primary-btn">Guardar Demo</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Migration Question Modal -->
             <div id="migration-modal" class="modal hidden">
@@ -449,6 +676,146 @@
                         <div id="details-content" class="details-grid">
                             <!-- Dynamic labels and values -->
                         </div>
+                        <div class="opportunity-overview">
+                            <h4>Explicación de la Oportunidad</h4>
+                            <textarea id="opp-description"
+                                placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
+                            <div class="form-actions">
+                                <button id="save-opp-description-btn" class="primary-btn small">Guardar
+                                    Explicación</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Update Confirmation Modal -->
+                <div id="update-modal" class="modal hidden">
+                    <div class="modal-content small">
+                        <div class="modal-header">
+                            <h3>Actualización de Software</h3>
+                            <button id="close-update-modal-btn" class="close-btn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="update-message">Una nueva versión está disponible. ¿Deseas descargarla e instalarla
+                                ahora?</p>
+                            <div class="form-actions" style="margin-top: 1.5rem;">
+                                <button id="cancel-update-btn" class="secondary-btn">Más tarde</button>
+                                <button id="confirm-update-btn" class="primary-btn">Actualizar Ahora</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Attack Plan Modal -->
+            <div id="attack-plan-modal" class="modal hidden">
+                <div class="modal-content large">
+                    <div class="modal-header">
+                        <h3 id="attack-plan-modal-title">Plan de Ataque: Nombre de Cuenta</h3>
+                        <button id="close-attack-plan-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="poc-form-section">
+                            <h4>1. Licencias y Volúmenes</h4>
+                            <div id="attack-plan-licenses-container" class="dynamic-list">
+                                <!-- Licenses injected here -->
+                            </div>
+                            <button id="add-attack-license-btn" class="secondary-btn small">+ Agregar Licencia</button>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4>2. Cronograma de Actividades</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Actividad</th>
+                                            <th>Fecha</th>
+                                            <th>Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attack-plan-activities-body">
+                                        <!-- Activities injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button id="add-attack-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                                Agregar Actividad</button>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4>3. Estrategia de Ataque</h4>
+                            <div class="form-group">
+                                <textarea id="attack-plan-strategy"
+                                    placeholder="Define aquí la estrategia para esta cuenta..." rows="6"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="save-attack-plan-btn" class="primary-btn">Guardar Plan de Ataque</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Contacts Modal -->
+            <div id="account-contacts-modal" class="modal hidden">
+                <div class="modal-content large" style="max-width: 1000px;">
+                    <div class="modal-header">
+                        <h2 id="account-contacts-modal-title">Contactos de la Cuenta</h2>
+                        <button id="close-account-contacts-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="poc-form-section">
+                            <h4>Listado de Contactos</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Posición</th>
+                                            <th>Email</th>
+                                            <th>Teléfono</th>
+                                            <th>Influencia</th>
+                                            <th>Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="account-contacts-body">
+                                        <!-- Contacts injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button id="add-account-contact-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                                Agregar Contacto</button>
+                        </div>
+
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="save-account-contacts-btn" class="primary-btn">Guardar Contactos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket View Modal -->
+            <div id="ticket-view-modal" class="modal hidden">
+                <div class="modal-content large"
+                    style="height: 90vh; display: flex; flex-direction: column; padding: 0;">
+                    <div class="modal-header"
+                        style="padding: 1.2rem 2rem; background: var(--bg-card); border-bottom: 1px solid var(--glass-border); display: flex; align-items: flex-start; justify-content: space-between;">
+                        <div style="flex: 1;">
+                            <h3 id="ticket-view-title" style="margin: 0;">Vista de Ticket FO</h3>
+                            <p id="ticket-view-url"
+                                style="font-size: 0.8rem; color: var(--text-dim); margin: 0.3rem 0 0 0; word-break: break-all; font-family: monospace;">
+                            </p>
+                        </div>
+                        <button id="close-ticket-view-btn" class="close-btn"
+                            style="margin-top: -0.5rem;">&times;</button>
+                    </div>
+                    <div id="ticket-preview-container"
+                        style="flex: 1; position: relative; background: #fff; overflow: hidden;">
+                        <iframe id="ticket-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
                     </div>
                 </div>
             </div>

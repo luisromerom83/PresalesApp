@@ -1,20 +1,29 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
 if (require('electron-squirrel-startup')) return app.quit();
 
+// Force Spanish locale for date formats
+app.commandLine.appendSwitch('lang', 'es-MX');
+app.commandLine.appendSwitch('accept-languages', 'es-MX');
+
 // Configure autoUpdater
-autoUpdater.autoDownload = true;
+autoUpdater.autoDownload = false; // Manual download
 autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow;
 
 function createWindow() {
+  const iconPath = path.join(__dirname, 'assets', 'logo_shield.png');
+  const appIcon = nativeImage.createFromPath(iconPath);
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    title: "Presales LatinTool",
+    icon: appIcon,
     frame: true, // Standard window frame
     autoHideMenuBar: true,
     webPreferences: {
@@ -31,10 +40,8 @@ function createWindow() {
 app.whenReady().then(() => {
   // Set App ID for Windows search and shortcuts
   if (process.platform === 'win32') {
-    app.setAppUserModelId('com.presales.configmanager');
+    app.setAppUserModelId('com.presales.manager');
   }
-
-  const { session } = require('electron');
 
   // Intercept headers to allow framing of Microsoft To-Do and login pages
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -46,7 +53,9 @@ app.whenReady().then(() => {
       'to-do.office.com',
       'login.microsoftonline.com',
       'login.live.com',
-      'account.microsoft.com'
+      'account.microsoft.com',
+      'quadientcloud.com',
+      'quadientcloud.eu'
     ];
 
     if (targetDomains.some(domain => url.includes(domain))) {
@@ -93,6 +102,18 @@ app.on('window-all-closed', function () {
 });
 
 // IPC Handlers
+ipcMain.handle('check-directory', async (event, dir) => {
+  try {
+    if (!dir || !fs.existsSync(dir)) return { exists: false, empty: true };
+    const files = fs.readdirSync(dir);
+    // Consider empty if no json files exist (our data files)
+    const hasData = files.some(f => f.endsWith('.json'));
+    return { exists: true, empty: !hasData };
+  } catch (error) {
+    return { exists: false, empty: true };
+  }
+});
+
 ipcMain.handle('select-directory', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory']
@@ -177,5 +198,17 @@ ipcMain.handle('load-file', async (event, { directory, filename }) => {
   } catch (error) {
     return null;
   }
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+ipcMain.handle('download-update', () => {
+  autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall();
 });
 

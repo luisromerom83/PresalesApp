@@ -1,10 +1,10 @@
 {
   "name": "presales",
-  "productName": "Presales Manager",
-  "version": "1.0.0",
-  "description": "Aplicación de escritorio para gestión de cuentas y oportunidades de ventas",
+  "productName": "Presales LatinTool",
+  "version": "1.1.4",
+  "description": "Presales LatinTool - Productivity tool for Presales Engineers",
   "main": "main.js",
-  "author": "José Luis Romero",
+  "author": "Presales Latin America Team",
   "license": "ISC",
   "repository": {
     "type": "git",
@@ -20,15 +20,21 @@
   },
   "build": {
     "appId": "com.presales.manager",
-    "productName": "Presales Manager",
+    "productName": "Presales LatinTool",
     "directories": {
-      "output": "dist"
+      "output": "dist/v1.1.4"
     },
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "artifactName": "PresalesApp.${ext}"
     },
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!dist/**/*"
+    ],
     "cscLink": null,
     "nsis": {
       "oneClick": false,

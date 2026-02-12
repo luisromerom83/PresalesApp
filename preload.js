@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     copyFileToDir: (sourcePath, destDir) => ipcRenderer.invoke('copy-file-to-dir', { sourcePath, destDir }),
     migrateFiles: (sourceDir, destDir) => ipcRenderer.invoke('migrate-files', { sourceDir, destDir }),
     openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    downloadUpdate: () => ipcRenderer.invoke('download-update'),
+    installUpdate: () => ipcRenderer.invoke('install-update'),
     onUpdateAvailable: (callback) => ipcRenderer.on('update-available', () => callback()),
-    onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', () => callback())
+    onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', () => callback()),
+    checkDirectory: (dir) => ipcRenderer.invoke('check-directory', dir)
 });

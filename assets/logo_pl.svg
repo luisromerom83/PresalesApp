@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pl_grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF4200"/>
+      <stop offset="1" stop-color="#FF8A00"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Hexagon -->
+  <path d="M256 40L450.842 148V364L256 472L61.158 364V148L256 40Z" fill="#1A1A1A"/>
+  <path d="M256 40L450.842 148V364L256 472L61.158 364V148L256 40Z" stroke="url(#pl_grad)" stroke-width="8" stroke-opacity="0.3"/>
+  
+  <!-- Stylized 'P' -->
+  <path d="M180 160V352M180 160H260C293.137 160 320 186.863 320 220C320 253.137 293.137 280 260 280H180" stroke="url(#pl_grad)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Stylized 'L' (Integrated) -->
+  <path d="M240 280H332M332 280V352H180" stroke="#FFFFFF" stroke-width="12" stroke-opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Accent Dots -->
+  <circle cx="180" cy="160" r="8" fill="#FF4200"/>
+  <circle cx="332" cy="352" r="8" fill="#FFFFFF"/>
+</svg>

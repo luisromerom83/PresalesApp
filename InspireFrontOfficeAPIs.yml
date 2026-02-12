@@ -1,0 +1,3673 @@
+openapi: 3.0.1
+info:
+  description: "For more details and full context regarding Quadient REST API services,\
+    \ consult documentation at: https://www.quadient.com/documentation."
+  title: Front Office REST API
+  version: 2.0.0
+  x-service-code: FO
+tags:
+- name: Tickets
+- name: Templates
+- name: Renewal Tickets
+paths:
+  /approvalProcesses/executeAction:
+    post:
+      description: "Executes approval process action. Important: The action must have\
+        \ 'system' set as one of the roles in the 'Role' option in the approval-process\
+        \ editor."
+      operationId: executeApprovalProcessAction
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            schema:
+              $ref: "#/components/schemas/ExecuteActionRequest"
+        description: Execute action request data.
+      responses:
+        "204":
+          description: The approval process action was applied to the object.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            '*/*':
+              examples:
+                HTTP 400 error code validation error:
+                  description: HTTP 400 error code validation error
+                  summary: HTTP 400 error code when executing the approval process
+                    action
+                  value:
+                    status: 400
+                    title: User or user group was not found.
+                    code: 10200001
+                    detail: User 'NonExistUser' not found..
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - ApprovalProcesses
+  /renewalTickets:
+    post:
+      description: Reopens a renewal ticket
+      operationId: reopenRenewalTicket_1
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Reopen contract ticket:
+                description: Reopen contract ticket
+                summary: Reopen contract ticket
+                value:
+                  renewalId: ExampleContractTicket
+                  addAttachmentFromGlobalStorageEnabled: true
+                  attachments: []
+                  stateId: S_contract_ticket_simple_scenario_writer_assigned
+                  contract:
+                    contractId: L81054
+                    contractName: Robert Miles
+                  approvalProcessPath:
+                    value: NewBusinessTicket
+                    resolveDepartment: false
+                  holder:
+                    holder: lee@quadient.com
+                    type: userName
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  properties:
+                    overrideAlsoNotEmptyProperties: true
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_01.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                      priority: 3
+            schema:
+              $ref: "#/components/schemas/ReopenRenewalTicketOperation"
+        description: Renewal-ticket data
+        required: true
+      responses:
+        "201":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                Renewal ticket response:
+                  description: Renewal ticket response
+                  summary: HTTP 201 code when reopening a renewal ticket
+                  value:
+                    guid: 6fb9f627-915b-45f1-8498-ba3f0db51deb
+          description: Renewal ticket reopened successfully
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Renewal Tickets
+  /renewalTickets/clone:
+    post:
+      description: Clones a contract ticket
+      operationId: cloneRenewalTicket_1
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Clone contract ticket:
+                description: Clone contract ticket
+                summary: Clone contract ticket
+                value:
+                  renewalId: ClonedExampleContractTicket
+                  documentData:
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: binaryBase64Data
+                      value: ""
+                    commands:
+                    - name: -CLIENT_IDParametersData
+                      value: L81054
+                  sourceRenewalId: ExampleContractTicket
+            schema:
+              $ref: "#/components/schemas/CloneContractTicketOperation"
+        description: Cloned-contract-ticket data
+        required: true
+      responses:
+        "201":
+          description: Contract ticket cloned successfully
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Contract ticket not found
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Renewal Tickets
+  /renewalTickets/{guid}:
+    put:
+      description: Finalizes a renewal ticket
+      operationId: finalizeRenewalTicket_1
+      parameters:
+      - description: Ticket GUID
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Renewal ticket finalized successfully
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket not found
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Renewal Tickets
+  /server:
+    get:
+      description: Returns server state
+      operationId: getServerState
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/ServerStateModel"
+          description: The server state in JSON format
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      tags:
+      - Server
+  /server/auditLog:
+    get:
+      description: |-
+        Returns an audit log for the specified time range in the CSV format.
+        If the X-INCOMPLETE header is true, the list is incomplete because the number of events for the given time range is over the limit of 20 000.
+        Only users with the Application Administrator permission can use this endpoint.
+
+        Caution: If you use both Content Author and Front Office, the audit log lists events of both services.
+      operationId: auditLog
+      parameters:
+      - description: "DateTime value from which audit log events will be included.\
+          \ Format is [yyyy-MM-dd'T'HH:mm:ssXXX]."
+        example: 2020-09-17T04:58:29+01:00
+        in: query
+        name: from
+        required: true
+        schema:
+          type: string
+      - description: "DateTime value to which audit log events will be included. If\
+          \ the value of the X-INCOMPLETE header is true, the list of events is incomplete.\
+          \ Only the first 20 000 events are returned. Format is [yyyy-MM-dd'T'HH:mm:ssXXX]."
+        example: 2020-09-17T04:58:29+01:00
+        in: query
+        name: to
+        required: true
+        schema:
+          type: string
+      - description: Define offset of audit log query.
+        example: 28
+        in: query
+        name: offset
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Returns an audit log for the specified time range in the CSV
+            format.
+          headers:
+            X-INCOMPLETE:
+              description: "If the value is true, the list is incomplete. Only the\
+                \ first 20 000 events are returned."
+              schema:
+                type: boolean
+              style: simple
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Server
+  /server/health:
+    get:
+      description: Checks if the application and all essential components are running.
+      operationId: getServerHealth
+      responses:
+        "200":
+          description: The application and all essential componets are running.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+        "503":
+          description: The application and/or one or more essential components are
+            not running.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+      tags:
+      - Server
+  /templates:
+    get:
+      description: Lists templates.
+      operationId: getTemplates
+      parameters:
+      - description: Name of folder whose content will be listed.
+        in: query
+        name: folder
+        schema:
+          type: string
+      - description: Number of items to skip before starting to collect the resulting
+          set.
+        in: query
+        name: offset
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+      - description: Number of items to return (max. 100).
+        in: query
+        name: limit
+        schema:
+          type: integer
+          format: int32
+          default: 20
+          maximum: 100
+          minimum: 0
+      - description: Determines whether to include metadata in the response.
+        in: query
+        name: includeMetadata
+        schema:
+          type: boolean
+          default: false
+      - content:
+          '*/*':
+            examples:
+              Document category == A && Document category != B:
+                description: Document category == A && Document category != B
+                summary: Document category == A && Document category != B
+                value:
+                  operator: and
+                  conditions:
+                  - negation: false
+                    categorizations:
+                    - negation: false
+                      name: General
+                      fieldName: Document category
+                      value: A
+                      operator: equal
+                  - negation: false
+                    categorizations:
+                    - negation: true
+                      name: General
+                      fieldName: Document category
+                      value: B
+                      operator: equal
+            schema:
+              $ref: "#/components/schemas/Condition"
+        description: Conditions can be nested and can contain the same elements as
+          the main condition. See the Condition schema.
+        in: query
+        name: condition
+      - description: List templates that the specified user can see.
+        in: query
+        name: holder
+        schema:
+          type: string
+      - description: "List templates that have the specified approval states, separated\
+          \ by a colon."
+        example: Production:Testing
+        in: query
+        name: approvalStates
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/TemplateList"
+          description: List of templates.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                HTTP 400 error code validation error.:
+                  description: HTTP 400 error code validation error.
+                  summary: HTTP 400 error code when getting templates.
+                  value:
+                    status: 400
+                    title: The 'limit' parameter has invalid value.
+                    code: "10200001"
+                    detail: Value must be > 0 and <= 100.
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Templates
+  /templates/variables:
+    get:
+      description: Lists variables used in a template.
+      operationId: getTemplatesUsedVariables
+      parameters:
+      - description: Path to the template.
+        example: icm://Interactive/StandardPackage/Templates/Responsive Email.jld
+        in: query
+        name: templatePath
+        required: true
+        schema:
+          type: string
+      - description: "Specifies the date/time for which the template's variables will\
+          \ be returned. Supported formats: '2025-09-16T14:29:00Z' (ISO 8601) or '20250916142900'\
+          \ (compact UTC)."
+        in: query
+        name: asOfDate
+        schema:
+          type: string
+      - description: "Specifies the approval states of the template for which variables\
+          \ should be returned. If multiple states are provided, separate them with\
+          \ colons."
+        example: Production:Testing
+        in: query
+        name: approvalStates
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/VariablesUsed"
+          description: List of variables used in the template.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                HTTP 400 error code feature disabled.:
+                  description: HTTP 400 error code feature disabled.
+                  summary: HTTP 400 error code when feature is disabled.
+                  value:
+                    status: 400
+                    title: Feature disabled.
+                    code: 10200001
+                    detail: Variable indexing is disabled.
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Template not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Templates
+  /tickets:
+    get:
+      description: Lists tickets.
+      operationId: getTickets_1
+      parameters:
+      - description: Number of items to skip before starting to collect the resulting
+          set.
+        example: 10
+        in: query
+        name: offset
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+      - description: Number of items to return (max. 100).
+        in: query
+        name: limit
+        schema:
+          type: integer
+          format: int32
+          default: 20
+          example: 50
+          maximum: 100
+          minimum: 0
+      - description: Filters tickets by the current holder (username) of the ticket.
+        example: lee@vital.com
+        in: query
+        name: holder
+        schema:
+          type: string
+      - description: "Filters tickets by time and date created (define time and date\
+          \ range using before and after operators) [gt|lt]. Format is [operator:yyyy-MM-dd'T'HH:mm:ssXXX]."
+        example: gt:2020-09-17T04:58:29+01:00
+        in: query
+        name: created
+        schema:
+          type: string
+      - description: "Filters tickets by time and date modified (define time and date\
+          \ range using before and after operators) [gt|lt]. Format is [operator:yyyy-MM-dd'T'HH:mm:ssXXX]."
+        example: lt:2020-09-17T04:58:29+01:00
+        in: query
+        name: modified
+        schema:
+          type: string
+      - description: Filters tickets by properties
+        examples:
+          Filters tickets by properties.:
+            description: Filters tickets by properties.
+            summary: Filters tickets by properties.
+            value:
+              icon: companyRoot://WebResources/TicketIcons/doc_01.png
+              title: Underinsurance 09/11
+              description: Insurance policy update information
+        in: query
+        name: properties
+        schema:
+          $ref: "#/components/schemas/PropertiesMap"
+      - description: Determines whether to include delivery status in the response.
+        example: true
+        in: query
+        name: includeDeliveryStatus
+        schema:
+          type: boolean
+          default: false
+      - description: Filters tickets by delivery status
+        example: Sent
+        in: query
+        name: deliveryStatus
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/TicketList"
+          description: List of tickets.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                HTTP 400 error code validation error:
+                  description: HTTP 400 error code validation error
+                  summary: HTTP 400 error code when getting tickets
+                  value:
+                    status: 400
+                    title: The 'limit' parameter has invalid value.
+                    code: "10200001"
+                    detail: Value must be > 0 and <= 100.
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+    post:
+      description: Creates a ticket.
+      operationId: createTickets_1
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Create contract ticket:
+                description: Create contract ticket
+                summary: Create contract ticket
+                value:
+                  type: renewal
+                  renewalId: ExampleContractTicket
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_09.png
+                      title: 'Insurance Policy update '
+                      description: Insurance Health Insurance Policy update.
+                  documentData:
+                    templateName: companyRoot:S:Production:S:UserResource//Templates/Letter
+                      with advert.jld
+                    renewalId: DocumentRenewalId
+                    renewalType: create
+                  stateId: S_contract_ticket_simple_scenario_writer_assigned
+                  approvalProcessPath:
+                    value: contract-tickets.json
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+              Create mailmerge ticket:
+                description: Create mailmerge ticket
+                summary: Create mailmerge ticket
+                value:
+                  type: mailMerge
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_01.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_mailmerge_writer_assigned
+                  holder:
+                    type: userName
+                    holder: lee@vital.com
+                  approvalProcessPath:
+                    value: mail-merge.json
+                  documentData:
+                    templateName: companyRoot:S:Production://Templates/Vital_GeneralConditionsLetterMailMerge.jld
+                    mailMergeDataDefinition:
+                      type: binaryBase64Data
+                      value: RW1haWwKam9obi5kb3dAZXhhbXBsZS5jb20KZG93LmpvaG5zQGV4YW1wbGUuY29tCgo=
+              Create multiple document ticket:
+                description: Create multiple document ticket
+                summary: Create multiple document ticket
+                value:
+                  type: multiDocument
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_14.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  attachments: []
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  documentData:
+                  - templateName: companyRoot:S:Production://Templates/Letter with
+                      advert.jld
+                    description: Letter with advert
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+                  - templateName: companyRoot:S:Production://Templates/Letterhead
+                      with 2 columns.jld
+                    description: Letterhead with 2 columns
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: binaryBase64Data
+                      value: ewoJCQkJCSJDbGllbnRzIjogWwoJCQkJCQl7CgkJCQkJCQkiQ2xpZW50SUQiOiAiTDgxMDU2IiwKCQkJCQkJCSJNYWlsRnJvbSI6ICJGcm9tTWFpbEBlbWFpbC5jb20iLAoJCQkJCQkJIk5hbWUiOiAiSmltbXkiLAoJCQkJCQkJIk1pZG5hbWUiOiAiIiwKCQkJCQkJCSJTdXJuYW1lIjogIkpvbmVzIiwKCQkJCQkJCSJHZW5kZXIiOiAiTSIsCgkJCQkJCQkiVGl0bGUiOiAiIiwKCQkJCQkJCSJTYWx1dGF0aW9uIjogIkpvbmVzIiwKCQkJCQkJCSJMYW5ndWFnZSI6ICJlbl91cyIsCgkJCQkJCQkiQWRkcmVzc1NhbHV0YXRpb24iOiAiTXIuIiwKCQkJCQkJCSJBZGRyZXNzTGluZTEiOiAiMTQwMjUgTm9ydGhlYXN0IDV0aCBTdHJlZXQiLAoJCQkJCQkJIkFkZHJlc3NMaW5lMiI6ICJBcHBhcnRtZW50ICMxNSIsCgkJCQkJCQkiQWRkcmVzc0xpbmUzIjogIlNlYXR0bGUsIFdBIDk4MTAxIiwKCQkJCQkJCSJDaXR5IjogIlNlYXR0bGUiLAoJCQkJCQkJIlppcCI6IDk4MTAxLAoJCQkJCQkJIlN0YXRlIjogIldhc2hpbmd0b24iLAoJCQkJCQkJIlN0YXRlQWJicmV2aWF0aW9uIjogIldBIiwKCQkJCQkJCSJDb3VudHJ5IjogIlVTQSIsCgkJCQkJCQkiQXJlYSI6ICJXZXN0ZXJuIFVuaXRlZCBTdGF0ZXMiLAoJCQkJCQkJIkVtYWlsIjogIkppbW15Sm9uZXNAZ21haWwuY29tIiwKCQkJCQkJCSJDbGllbnRQaG9uZSI6IDI4MTQyMzIxODcxLAoJCQkJCQkJIkRhdGUiOiAiMzAuMTAuMjAyMiIsCgkJCQkJCQkiQ3VycmVuY3kiOiAi4oKsIiwKCQkJCQkJCSJTaWduYXRvck5hbWUiOiAiQW5qYSIsCgkJCQkJCQkiU2lnbmF0b3JTdXJuYW1lIjogIk1hZHNlbiIsCgkJCQkJCQkiU2lnbmF0b3JKb2IiOiAiU2VuaW9yIGNvbnN1bHRhbnQsIEN1c3RvbWVyIENhcmUiLAoJCQkJCQkJIlNpZ25hdG9yRW1haWwiOiAiYS5tYWRzZW5Adml0YWwuY29tIiwKCQkJCQkJCSJDb21wYW55QWRkcmVzc0xpbmUxIjogIlAuTy4gQm94IDE4MzQ1LCA2MzAgVyA4Mm5kIFN0cmVldCIsCgkJCQkJCQkiQ29tcGFueUNpdHkiOiAiTG9zIEFuZ2VsZXMiLAoJCQkJCQkJIkNvbXBhbnlaSVAiOiA5MDA0NCwKCQkJCQkJCSJDb21wYW55U3RhdGUiOiAiQ2FsaWZvcm5pYSIsCgkJCQkJCQkiQ29tcGFueVN0YXRlQWJicmV2aWF0aW9uIjogIkNBIiwKCQkJCQkJCSJDb21wYW55UGhvbmUiOiAiMTMgMjM3IDUzNyA0NzMiCgkJCQkJCX0KCQkJCQldCgkJCQl9
+                    commands: []
+              Create multiple document ticket with shared data:
+                description: Create multiple document ticket with shared data
+                summary: Create multiple document ticket with shared data
+                value:
+                  type: multiDocument
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_14.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  attachments: []
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_writer_assigned
+                  copyingDocumentsEnabled: true
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  documentData:
+                  - templateName: companyRoot:S:Production://Templates/Letter with
+                      advert.jld
+                    description: Letter with advert
+                  - copyOf: 0
+                    description: copy of Letter with advert
+                  - templateName: companyRoot:S:Production://Templates/Letterhead
+                      with address.jld
+                    description: Letterhead with address
+                  sharedData:
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+              Create multiple recipients ticket:
+                description: Create multiple recipients ticket
+                summary: Create multiple recipients ticket
+                value:
+                  type: ticket
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  productionActions:
+                  - SMS
+                  - EMAIL
+                  - EMAIL_WITH_ATTACHMENT
+                  - PRINT
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_01.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  approvalProcessPath:
+                    value: multiple-recipients.json
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_multiple_recipients_tickets_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  multipleRecord: true
+                  documentData:
+                    templateName: companyRoot:S:Production://Templates/Email Simple.jld
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+              Create renewal contract ticket:
+                description: Create renewal contract ticket
+                summary: Create renewal contract ticket
+                value:
+                  type: renewal
+                  renewalId: ExampleContractTicket
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_09.png
+                      title: 'Insurance Policy update '
+                      description: Insurance Health Insurance Policy update.
+                  documentData:
+                    templateName: companyRoot:S:Production:S:UserResource//Templates/Letter
+                      with advert.jld
+                    renewalId: "1"
+                    renewalType: renewal
+                  stateId: S_contract_ticket_simple_scenario_writer_assigned
+                  approvalProcessPath:
+                    value: contract-tickets.json
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+              Create ticket:
+                description: Create ticket
+                summary: Create ticket
+                value:
+                  type: ticket
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  productionActions:
+                  - SMS
+                  - EMAIL
+                  - EMAIL_WITH_ATTACHMENT
+                  - PRINT
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_01.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  attachments: []
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  documentData:
+                    brand: ""
+                    templateName: companyRoot:S:Production://Templates/Email Simple.jld
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+              Create ticket with attachment:
+                description: Create ticket with attachment
+                summary: Create ticket with attachment
+                value:
+                  type: ticket
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  productionActions:
+                  - SMS
+                  - EMAIL
+                  - EMAIL_WITH_ATTACHMENT
+                  - PRINT
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_01.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  attachments:
+                  - attachment_01.gif
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  documentData:
+                    templateName: companyRoot:S:Production://Templates/Email Simple.jld
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+              Create ticket with template selection:
+                description: Create ticket with template selection
+                summary: Create ticket with template selection
+                value:
+                  type: selectTemplate
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_01.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  attachments: []
+                  uploadAttachmentFromLocalDriveEnabled: true
+                  addAttachmentFromGlobalStorageEnabled: true
+                  stateId: S_simple_scenario_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  documentData:
+                    directoryPath: companyRoot:S:Production://Templates/
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+            schema:
+              $ref: "#/components/schemas/TicketBase"
+        description: Ticket data.
+      responses:
+        "201":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                Ticket creation response:
+                  description: Ticket creation response
+                  summary: HTTP 201 code when creating a ticket
+                  value:
+                    guid: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82e
+          description: Ticket created.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                Validation error:
+                  description: Validation error
+                  summary: HTTP 400 error code when creating a ticket
+                  value:
+                    status: 400
+                    title: The 'holder' parameter has invalid value.
+                    code: "10200001"
+                    detail: Value does not match company users.
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/clone:
+    post:
+      description: Ticket to be cloned and the parameters with which it is cloned.
+      operationId: cloneTicket
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Clone multi document ticket with shared data.:
+                description: Clone multi document ticket with shared data.
+                summary: Multi document ticket to be cloned and the parameters with
+                  which it is cloned.
+                value:
+                  guid: 1c39741a-e81c-42eb-aa8f-40559945391d
+                  state: S_simple_scenario_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_14.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  documents: []
+                  sharedData:
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+              Clone ticket data:
+                description: Clone ticket data
+                summary: Ticket to be cloned and the parameters with which it is cloned.
+                value:
+                  guid: 97c5302a-f3ab-4c0d-97af-e9b50f0395dd
+                  state: S_simple_scenario_writer_assigned
+                  holder:
+                    type: userName
+                    holder: a.madsen@vital.com
+                  contract:
+                    contractId: AB07
+                    contractName: Policy Update
+                  properties:
+                    properties:
+                      icon: companyRoot://WebResources/TicketIcons/doc_14.png
+                      title: Underinsurance 09/11
+                      description: Insurance policy update information
+                  documents:
+                  - documentId: 103
+                    dataDefinitions:
+                    - moduleName: DataInput
+                      type: json
+                      value:
+                        Clients:
+                        - ClientID: L81055
+                          MailFrom: FromMail@email.com
+                          Name: John
+                          Midname: ""
+                          Surname: Smith
+                          Gender: M
+                          Title: ""
+                          Salutation: Smith
+                          Language: en_us
+                          AddressSalutation: Mr.
+                          AddressLine1: 14024 Northeast 5th Street
+                          AddressLine2: "Appartment #13"
+                          AddressLine3: "Seattle, WA 98101"
+                          City: Seattle
+                          Zip: 98101
+                          State: Washington
+                          StateAbbreviation: WA
+                          Country: USA
+                          Area: Western United States
+                          Email: JohnSmith@gmail.com
+                          ClientPhone: 28142321870
+                          Date: 31.10.2022
+                          Currency: €
+                          SignatorName: Anja
+                          SignatorSurname: Madsen
+                          SignatorJob: "Senior consultant, Customer Care"
+                          SignatorEmail: a.madsen@vital.com
+                          CompanyAddressLine1: "P.O. Box 18345, 630 W 82nd Street"
+                          CompanyCity: Los Angeles
+                          CompanyZIP: 90044
+                          CompanyState: California
+                          CompanyStateAbbreviation: CA
+                          CompanyPhone: 13 237 537 473
+                    commands: []
+            schema:
+              $ref: "#/components/schemas/CloneTicket"
+        description: Clone ticket data.
+        required: true
+      responses:
+        "201":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                Ticket clone response:
+                  description: Ticket clone response
+                  summary: HTTP 201 code when cloning a ticket
+                  value:
+                    guid: 6fb9f627-915b-45f1-8498-ba3f0db51deb
+          description: Ticket cloned
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket or document not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/deliveryStatus:
+    put:
+      description: "Updates the delivery statuses of existing tickets. In the request,\
+        \ enter the GUIDs of up to 1000 tickets and the new status for each."
+      operationId: setDeliveryStatus
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            schema:
+              $ref: "#/components/schemas/SetDeliveryStatusRequest"
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/SetDeliveryStatusResponse"
+          description: Request accepted
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/{guid}:
+    delete:
+      description: Deletes a ticket.
+      operationId: deleteTicket_1
+      parameters:
+      - description: Ticket GUID
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      - description: Determines whether to permanently remove user attachments and
+          images from ICM
+        in: query
+        name: hardDelete
+        schema:
+          type: boolean
+          default: false
+      responses:
+        "204":
+          description: Ticket deleted successfully.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            '*/*':
+              examples:
+                Validation error:
+                  description: Validation error
+                  summary: Validation error
+                  value:
+                    status: 400
+                    title: Ticket is of Interactive-process type
+                    code: 10200001
+                    detail: null
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+    get:
+      description: "Returns a ticket's details, history, and lists of attachments\
+        \ and comments."
+      operationId: getTicketDetail
+      parameters:
+      - description: Ticket GUID
+        example: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82e
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/TicketDetail"
+          description: Ticket details.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          description: User does not have the required license
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "404":
+          description: Ticket not found
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/{guid}/deleteTicketResources:
+    post:
+      description: Deletes user attachments and images of a deleted ticket
+      operationId: deleteTicketResources
+      parameters:
+      - description: Ticket GUID
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Resources deleted successfully
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/{guid}/deliveryStatus:
+    put:
+      description: Updates delivery status in an existing ticket.
+      operationId: setDeliveryStatus_1
+      parameters:
+      - description: Ticket GUID
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              type: object
+              properties:
+                value:
+                  type: string
+                  description: Variable value
+      responses:
+        "204":
+          description: Delivery status updated successfully
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/{guid}/documents:
+    get:
+      description: Returns ticket documents.
+      operationId: getDocuments_1
+      parameters:
+      - description: Ticket GUID.
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              schema:
+                $ref: "#/components/schemas/DocumentList"
+          description: Ticket documents.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+    post:
+      description: Add ticket document to multiple document ticket with shared data
+      operationId: addTicketDocument
+      parameters:
+      - description: Ticket GUID
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Add ticket document:
+                description: Add ticket document
+                summary: Add ticket document
+                value:
+                  templateName: companyRoot:S:Production://Templates/Email Template.jld
+                  description: Email Template
+            schema:
+              $ref: "#/components/schemas/TemplateDocumentData"
+        description: Ticket-document data
+        required: true
+      responses:
+        "204":
+          description: Document has been added to Multi document ticket with shared
+            data.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            '*/*':
+              examples:
+                Validation error - invalid document data:
+                  description: Validation error - invalid document data
+                  summary: HTTP 400 error code for invalid document data
+                  value:
+                    status: 400
+                    title: Invalid document data.
+                    code: "10200001"
+                    detail: You are adding document to ticket with shared data. DataDefinitions
+                      and Commands are already defined.
+                Validation error - invalid ticket:
+                  description: Validation error - invalid ticket
+                  summary: HTTP 400 error code for invalid ticket
+                  value:
+                    status: 400
+                    title: Invalid ticket.
+                    code: "10200001"
+                    detail: Ticket is not Multi Document with shared data.
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+    put:
+      description: Updates document data of multiple document ticket with shared data.
+      operationId: updateDocumentData_1
+      parameters:
+      - description: Ticket GUID.
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Update document data of multiple document ticket with shared data using XML format:
+                description: Update document data of multiple document ticket with
+                  shared data using XML format
+                summary: Update document data of multiple document ticket with shared
+                  data using XML format
+                value:
+                  dataDefinitions:
+                  - moduleName: DataInput
+                    type: xml
+                    value: <Array-Clients><Clients><ClientID>ID12345</ClientID><MailFrom>FromMail@email.com</MailFrom></Clients></Array-Clients>
+              Update document data of multiple document ticket with shared data using binary Base64Data format:
+                description: Update document data of multiple document ticket with
+                  shared data using binary Base64Data format
+                summary: Update document data of multiple document ticket with shared
+                  data using binary Base64Data format
+                value:
+                  dataDefinitions:
+                  - moduleName: DataInput
+                    type: binaryBase64Data
+                    value: PEFycmF5LUNsaWVudHM+Cgk8Q2xpZW50cz4KCQk8Q2xpZW50SUQ+SUQxMjM0PC9DbGllbnRJRD4KCQk8TWFpbEZyb20+RnJvbU1haWxAZW1haWwuY29tPC9NYWlsRnJvbT4KCTwvQ2xpZW50cz4KPC9BcnJheS1DbGllbnRzPgoK
+              Update document data of multiple document ticket with shared data using json format:
+                description: Update document data of multiple document ticket with
+                  shared data using json format
+                summary: Update document data of multiple document ticket with shared
+                  data using json format
+                value:
+                  dataDefinitions:
+                  - moduleName: DataInput
+                    type: json
+                    value:
+                      Clients:
+                      - ClientID: ID12345
+                        MailFrom: FromMail@email.com
+            schema:
+              $ref: "#/components/schemas/DocumentData"
+        description: Ticket document data.
+        required: true
+      responses:
+        "204":
+          description: Document data of shared ticket updated.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+  /tickets/{guid}/documents/{documentId}:
+    delete:
+      description: Removes document from multiple document ticket with shared data
+      operationId: removeTicketDocument
+      parameters:
+      - description: Ticket GUID
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      - description: Document ID
+        in: path
+        name: documentId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Document has been removed from multiple document ticket with
+            shared data
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          content:
+            '*/*':
+              examples:
+                Validation error:
+                  description: Validation error
+                  summary: HTTP 400 error code for invalid ticket
+                  value:
+                    status: 400
+                    title: Invalid ticket.
+                    code: "10200001"
+                    detail: Ticket is not Multi Document with shared data.
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket or Document not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+    get:
+      description: Returns data of a ticket document.
+      operationId: getDocumentData_1
+      parameters:
+      - description: Ticket GUID.
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      - description: Document ID.
+        in: path
+        name: documentId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            application/json;charset=UTF-8:
+              examples:
+                HTTP 200 ticket-document data response:
+                  description: HTTP 200 ticket-document data response
+                  summary: HTTP 200 ticket-document data response
+                  value:
+                    Clients:
+                    - ClientID: ID123
+                      MailFrom: FromMail@email.com
+              schema:
+                $ref: "#/components/schemas/ApiBadRequestException"
+          description: Ticket-document data.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket or document not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+    put:
+      description: Updates ticket-document data.
+      operationId: updateDocumentData_2
+      parameters:
+      - description: Ticket GUID.
+        in: path
+        name: guid
+        required: true
+        schema:
+          type: string
+      - description: Document ID.
+        in: path
+        name: documentId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json;charset=UTF-8:
+            examples:
+              Update document data using XML format:
+                description: Update document data using XML format
+                summary: Update document data using XML format
+                value: |
+                  {
+                    "dataDefinitions": [
+                      {
+                        "moduleName": "DataInput",
+                        "type": "xml",
+                        "value": "<Array-Clients><Clients><ClientID>ID12345</ClientID><MailFrom>FromMail@email.com</MailFrom></Clients></Array-Clients>"
+                      }
+                    ]
+              Update document data using binary Base64Data format:
+                description: Update document data using binary Base64Data format
+                summary: Update document data using binary Base64Data format
+                value:
+                  dataDefinitions:
+                  - moduleName: DataInput
+                    type: binaryBase64Data
+                    value: PEFycmF5LUNsaWVudHM+Cgk8Q2xpZW50cz4KCQk8Q2xpZW50SUQ+SUQxMjM0PC9DbGllbnRJRD4KCQk8TWFpbEZyb20+RnJvbU1haWxAZW1haWwuY29tPC9NYWlsRnJvbT4KCTwvQ2xpZW50cz4KPC9BcnJheS1DbGllbnRzPgoK
+              Update document data using json format:
+                description: Update document data using json format
+                summary: Update document data using json format
+                value:
+                  dataDefinitions:
+                  - moduleName: DataInput
+                    type: json
+                    value:
+                      Clients:
+                      - ClientID: ID12345
+                        MailFrom: FromMail@email.com
+            schema:
+              $ref: "#/components/schemas/DocumentData"
+        description: Ticket document data.
+        required: true
+      responses:
+        "204":
+          description: Ticket-document data updated.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "400":
+          description: Validation errors.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "401":
+          $ref: "#/components/responses/401"
+        "404":
+          description: Ticket or document not found.
+          headers:
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              $ref: "#/components/headers/X-RateLimit-Reset"
+        "429":
+          $ref: "#/components/responses/429"
+      security:
+      - bearerAuth: []
+      tags:
+      - Tickets
+components:
+  headers:
+    X-RateLimit-Limit:
+      description: The maximum number of requests that the user is allowed to make
+        per rate limit window
+      schema:
+        type: integer
+    X-RateLimit-Remaining:
+      description: The number of requests remaining in the current rate limit window
+      schema:
+        type: integer
+    X-RateLimit-Reset:
+      description: The time when the current rate limit window resets (in UTC epoch
+        seconds)
+      schema:
+        type: integer
+  responses:
+    "401":
+      description: Authentication information is missing or invalid.
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+    "429":
+      description: Too Many Requests
+      headers:
+        X-RateLimit-Limit:
+          $ref: "#/components/headers/X-RateLimit-Limit"
+        X-RateLimit-Remaining:
+          $ref: "#/components/headers/X-RateLimit-Remaining"
+        X-RateLimit-Reset:
+          $ref: "#/components/headers/X-RateLimit-Reset"
+  schemas:
+    ApiBadRequestException:
+      type: object
+      properties:
+        cause:
+          type: object
+          properties:
+            localizedMessage:
+              type: string
+            message:
+              type: string
+            stackTrace:
+              type: array
+              items:
+                type: object
+                properties:
+                  classLoaderName:
+                    type: string
+                  className:
+                    type: string
+                  fileName:
+                    type: string
+                  lineNumber:
+                    type: integer
+                    format: int32
+                  methodName:
+                    type: string
+                  moduleName:
+                    type: string
+                  moduleVersion:
+                    type: string
+                  nativeMethod:
+                    type: boolean
+        code:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        localizedMessage:
+          type: string
+        message:
+          type: string
+        response:
+          $ref: "#/components/schemas/Response"
+        stackTrace:
+          type: array
+          items:
+            type: object
+            properties:
+              classLoaderName:
+                type: string
+              className:
+                type: string
+              fileName:
+                type: string
+              lineNumber:
+                type: integer
+                format: int32
+              methodName:
+                type: string
+              moduleName:
+                type: string
+              moduleVersion:
+                type: string
+              nativeMethod:
+                type: boolean
+        suppressed:
+          type: array
+          items:
+            type: object
+            properties:
+              localizedMessage:
+                type: string
+              message:
+                type: string
+              stackTrace:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    classLoaderName:
+                      type: string
+                    className:
+                      type: string
+                    fileName:
+                      type: string
+                    lineNumber:
+                      type: integer
+                      format: int32
+                    methodName:
+                      type: string
+                    moduleName:
+                      type: string
+                    moduleVersion:
+                      type: string
+                    nativeMethod:
+                      type: boolean
+        title:
+          type: string
+    ApprovalProcessPath:
+      type: object
+      description: This parameter overrides the default selection of the ticket approval
+        process.
+      properties:
+        resolveDepartment:
+          type: boolean
+          description: '''false'' strictly uses approval process at the specified
+            path. ''''true'''' uses specific approval process according to the department
+            specified in the path to the template.'
+          example: false
+        value:
+          type: string
+          description: Specified approval process file name relative to the /ApprovalProcesses/Ticket/
+            folder.
+          example: NewBusinessTicket
+    AttachmentModel:
+      type: object
+      description: Details of the ticket's attachment.
+      properties:
+        conditional:
+          type: boolean
+          description: "If the value is true, the attachment has a display rule set."
+          example: false
+        icmPath:
+          type: string
+          writeOnly: true
+        name:
+          type: string
+          description: Attachment name
+          example: Gift Voucher.pdf
+        path:
+          type: string
+          description: Path to the attachment.
+          example: icm:S:Production:S:UserResource:D:20220718105343:H:PG3vQuNeyWq5W_JK8F26dDxcNtc//Interactive/StandardPackage/Attachments/Gift
+            Voucher.pdf
+    CategorizationCondition:
+      type: object
+      properties:
+        fieldName:
+          type: string
+          description: Condition field name.
+          example: Document category
+        name:
+          type: string
+          description: Condition name.
+          example: General
+        negation:
+          type: boolean
+          description: Condition negation.
+          example: false
+        operator:
+          type: string
+          description: "String occurence operator (enumeration of values equal, less,\
+            \ lessOrEqual...)."
+          enum:
+          - equal
+          - equalCaseInsensitive
+          - less
+          - lessOrEqual
+          - more
+          - moreOrEqual
+          - beginWith
+          - beginWithCaseInsensitive
+          - endWith
+          - endWithCaseInsensitive
+          - contains
+          - containsCaseInsensitive
+          - isValid
+          - empty
+          example: equal
+        value:
+          type: string
+          description: Condition value.
+          example: A
+    CloneContractTicketOperation:
+      type: object
+      properties:
+        documentData:
+          $ref: "#/components/schemas/DocumentData"
+        renewalId:
+          type: string
+          description: "Define a unique ID for the cloned contract ticket. It identifies\
+            \ the contract ticket, i.e. it is saved in the companyRoot://Renewal folder\
+            \ in ICM under this ID"
+        sourceRenewalId:
+          type: string
+          description: Identifies the contract ID of an archived contract ticket which
+            is to be cloned. Cloning the contract ticket enables you to make changes
+            and finalize it again.
+      required:
+      - documentData
+      - renewalId
+      - sourceRenewalId
+    CloneDocument:
+      type: object
+      properties:
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+        documentId:
+          type: integer
+          format: int64
+          description: Document ID from the original ticket.
+    CloneTicket:
+      type: object
+      properties:
+        approvalProcessPath:
+          $ref: "#/components/schemas/ApprovalProcessPath"
+        contract:
+          $ref: "#/components/schemas/Contract"
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/CloneDocument"
+        guid:
+          type: string
+          description: It identifies original ticket.
+        holder:
+          $ref: "#/components/schemas/Holder"
+        properties:
+          $ref: "#/components/schemas/Properties"
+        sharedData:
+          $ref: "#/components/schemas/SharedData"
+        state:
+          type: string
+          description: The approval-process states's ID.
+          example: S_simple_scenario_writer_assigned
+      required:
+      - guid
+      - holder
+      - state
+    Command:
+      type: object
+      description: A command related to the way of processing a JLD file.
+      properties:
+        name:
+          type: string
+          description: Command name.
+          example: -CLIENT_IDParametersData
+        value:
+          type: string
+          description: Command value.
+          example: L81054
+    Condition:
+      type: object
+      description: List templates based on the specified condition.
+      properties:
+        categorizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategorizationCondition"
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/_Condition"
+        metadata:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetadataCondition"
+        negation:
+          type: boolean
+          description: Condition negation.
+          example: false
+        operator:
+          type: string
+          description: "Logical operator (and, or)."
+          enum:
+          - and
+          - or
+          example: or
+    Context:
+      type: object
+      description: Sets document's data context.
+      example:
+        path:
+        - Employees
+        value: "1"
+      properties:
+        path:
+          type: array
+          items:
+            type: string
+        value:
+          type: string
+    Contract:
+      type: object
+      description: Define the contract details.
+      properties:
+        contractId:
+          type: string
+          description: Dedicated field that is displayed in default ticket dashboards.
+            It usually represents customer identifier sent from external system.
+          example: L81054
+        contractName:
+          type: string
+          description: Dedicated field that is displayed in default ticket dashboards.
+            Typically used for showing customer name.
+          example: Robert Miles
+    DataDefinition:
+      type: object
+      properties:
+        moduleName:
+          type: string
+          description: Define the name of the module into which data will be saved.
+          example: DataInput
+        type:
+          type: string
+          description: Define the data input type.
+          enum:
+          - icmLocation
+          - binaryBase64Data
+          - xml
+          - json
+          example: binaryBase64Data
+        value:
+          type: string
+          description: "You can define binary data (binaryBase64Data), enter the source\
+            \ ICM location, or define XML/JSON directly."
+    DocumentComment:
+      type: object
+      description: Comments added to the document.
+      properties:
+        content:
+          type: string
+          description: The content of the comment.
+          example: This section is very well written.
+        date:
+          type: string
+          description: Time and date the comment was added (yyyy-MM-dd'T'HH:mm:ssZ).
+          example: 2022-07-18T10:56:11Z
+        fullName:
+          type: string
+          description: The author's full name.
+          example: Michael Lee
+        id:
+          type: string
+          description: The comment's ID.
+          example: 7ugpnhphf1gb5phj
+        idName:
+          type: string
+          writeOnly: true
+        replyId:
+          type: string
+          description: "ID of the comment which this comment replies to. If the value\
+            \ is null, the comment is not a reply."
+          example: 8ijknhphw1gb9efg
+        text:
+          type: string
+          writeOnly: true
+        user:
+          type: string
+          writeOnly: true
+        userName:
+          type: string
+          description: The author's user name.
+          example: lee@vital.com
+    DocumentData:
+      type: object
+      properties:
+        brand:
+          type: string
+          description: Define the brand for the document.
+          nullable: true
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+        description:
+          type: string
+    DocumentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Document ID.
+          example: 112
+        name:
+          type: string
+          description: Document name.
+          example: Underinsurance 09/11
+    DocumentList:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentItem"
+    DocumentModel:
+      type: object
+      description: List of documents containing comments.
+      properties:
+        comments:
+          type: array
+          description: Comments added to the document.
+          items:
+            $ref: "#/components/schemas/DocumentComment"
+        documentId:
+          type: integer
+          format: int64
+          description: Document ID.
+          example: 1
+    EntityTag:
+      type: object
+      properties:
+        value:
+          type: string
+        weak:
+          type: boolean
+    ExecuteActionRequest:
+      type: object
+      properties:
+        actionId:
+          type: string
+          description: The approval-process action's ID as defined in the approval
+            process.
+          example: A_simple_scenario_writer_submit_to_senior_writer
+        guid:
+          type: string
+          description: The object's GUID
+          example: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82e
+        message:
+          type: string
+          description: Custom message about the approval-process action.
+          example: Very well written content.
+        objectType:
+          type: string
+          description: Type of object the approval process action will be applied
+            to.
+          enum:
+          - Ticket
+          example: Ticket
+        operationsData:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+              description: Definition of the approval-process operation and its parameters.
+              example: "{\"SendToOnDemandOperation\": {\"productionActionId\":\"EMAIL\"\
+                ,\"attachmentName\":\"Attachment.pdf\"}"
+            description: Definition of the approval-process operation and its parameters.
+            example: "{\"SendToOnDemandOperation\": {\"productionActionId\":\"EMAIL\"\
+              ,\"attachmentName\":\"Attachment.pdf\"}"
+          description: Definition of the approval-process operation and its parameters.
+          example: "{\"SendToOnDemandOperation\": {\"productionActionId\":\"EMAIL\"\
+            ,\"attachmentName\":\"Attachment.pdf\"}"
+        userOrGroupName:
+          type: string
+          description: Name of user or user group that will be the object's holder.
+          example: writer@vital.com
+    Holder:
+      type: object
+      description: Define the holder of the ticket.
+      properties:
+        holder:
+          type: string
+          description: Define the ticket holder value.
+          example: lee@vital.com
+        type:
+          type: string
+          description: Define the holder type.
+          enum:
+          - userName
+          - userGroup
+          example: userName
+      required:
+      - holder
+      - type
+    Link:
+      type: object
+      properties:
+        params:
+          type: object
+          additionalProperties:
+            type: string
+        rel:
+          type: string
+        rels:
+          type: array
+          items:
+            type: string
+        title:
+          type: string
+        type:
+          type: string
+        uri:
+          type: string
+          format: uri
+        uriBuilder:
+          $ref: "#/components/schemas/UriBuilder"
+    MailMergeDataDefinition:
+      type: object
+      description: Define a mailMerge data source
+      properties:
+        type:
+          type: string
+          description: Define a source of mailMerge input type
+          enum:
+          - icmLocation
+          - binaryBase64Data
+          - xml
+          - json
+        value:
+          type: string
+          description: Enter binary data or set the source ICM location
+    MailMergeDocumentData:
+      type: object
+      properties:
+        brand:
+          type: string
+          description: Define the brand for the document.
+          nullable: true
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        context:
+          type: array
+          description: Sets document's data context.
+          items:
+            $ref: "#/components/schemas/Context"
+        copyOf:
+          type: integer
+          format: int32
+          description: Create clone of another document specified in create ticket
+            request (index).
+          example: 0
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+        description:
+          type: string
+        mailMergeDataDefinition:
+          $ref: "#/components/schemas/MailMergeDataDefinition"
+        pageDocument:
+          type: boolean
+          description: "If true, the ticket is created as a form document ticket."
+        templateName:
+          type: string
+          description: Path to an existing template the ticket will be created from.
+          example: icm:S:Production://Interactive/StandardPackage/Templates/Email
+            Template.jld
+      required:
+      - templateName
+    MailMergeTicket:
+      type: object
+      allOf:
+      - $ref: "#/components/schemas/TicketBase"
+      - type: object
+        properties:
+          documentData:
+            $ref: "#/components/schemas/MailMergeDocumentData"
+      required:
+      - documentData
+      - holder
+      - stateId
+      - type
+    MediaType:
+      type: object
+      properties:
+        parameters:
+          type: object
+          additionalProperties:
+            type: string
+        subtype:
+          type: string
+        type:
+          type: string
+        wildcardSubtype:
+          type: boolean
+        wildcardType:
+          type: boolean
+    MetadataCondition:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Metadata field name.
+          example: Guid
+        negation:
+          type: boolean
+          description: Metadata condition negation.
+          example: false
+        operator:
+          type: string
+          description: "String occurence operator (enumeration of values equal, less,\
+            \ lessOrEqual...)."
+          enum:
+          - equal
+          - equalCaseInsensitive
+          - less
+          - lessOrEqual
+          - more
+          - moreOrEqual
+          - beginWith
+          - beginWithCaseInsensitive
+          - endWith
+          - endWithCaseInsensitive
+          - contains
+          - containsCaseInsensitive
+          - isValid
+          - exists
+          - empty
+          example: equal
+        value:
+          type: string
+          description: Metadata field value.
+          example: 6E8F2009340E0A448374B2D22ADE8E6B
+    MetadataItem:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Metadata name.
+          example: Channels
+        values:
+          type: array
+          description: Metadata value.
+          example:
+          - Print
+          - Email
+          items:
+            type: object
+            description: Metadata value.
+            example:
+            - Print
+            - Email
+    MultiDocumentTicket:
+      type: object
+      allOf:
+      - $ref: "#/components/schemas/TicketBase"
+      - type: object
+        properties:
+          copyingDocumentsEnabled:
+            type: boolean
+            description: Determines whether user can copy document.
+            example: true
+          documentData:
+            type: array
+            items:
+              $ref: "#/components/schemas/TemplateDocumentData"
+          sharedData:
+            $ref: "#/components/schemas/SharedData"
+      required:
+      - documentData
+      - holder
+      - sharedData
+      - stateId
+      - type
+    MultivaluedMapStringObject:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: object
+      properties:
+        empty:
+          type: boolean
+    MultivaluedMapStringString:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+      properties:
+        empty:
+          type: boolean
+    NewCookie:
+      type: object
+      properties:
+        comment:
+          type: string
+        domain:
+          type: string
+        expiry:
+          type: string
+          format: date-time
+        httpOnly:
+          type: boolean
+        maxAge:
+          type: integer
+          format: int32
+        name:
+          type: string
+        path:
+          type: string
+        sameSite:
+          type: string
+          enum:
+          - NONE
+          - LAX
+          - STRICT
+        secure:
+          type: boolean
+        value:
+          type: string
+        version:
+          type: integer
+          format: int32
+    Properties:
+      type: object
+      description: Define the required ticket properties.
+      properties:
+        overrideAlsoNotEmptyProperties:
+          type: boolean
+          description: Override properties with template properties after template
+            selection.
+          example: true
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+            description: Define custom ticket properties..
+            example: "{\"icon\":\"companyRoot://WebResources/TicketIcons/doc_01.png\"\
+              ,\"title\":\"Underinsurance 09/11\",\"description\":\"Insurance policy\
+              \ update information.\",\"priority\":3}"
+          description: Define custom ticket properties..
+          example:
+            description: Insurance policy update information.
+            icon: companyRoot://WebResources/TicketIcons/doc_01.png
+            priority: 3
+            title: Underinsurance 09/11
+    PropertiesMap:
+      type: object
+      properties:
+        empty:
+          type: boolean
+    RenewalDocumentData:
+      type: object
+      properties:
+        brand:
+          type: string
+          description: Define the brand for the document.
+          nullable: true
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        context:
+          type: array
+          description: Sets document's data context.
+          items:
+            $ref: "#/components/schemas/Context"
+        copyOf:
+          type: integer
+          format: int32
+          description: Create clone of another document specified in create ticket
+            request (index).
+          example: 0
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+        description:
+          type: string
+        pageDocument:
+          type: boolean
+          description: "If true, the ticket is created as a form document ticket."
+        renewalId:
+          type: string
+          description: It identifies the document within the renewal ticket
+          example: RenewalConditionsTemplate.jld
+        renewalType:
+          type: string
+          description: Renewal type
+          enum:
+          - create
+          - renewal
+        templateName:
+          type: string
+          description: Path to an existing template the ticket will be created from.
+          example: icm:S:Production://Interactive/StandardPackage/Templates/Email
+            Template.jld
+      required:
+      - templateName
+    RenewalTicket:
+      type: object
+      allOf:
+      - $ref: "#/components/schemas/TicketBase"
+      - type: object
+        properties:
+          documentData:
+            $ref: "#/components/schemas/RenewalDocumentData"
+          renewalId:
+            type: string
+            description: Define unique ID for a new contract ticket and an existing
+              ID to renew a contract ticket. It identifies a contract ticket. The
+              contract ticket is saved in the companyRoot://Renewal folder in ICM
+              under this ID
+      required:
+      - documentData
+      - holder
+      - stateId
+      - type
+    ReopenRenewalTicketOperation:
+      type: object
+      properties:
+        addAttachmentFromGlobalStorageEnabled:
+          type: boolean
+          description: Determines whether a user can add attachments from the global
+            storage (ICM)
+        approvalProcessPath:
+          $ref: "#/components/schemas/ApprovalProcessPath"
+        attachments:
+          type: array
+          description: Attachments to be added to the ticket
+          items:
+            type: string
+            description: Attachments to be added to the ticket
+        contract:
+          $ref: "#/components/schemas/Contract"
+        holder:
+          $ref: "#/components/schemas/Holder"
+        multipleRecord:
+          type: boolean
+          description: Determines whether the ticket will be handled as a multipleRecord
+            ticket (for multiple recipients)
+        properties:
+          $ref: "#/components/schemas/Properties"
+        renewalId:
+          type: string
+          description: It identifies the archived ticket of the same renewal ID. Reopening
+            the ticket enables you to make additional changes and finalize it again
+        stateId:
+          type: string
+          description: "Initial state of the ticket, the state must be in the approval\
+            \ process"
+        uploadAttachmentFromLocalDriveEnabled:
+          type: boolean
+          description: Determines whether a user can add attachments from a local
+            drive
+      required:
+      - holder
+      - renewalId
+      - stateId
+    Response:
+      type: object
+      properties:
+        allowedMethods:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        closed:
+          type: boolean
+        cookies:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/NewCookie"
+        date:
+          type: string
+          format: date-time
+        entity:
+          type: object
+        entityTag:
+          $ref: "#/components/schemas/EntityTag"
+        headers:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+          properties:
+            empty:
+              type: boolean
+        language:
+          type: object
+          properties:
+            country:
+              type: string
+            displayCountry:
+              type: string
+            displayLanguage:
+              type: string
+            displayName:
+              type: string
+            displayScript:
+              type: string
+            displayVariant:
+              type: string
+            extensionKeys:
+              type: array
+              items:
+                type: string
+              uniqueItems: true
+            iso3Country:
+              type: string
+            iso3Language:
+              type: string
+            language:
+              type: string
+            script:
+              type: string
+            unicodeLocaleAttributes:
+              type: array
+              items:
+                type: string
+              uniqueItems: true
+            unicodeLocaleKeys:
+              type: array
+              items:
+                type: string
+              uniqueItems: true
+            variant:
+              type: string
+        lastModified:
+          type: string
+          format: date-time
+        length:
+          type: integer
+          format: int32
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+          uniqueItems: true
+        location:
+          type: string
+          format: uri
+        mediaType:
+          $ref: "#/components/schemas/MediaType"
+        metadata:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+          properties:
+            empty:
+              type: boolean
+        status:
+          type: integer
+          format: int32
+        statusInfo:
+          $ref: "#/components/schemas/StatusType"
+        stringHeaders:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          properties:
+            empty:
+              type: boolean
+    SelectTemplateDocumentData:
+      type: object
+      properties:
+        brand:
+          type: string
+          description: Define the brand for the document.
+          nullable: true
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        condition:
+          $ref: "#/components/schemas/Condition"
+        context:
+          type: array
+          description: Sets document's data context.
+          items:
+            $ref: "#/components/schemas/Context"
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+        description:
+          type: string
+        directoryPath:
+          type: string
+          description: Enter the ICM path to the directory from which templates will
+            be listed when ticket is created.
+          example: icm:\\Interactive\StandardPackage\Templates
+    SelectTemplateTicket:
+      type: object
+      allOf:
+      - $ref: "#/components/schemas/TicketBase"
+      - type: object
+        properties:
+          documentData:
+            $ref: "#/components/schemas/SelectTemplateDocumentData"
+      required:
+      - documentData
+      - holder
+      - stateId
+      - type
+    ServerStateModel:
+      type: object
+      properties:
+        databaseUpgradePending:
+          type: boolean
+        serverInOkState:
+          type: boolean
+        serverRunning:
+          type: boolean
+        unavailableServices:
+          type: array
+          items:
+            type: string
+            enum:
+            - Licence
+            - LicenceConfiguration
+            - CompanyLicence
+            - Database
+            - DatabaseVersion
+            - Mail
+            - Automation
+            - ContentManager
+            - UsersSynchronization
+            - InitialUsersSynchronization
+            - ProductionServer
+            - ConfigurationReload
+            - Indexing
+            - VariableIndexing
+            - VectorStore
+            - DraftCache
+            - BusinessProcessValidation
+            - Controllers
+          uniqueItems: true
+    SetDeliveryStatus:
+      type: object
+      properties:
+        guid:
+          type: string
+          description: Ticket GUID
+          example: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82
+        status:
+          type: string
+          description: Variable value
+          example: Sent
+      required:
+      - guid
+      - status
+    SetDeliveryStatusRequest:
+      type: object
+      properties:
+        batch:
+          type: array
+          items:
+            $ref: "#/components/schemas/SetDeliveryStatus"
+    SetDeliveryStatusResponse:
+      type: object
+      properties:
+        failures:
+          type: array
+          description: List of tickets for which delivery status has not been set.
+          example:
+          - code: 404
+            guid: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82
+          items:
+            $ref: "#/components/schemas/SetDeliveryStatusResponseItem"
+    SetDeliveryStatusResponseItem:
+      type: object
+      description: List of tickets for which delivery status has not been set.
+      example:
+      - guid: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82
+        code: 404
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: Code
+        guid:
+          type: string
+          description: Ticket GUID
+    SharedData:
+      type: object
+      properties:
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+    StatusType:
+      type: object
+      properties:
+        family:
+          type: string
+          enum:
+          - INFORMATIONAL
+          - SUCCESSFUL
+          - REDIRECTION
+          - CLIENT_ERROR
+          - SERVER_ERROR
+          - OTHER
+        reasonPhrase:
+          type: string
+        statusCode:
+          type: integer
+          format: int32
+    TemplateDocumentData:
+      type: object
+      properties:
+        brand:
+          type: string
+          description: Define the brand for the document.
+          nullable: true
+        commands:
+          type: array
+          description: A command related to the way of processing a JLD file.
+          items:
+            $ref: "#/components/schemas/Command"
+        context:
+          type: array
+          description: Sets document's data context.
+          items:
+            $ref: "#/components/schemas/Context"
+        copyOf:
+          type: integer
+          format: int32
+          description: Create clone of another document specified in create ticket
+            request (index).
+          example: 0
+        dataDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataDefinition"
+        description:
+          type: string
+        pageDocument:
+          type: boolean
+          description: "If true, the ticket is created as a form document ticket."
+        templateName:
+          type: string
+          description: Path to an existing template the ticket will be created from.
+          example: icm:S:Production://Interactive/StandardPackage/Templates/Email
+            Template.jld
+      required:
+      - templateName
+    TemplateItem:
+      type: object
+      properties:
+        edited:
+          type: boolean
+          description: Indicates whether the template has been edited.
+          example: false
+        folder:
+          type: string
+          description: Template folder name.
+          example: GeneralCondTemplate
+        metadata:
+          type: array
+          items:
+            $ref: "#/components/schemas/MetadataItem"
+        name:
+          type: string
+          description: Template name.
+          example: General Conditions
+        version:
+          type: integer
+          format: int32
+          description: Template version.
+          example: 101
+    TemplateList:
+      type: object
+      properties:
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateItem"
+        totalCount:
+          type: integer
+          format: int32
+    Ticket:
+      type: object
+      allOf:
+      - $ref: "#/components/schemas/TicketBase"
+      - type: object
+        properties:
+          documentData:
+            $ref: "#/components/schemas/TemplateDocumentData"
+      required:
+      - documentData
+      - holder
+      - stateId
+      - type
+    TicketBase:
+      type: object
+      discriminator:
+        mapping:
+          mailMerge: "#/components/schemas/MailMergeTicket"
+          multiDocument: "#/components/schemas/MultiDocumentTicket"
+          renewal: "#/components/schemas/RenewalTicket"
+          selectTemplate: "#/components/schemas/SelectTemplateTicket"
+          ticket: "#/components/schemas/Ticket"
+        propertyName: type
+      oneOf:
+      - $ref: "#/components/schemas/Ticket"
+      - $ref: "#/components/schemas/MultiDocumentTicket"
+      - $ref: "#/components/schemas/RenewalTicket"
+      - $ref: "#/components/schemas/MailMergeTicket"
+      - $ref: "#/components/schemas/SelectTemplateTicket"
+      properties:
+        addAttachmentFromGlobalStorageEnabled:
+          type: boolean
+          description: Determines whether a user can add attachments from the global
+            storage (ICM).
+          example: true
+        approvalProcessPath:
+          $ref: "#/components/schemas/ApprovalProcessPath"
+        asynchronousProcessing:
+          type: boolean
+          description: Determines whether the ticket will be created asynchronously.
+          example: false
+        attachments:
+          type: array
+          description: Attachments to be added to the ticket.
+          example:
+          - Gift Voucher - GPK Adventure - Africa.jpg
+          - Gift Voucher - Froodeco - Bouquet.pdf
+          items:
+            type: string
+            description: Attachments to be added to the ticket.
+            example: "[\"Gift Voucher - GPK Adventure - Africa.jpg\",\"Gift Voucher\
+              \ - Froodeco - Bouquet.pdf\"]"
+        contract:
+          $ref: "#/components/schemas/Contract"
+        holder:
+          $ref: "#/components/schemas/Holder"
+        multipleRecord:
+          type: boolean
+          description: Determines whether the ticket will be handled as a multipleRecord
+            ticket (for multiple recipients).
+          example: false
+        productionActions:
+          type: array
+          description: Determines which production actions will be available in the
+            ticket.
+          example:
+          - SMS
+          - EMAIL
+          - EMAIL_WITH_ATTACHMENT
+          - PRINT
+          items:
+            type: string
+            description: Determines which production actions will be available in
+              the ticket.
+            example: "[\"SMS\",\"EMAIL\",\"EMAIL_WITH_ATTACHMENT\",\"PRINT\"]"
+        properties:
+          $ref: "#/components/schemas/Properties"
+        stateId:
+          type: string
+          description: "Initial state of the ticket, the state must be in the approval\
+            \ process."
+          example: S_simple_scenario_writer_assigned
+        type:
+          type: string
+          description: "Ticket type: ticket = template is defined in the data, selectTemplate\
+            \ = template is selected by a user in GUI, mailMerge = batch document\
+            \ ticket based on mail merge template using custom data file, renewal\
+            \ = documents with changes implemented based on contract negotiations."
+          example: selectTemplate
+        uploadAttachmentFromLocalDriveEnabled:
+          type: boolean
+          description: Determines whether a user can add attachments from a local
+            drive.
+          example: false
+      required:
+      - holder
+      - stateId
+      - type
+    TicketBusinessObjectHistory:
+      type: object
+      description: History events.
+      properties:
+        actionId:
+          type: string
+          description: The approval-process action's ID.
+          example: A_simple_scenario_writer_submit_to_senior_writer
+        actionName:
+          type: string
+          writeOnly: true
+        date:
+          type: string
+          description: Time and date the approval-process action was performed (yyyy-MM-dd''T''HH:mm:ssZ).
+          example: 2022-07-18T10:53:52Z
+        displayName:
+          type: string
+          writeOnly: true
+        executor:
+          $ref: "#/components/schemas/TicketDetailPersonSimple"
+        historyName:
+          type: string
+          description: Text displayed in the ticket's history.
+          example: Submitted
+        id:
+          type: integer
+          format: int64
+          description: The event's ID.
+          example: 34
+        message:
+          type: string
+          description: Message entered by the user when confirming the approval-process
+            action.
+          example: Very well written content.
+        originalState:
+          type: string
+          writeOnly: true
+        previousHolders:
+          type: array
+          description: List of previous holders.
+          items:
+            $ref: "#/components/schemas/TicketDetailPersonSimple"
+        previousState:
+          type: string
+          description: Name of the previous state.
+          example: Assigned
+        targetHolders:
+          type: array
+          description: The target holder
+          items:
+            $ref: "#/components/schemas/TicketDetailPersonSimple"
+        targetState:
+          type: string
+          description: Name of the target state.
+          example: Pending
+        transitionType:
+          type: string
+          description: "Type of the approval-process action (CREATE - ticket created,\
+            \ USER_HAND - user action, MAGIC_HAND - admin action, SEND_EMAIL - email\
+            \ sent)."
+          enum:
+          - CREATE
+          - USER_HAND
+          - MAGIC_HAND
+          - SEND_MAIL
+          example: USER_HAND
+    TicketDetail:
+      type: object
+      properties:
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttachmentModel"
+        changed:
+          type: string
+          description: Date and time the ticket was last changed (yyyy-MM-dd'T'HH:mm:ssZ).
+          example: 2020-09-17T04:58:29Z
+        contractId:
+          type: string
+          description: Contract ID.
+          example: AB07
+        contractName:
+          type: string
+          description: Contract name.
+          example: Policy update
+        created:
+          type: string
+          description: Date and time the ticket was created (yyyy-MM-dd'T'HH:mm:ssZ).
+          example: 2020-09-17T04:58:29Z
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentModel"
+        guid:
+          type: string
+          description: Ticket GUID
+          example: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82e
+        history:
+          type: array
+          description: History events.
+          items:
+            $ref: "#/components/schemas/TicketBusinessObjectHistory"
+        holder:
+          $ref: "#/components/schemas/TicketHolderBase"
+        id:
+          type: integer
+          format: int64
+          description: Ticket ID.
+          example: 15
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+            description: Ticket's custom properties.
+            example: "Key: description. Value: Insurance policy update information."
+          description: Ticket's custom properties.
+          example: "Key: description. Value: Insurance policy update information."
+        stateId:
+          type: string
+          description: The approval-process states's ID.
+          example: S_simple_scenario_writer_assigned
+        stateName:
+          type: string
+          description: The approval-process states's name.
+          example: Assigned
+        title:
+          type: string
+          description: Ticket title.
+          example: UnderInsurance 09/11
+    TicketDetailPersonSimple:
+      type: object
+      description: Details of a user or role
+      properties:
+        displayName:
+          type: string
+          writeOnly: true
+        fullName:
+          type: string
+          description: The user or role's full name
+          example: Michael Lee
+        group:
+          type: boolean
+          writeOnly: true
+        groups:
+          type: array
+          items:
+            type: string
+          writeOnly: true
+        id:
+          type: string
+          description: User name or role name
+          example: lee@vital.com
+        idName:
+          type: string
+          writeOnly: true
+        roles:
+          type: array
+          description: List of the user's roles
+          items:
+            type: string
+            description: Role name
+            example: senior writer
+        userEmail:
+          type: string
+          description: The user's email.
+          example: lee@vital.com
+        userGroup:
+          type: boolean
+          description: "If the value is true, it is a role"
+          example: false
+    TicketHolder:
+      type: object
+      properties:
+        holders:
+          type: array
+          description: List of ticket holders.
+          example:
+          - lee@vital.com
+          - tommy@vital.com
+          items:
+            type: string
+            description: List of ticket holders.
+            example: "[\"lee@vital.com\",\"tommy@vital.com\"]"
+        type:
+          type: string
+          description: Holder type.
+          enum:
+          - userName
+          - userGroup
+          example: userGroup
+    TicketHolderBase:
+      type: object
+      description: Details about the ticket's holders.
+      properties:
+        holders:
+          type: array
+          description: List of holders.
+          items:
+            type: string
+            description: User name or role name.
+            example: swriter
+        type:
+          type: string
+          description: Indicates whether the holder is a user (userName) or role (userGroup).
+          enum:
+          - userName
+          - userGroup
+          example: userName
+    TicketItem:
+      type: object
+      properties:
+        changed:
+          type: string
+          description: Time and date the ticket was changed (yyyy-MM-dd''T''HH:mm:ssZ).
+          example: '''2020-09-17T04:58:29Z'''
+        contractId:
+          type: string
+          description: Contract ID.
+          example: AB07
+        contractName:
+          type: string
+          description: Contract name.
+          example: Policy update
+        created:
+          type: string
+          description: Time and date the ticket was created (yyyy-MM-dd''T''HH:mm:ssZ).
+          example: '''2020-09-17T04:58:29Z'''
+        deliveryStatus:
+          type: string
+          description: Delivery status.
+          example: Delivered
+        guid:
+          type: string
+          description: Ticket GUID.
+          example: eb29f5f9-6d50-491d-b3a3-ad6ccfd0f82e
+        holder:
+          $ref: "#/components/schemas/TicketHolder"
+        id:
+          type: integer
+          format: int64
+          description: Ticket ID.
+          example: 15
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+        stateId:
+          type: string
+          description: Ticket approval state ID.
+          example: S_simple_scenario_writer_assigned
+        stateName:
+          type: string
+          description: Ticket approval state name.
+          example: Assigned
+        title:
+          type: string
+          description: Ticket title.
+          example: UnderInsurance 09/11
+    TicketList:
+      type: object
+      properties:
+        tickets:
+          type: array
+          items:
+            $ref: "#/components/schemas/TicketItem"
+        totalCount:
+          type: integer
+          format: int32
+          description: Count of tickets returned.
+          example: 4
+    UriBuilder:
+      type: object
+    VariablesUsed:
+      type: object
+      properties:
+        variablesUsed:
+          type: array
+          description: List of variables used in the template.
+          example:
+          - Data.Clients
+          - Data.Clients.Value.ClientID
+          items:
+            type: string
+            description: List of variables used in the template.
+            example: "[\"Data.Clients\",\"Data.Clients.Value.ClientID\"]"
+    _Condition:
+      type: object
+      example: |-
+        {
+            "negation": false,    "operator": "or",    "conditions": [],    "categorizations": [],    "metadata": [],}
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: Front Office API key
+      scheme: bearer
+      type: http
