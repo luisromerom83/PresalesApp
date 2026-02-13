@@ -390,20 +390,34 @@ main {
 
 /* Filter Manager Styles */
 .filter-manager-card {
-    background: var(--hover-bg);
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.filter-manager-card:hover {
+    border-color: rgba(255, 66, 0, 0.3);
 }
 
 .filter-manager-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--glass-border);
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.filter-manager-header:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-manager-body {
+    padding: 1.5rem;
+    border-top: 1px solid var(--glass-border);
 }
 
 .header-left {
@@ -543,6 +557,27 @@ main {
 
 .view.active {
     display: block;
+}
+
+#todo-view,
+#calendar-ms-view {
+    padding: 0;
+    overflow: hidden;
+    display: none;
+    /* Hidden by default */
+}
+
+#todo-view.active,
+#calendar-ms-view.active {
+    display: flex;
+    flex-direction: column;
+}
+
+#todo-view webview,
+#calendar-ms-view webview {
+    flex: 1;
+    width: 100%;
+    height: 100%;
 }
 
 .content {
@@ -1687,7 +1722,7 @@ body {
 .calendar-controls {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .calendar-container {
@@ -1695,38 +1730,108 @@ body {
     backdrop-filter: blur(10px);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem;
     margin-top: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .calendar-header-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-weight: 600;
-    color: var(--text-secondary);
-    padding-bottom: 1rem;
+    padding-bottom: 0.4rem;
     border-bottom: 1px solid var(--glass-border);
-    margin-bottom: 1rem;
+    margin-bottom: 0.4rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+    text-align: center;
 }
 
+.calendar-header-grid,
 .calendar-grid {
     display: grid;
+    gap: 0.4rem;
+}
+
+.month-view {
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
+}
+
+.full-week {
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.work-week {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.day-view {
+    grid-template-columns: 1fr;
+}
+
+/* Base grid styles updated above */
+
+.calendar-view-switcher {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.3rem;
+    border-radius: 8px;
+    display: flex;
+    gap: 0.2rem;
+    border: 1px solid var(--glass-border);
+}
+
+.view-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.view-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.view-btn.active {
+    background: var(--brand-orange);
+    color: white;
+}
+
+.calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.calendar-grid.day-view .calendar-day {
+    aspect-ratio: auto;
+    min-height: 400px;
+}
+
+.calendar-grid.week-view .calendar-day {
+    aspect-ratio: auto;
+    min-height: 500px;
 }
 
 .calendar-day {
-    aspect-ratio: 1 / 1;
-    min-height: 100px;
+    min-height: 80px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
-    padding: 0.5rem;
+    padding: 0.4rem;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.2rem;
     transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.month-view .calendar-day {
+    aspect-ratio: 16 / 9;
+    /* More horizontal and compact */
 }
 
 .calendar-day:hover {
@@ -1745,10 +1850,10 @@ body {
 }
 
 .day-number {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
     color: var(--text-secondary);
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.1rem;
 }
 
 .today .day-number {
@@ -1759,14 +1864,14 @@ body {
 .calendar-events {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.15rem;
     overflow-y: auto;
-    max-height: 70px;
+    max-height: 60px;
 }
 
 .calendar-event {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.4rem;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
     border-radius: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -1930,6 +2035,167 @@ body {
 .account-contacts-btn.active {
     background: rgba(0, 120, 215, 0.1);
     border-color: #0078d7;
+}
+
+/* --- Módulo de Actividades (Timeline & Cronograma) --- */
+.add-item-btn-inline {
+    background: transparent;
+    border: none;
+    color: var(--brand-orange);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 0.3rem;
+    transition: transform 0.2s;
+}
+
+.add-item-btn-inline:hover {
+    transform: scale(1.3);
+}
+
+/* Timeline Chart Styles - Horizontal Linear Infographic */
+.timeline-chart-container {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 1.5rem;
+    position: relative;
+    height: 450px;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.timeline-axis {
+    position: absolute;
+    top: 50%;
+    left: 2rem;
+    right: 2rem;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+.timeline-milestone {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.milestone-dot {
+    width: 24px;
+    height: 24px;
+    background: var(--grad-primary);
+    border: 4px solid var(--bg-color);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.timeline-milestone:hover .milestone-dot {
+    transform: scale(1.3);
+    box-shadow: 0 0 15px var(--brand-orange);
+}
+
+.milestone-content {
+    position: absolute;
+    width: 160px;
+    text-align: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+}
+
+/* 4-level Interleaving */
+.milestone-top-far .milestone-content {
+    bottom: 130px;
+}
+
+.milestone-top-near .milestone-content {
+    bottom: 30px;
+}
+
+.milestone-bottom-near .milestone-content {
+    top: 30px;
+}
+
+.milestone-bottom-far .milestone-content {
+    top: 130px;
+}
+
+/* Connecting lines for "far" milestones */
+.milestone-top-far::before,
+.milestone-bottom-far::before {
+    content: '';
+    position: absolute;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: -1;
+}
+
+.milestone-top-far::before {
+    height: 100px;
+    bottom: 12px;
+}
+
+.milestone-bottom-far::before {
+    height: 100px;
+    top: 12px;
+}
+
+.milestone-content h5 {
+    color: var(--brand-orange);
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.milestone-date {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    color: var(--text-primary);
+}
+
+.milestone-desc {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.timeline-axis-label {
+    position: absolute;
+    top: 50%;
+    margin-top: 15px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: bold;
+}
+
+.activity-input[type="date"] {
+    max-width: 140px;
+}
+
+.activity-input[type="date"] {
+    max-width: 140px;
 }
 
 /* Help Button */

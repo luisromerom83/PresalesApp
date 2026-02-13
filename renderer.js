@@ -15,6 +15,7 @@ let currentConfig = {
     accountUrlTemplate: '',
     collapsedAccounts: new Set(),
     calendarDate: new Date(), // State for the calendar view
+    calendarView: 'month', // State for the calendar view (day, work-week, full-week, month)
     sidebarFilters: [
         { id: 'stages', label: 'by Stages', mode: 'selection', field: 'Stage' },
         { id: 'classification', label: 'By Classification', mode: 'selection', field: 'accountCategory' },
@@ -26,7 +27,8 @@ let currentConfig = {
         }
     ],
     activeFilters: {}, // { filterId: value/ruleLabel }
-    expandedFilters: new Set() // Track open submenus (empty by default means all collapsed)
+    expandedFilters: new Set(), // Track open submenus (empty by default means all collapsed)
+    expandedManagerFilterId: null // Track which filter is expanded in the settings manager
 };
 
 let activeOppId = null;
@@ -127,6 +129,7 @@ const elements = {
     addAttackActivityBtn: document.getElementById('add-attack-activity-btn'),
     attackPlanStrategy: document.getElementById('attack-plan-strategy'),
     saveAttackPlanBtn: document.getElementById('save-attack-plan-btn'),
+    attackPlanTimelineChart: document.getElementById('attack-plan-timeline-chart'),
     // Account Contacts Elements
     accountContactsModal: document.getElementById('account-contacts-modal'),
     accountContactsModalTitle: document.getElementById('account-contacts-modal-title'),
@@ -253,6 +256,16 @@ if (toggleBtn && oppSubmenu) {
     };
 }
 
+// Sidebar Microsoft Group Toggle
+const toggleMsBtn = document.getElementById('toggle-ms-group');
+const msSubmenu = document.getElementById('ms-group-submenu');
+if (toggleMsBtn && msSubmenu) {
+    toggleMsBtn.onclick = () => {
+        msSubmenu.classList.toggle('collapsed');
+        toggleMsBtn.classList.toggle('collapsed');
+    };
+}
+
 
 // Sidebar Navigation
 document.addEventListener('click', (e) => {
@@ -297,13 +310,36 @@ elements.oppSearchInput.addEventListener('input', (e) => {
 });
 
 // Calendar Navigation
+document.querySelectorAll('.calendar-view-switcher .view-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.calendar-view-switcher .view-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentConfig.calendarView = btn.getAttribute('data-view');
+        renderActivityCalendar();
+    };
+});
+
 elements.prevMonthBtn.onclick = () => {
-    currentConfig.calendarDate.setMonth(currentConfig.calendarDate.getMonth() - 1);
+    const view = currentConfig.calendarView;
+    if (view === 'month') {
+        currentConfig.calendarDate.setMonth(currentConfig.calendarDate.getMonth() - 1);
+    } else if (view === 'full-week' || view === 'work-week') {
+        currentConfig.calendarDate.setDate(currentConfig.calendarDate.getDate() - 7);
+    } else if (view === 'day') {
+        currentConfig.calendarDate.setDate(currentConfig.calendarDate.getDate() - 1);
+    }
     renderActivityCalendar();
 };
 
 elements.nextMonthBtn.onclick = () => {
-    currentConfig.calendarDate.setMonth(currentConfig.calendarDate.getMonth() + 1);
+    const view = currentConfig.calendarView;
+    if (view === 'month') {
+        currentConfig.calendarDate.setMonth(currentConfig.calendarDate.getMonth() + 1);
+    } else if (view === 'full-week' || view === 'work-week') {
+        currentConfig.calendarDate.setDate(currentConfig.calendarDate.getDate() + 7);
+    } else if (view === 'day') {
+        currentConfig.calendarDate.setDate(currentConfig.calendarDate.getDate() + 1);
+    }
     renderActivityCalendar();
 };
 
@@ -353,14 +389,17 @@ function renderDynamicFilters() {
         submenu.className = `submenu ${isExpanded ? '' : 'collapsed'}`;
 
         groupLabel.onclick = () => {
-            const nowExpanded = submenu.classList.toggle('collapsed'); // toggle returns true if class exists now
-            groupLabel.classList.toggle('collapsed');
+            const wasExpanded = isExpanded;
 
-            if (submenu.classList.contains('collapsed')) {
-                currentConfig.expandedFilters.delete(filter.id);
-            } else {
+            // Clear all expanded filters for accordion behavior
+            currentConfig.expandedFilters.clear();
+
+            // If it wasn't expanded, expand only this one
+            if (!wasExpanded) {
                 currentConfig.expandedFilters.add(filter.id);
             }
+
+            renderDynamicFilters();
         };
 
         // Determine options (buttons)
@@ -513,8 +552,9 @@ function renderSidebarFilterManager() {
     elements.sidebarFiltersManagerList.innerHTML = '';
 
     currentConfig.sidebarFilters.forEach((filter, fIdx) => {
+        const isExpanded = currentConfig.expandedManagerFilterId === filter.id;
         const card = document.createElement('div');
-        card.className = 'filter-manager-card';
+        card.className = `filter-manager-card ${isExpanded ? 'expanded' : 'collapsed'}`;
 
         let fieldsHtml = currentConfig.dataStructure.map(s =>
             `<option value="${s.header}" ${filter.field === s.header ? 'selected' : ''}>${s.header}</option>`
@@ -523,34 +563,51 @@ function renderSidebarFilterManager() {
 
         card.innerHTML = `
             <div class="filter-manager-header">
-                <input type="text" class="form-input" style="width: auto; font-weight: bold;" value="${filter.label}" 
-                    onchange="updateFilterProp(${fIdx}, 'label', this.value)">
-                <button class="delete-cat-btn" onclick="deleteSidebarFilter(${fIdx})">Eliminar Grupo</button>
-            </div>
-            
-            <div class="form-group">
-                <label>Modo de Filtrado</label>
-                <select class="form-input" onchange="updateFilterProp(${fIdx}, 'mode', this.value); renderSidebarFilterManager();">
-                    <option value="selection" ${filter.mode === 'selection' ? 'selected' : ''}>Selección (Valores Únicos)</option>
-                    <option value="logic" ${filter.mode === 'logic' ? 'selected' : ''}>Lógica (Reglas Manuales)</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label>Variable / Columna</label>
-                <select class="form-input" onchange="updateFilterProp(${fIdx}, 'field', this.value)">
-                    ${fieldsHtml}
-                </select>
-            </div>
-
-            ${filter.mode === 'logic' ? `
-                <div class="logic-rules-container">
-                    <label>Botones y Reglas</label>
-                    <div id="rules-list-${fIdx}"></div>
-                    <button class="secondary-btn small" style="margin-top: 0.5rem;" onclick="addLogicRule(${fIdx})">+ Añadir Botón</button>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span class="toggle-icon" style="transform: rotate(${isExpanded ? '0' : '-90'}deg)">▼</span>
+                    <strong>${filter.label || 'Nuevo Grupo'}</strong>
+                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? 'Lógica' : 'Selección'}: ${filter.field})</span>
                 </div>
-            ` : ''}
+                <button class="delete-cat-btn" onclick="event.stopPropagation(); deleteSidebarFilter(${fIdx})">Eliminar</button>
+            </div>
+            
+            <div class="filter-manager-body" style="display: ${isExpanded ? 'block' : 'none'};">
+                <div class="form-group">
+                    <label>Etiqueta en Sidebar</label>
+                    <input type="text" class="form-input" value="${filter.label}" 
+                        onchange="updateFilterProp(${fIdx}, 'label', this.value)">
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Modo de Filtrado</label>
+                    <select class="form-input" onchange="updateFilterProp(${fIdx}, 'mode', this.value); renderSidebarFilterManager();">
+                        <option value="selection" ${filter.mode === 'selection' ? 'selected' : ''}>Selección (Valores Únicos)</option>
+                        <option value="logic" ${filter.mode === 'logic' ? 'selected' : ''}>Lógica (Reglas Manuales)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label>Variable / Columna Base</label>
+                    <select class="form-input" onchange="updateFilterProp(${fIdx}, 'field', this.value)">
+                        ${fieldsHtml}
+                    </select>
+                </div>
+
+                ${filter.mode === 'logic' ? `
+                    <div class="logic-rules-container" style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                        <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Botones y Reglas</label>
+                        <div id="rules-list-${fIdx}"></div>
+                        <button class="secondary-btn small" style="margin-top: 0.5rem;" onclick="addLogicRule(${fIdx})">+ Añadir Botón</button>
+                    </div>
+                ` : ''}
+            </div>
         `;
+
+        const header = card.querySelector('.filter-manager-header');
+        header.onclick = () => {
+            currentConfig.expandedManagerFilterId = isExpanded ? null : filter.id;
+            renderSidebarFilterManager();
+        };
 
         elements.sidebarFiltersManagerList.appendChild(card);
 
@@ -632,6 +689,10 @@ window.updateConditionProp = (fIdx, rIdx, cIdx, prop, val) => {
 };
 
 window.deleteSidebarFilter = (fIdx) => {
+    const filterId = currentConfig.sidebarFilters[fIdx].id;
+    if (currentConfig.expandedManagerFilterId === filterId) {
+        currentConfig.expandedManagerFilterId = null;
+    }
     currentConfig.sidebarFilters.splice(fIdx, 1);
     renderSidebarFilterManager();
     autoSaveSidebarFilters();
@@ -666,6 +727,7 @@ window.deleteCondition = (fIdx, rIdx, cIdx) => {
 elements.addSidebarFilterBtn.onclick = () => {
     const newId = 'filter-' + Date.now();
     currentConfig.sidebarFilters.push({ id: newId, label: 'Nuevo Grupo', mode: 'selection', field: 'Stage' });
+    currentConfig.expandedManagerFilterId = newId; // Auto-expand the new filter
     renderSidebarFilterManager();
     autoSaveSidebarFilters();
 };
@@ -694,31 +756,64 @@ async function init() {
 
     // Auto-update notifications
     if (window.electronAPI.onUpdateAvailable) {
-        window.electronAPI.onUpdateAvailable(() => {
+        window.electronAPI.onUpdateAvailable((info) => {
             elements.updateBadge.classList.remove('hidden');
+            elements.updateBadge.title = `Nueva versión v${info.version} disponible`;
             elements.updateBadge.onclick = () => {
-                elements.updateMessage.textContent = "Hay una nueva versión disponible. ¿Deseas descargarla ahora?";
+                elements.updateMessage.textContent = `Hay una nueva versión disponible (v${info.version}). ¿Deseas descargarla ahora?`;
+                elements.confirmUpdateBtn.classList.remove('hidden');
+                elements.confirmUpdateBtn.textContent = "Descargar";
                 elements.confirmUpdateBtn.onclick = () => {
                     window.electronAPI.downloadUpdate();
-                    elements.updateModal.classList.add('hidden');
-                    showToast('Descargando actualización...');
+                    elements.confirmUpdateBtn.textContent = "Iniciando...";
+                    elements.confirmUpdateBtn.disabled = true;
                 };
                 elements.updateModal.classList.remove('hidden');
             };
         });
     }
 
+    if (window.electronAPI.onUpdateProgress) {
+        window.electronAPI.onUpdateProgress((progress) => {
+            elements.updateMessage.textContent = `Descargando: ${Math.round(progress.percent)}% (${(progress.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s)`;
+            elements.confirmUpdateBtn.textContent = "Descargando...";
+            elements.confirmUpdateBtn.disabled = true;
+        });
+    }
+
     if (window.electronAPI.onUpdateDownloaded) {
         window.electronAPI.onUpdateDownloaded(() => {
             elements.updateBadge.classList.add('downloaded');
-            elements.updateBadge.onclick = () => {
+            elements.updateBadge.title = "Actualización descargada y lista para instalar";
+
+            const showInstallPrompt = () => {
                 elements.updateMessage.textContent = "La actualización ya se descargó. ¿Deseas reiniciar la aplicación para instalar?";
+                elements.confirmUpdateBtn.classList.remove('hidden');
+                elements.confirmUpdateBtn.disabled = false;
+                elements.confirmUpdateBtn.textContent = "Reiniciar e Instalar";
                 elements.confirmUpdateBtn.onclick = () => {
                     window.electronAPI.installUpdate();
                 };
                 elements.updateModal.classList.remove('hidden');
             };
+
+            elements.updateBadge.onclick = showInstallPrompt;
+
+            // If the modal is currently showing the download progress, update it to the install prompt
+            if (!elements.updateModal.classList.contains('hidden')) {
+                showInstallPrompt();
+            }
             showToast('Actualización lista para instalar');
+        });
+    }
+
+    if (window.electronAPI.onUpdateError) {
+        window.electronAPI.onUpdateError((err) => {
+            console.error("Update error:", err);
+            showToast(`Error al actualizar: ${err}`);
+            elements.updateModal.classList.add('hidden');
+            elements.confirmUpdateBtn.disabled = false;
+            elements.confirmUpdateBtn.textContent = "Reintentar";
         });
     }
 
@@ -727,8 +822,7 @@ async function init() {
 
     try {
         const settings = await window.electronAPI.getSettings();
-        if (settings && settings.lastDirectory) {
-            currentConfig.directory = settings.lastDirectory;
+        if (settings) {
             currentConfig.crmUrlTemplate = settings.crmUrlTemplate || '';
             currentConfig.accountUrlTemplate = settings.accountUrlTemplate || '';
             const theme = settings.theme || 'auto';
@@ -738,44 +832,53 @@ async function init() {
             if (elements.foApiTokenInput) elements.foApiTokenInput.value = settings.foApiToken || '';
             if (elements.foApiTemplateInput) elements.foApiTemplateInput.value = settings.foApiTemplate || '';
             if (elements.foApiHolderInput) elements.foApiHolderInput.value = settings.foApiHolder || '';
-            elements.settingsPathDisplay.textContent = currentConfig.directory;
             elements.themeSelect.value = theme;
             applyTheme(theme);
 
             currentConfig.responsibles = settings.responsibles || [];
             currentConfig.accountCategories = settings.accountCategories || ['Anchor Account', 'Key Account', 'Partner', 'Tactical Account'];
+            if (settings.sidebarFilters) currentConfig.sidebarFilters = settings.sidebarFilters;
             updateResponsiblesList();
 
-            // Check if directory actually exists and has data
-            const dirStatus = await window.electronAPI.checkDirectory(settings.lastDirectory);
-            if (!dirStatus.exists || dirStatus.empty) {
-                console.warn("Renderer: Directorio no válido o vacío, redirigiendo a configuración.");
-                showScreen('directory-screen');
-                return;
-            }
+            if (settings.lastDirectory) {
+                currentConfig.directory = settings.lastDirectory;
+                elements.settingsPathDisplay.textContent = currentConfig.directory;
 
-            const loaded = await loadAllData(settings.lastDirectory);
-            if (loaded && currentConfig.user) {
-                updateHeaderInfo();
-                renderDynamicFilters();
-                // Initialize collapsed accounts (all collapsed by default)
-                currentConfig.collapsedAccounts = new Set();
-                currentConfig.opportunities.forEach(opp => {
-                    const accId = opp['Account ID'];
-                    if (accId) currentConfig.collapsedAccounts.add(accId);
-                });
+                // Check if directory actually exists and has data
+                const dirStatus = await window.electronAPI.checkDirectory(settings.lastDirectory);
+                if (!dirStatus.exists || dirStatus.empty) {
+                    console.warn("Renderer: Directorio no válido o vacío, redirigiendo a configuración.");
+                    showScreen('directory-screen');
+                    return;
+                }
 
-                renderOpportunities();
-                renderStructureEditor();
-                showScreen('main-screen');
+                const loaded = await loadAllData(settings.lastDirectory);
+                if (loaded && currentConfig.user) {
+                    updateHeaderInfo();
+                    renderDynamicFilters();
+                    // Initialize collapsed accounts (all collapsed by default)
+                    currentConfig.collapsedAccounts = new Set();
+                    currentConfig.opportunities.forEach(opp => {
+                        const accId = opp['Account ID'];
+                        if (accId) currentConfig.collapsedAccounts.add(accId);
+                    });
+
+                    renderOpportunities();
+                    renderStructureEditor();
+                    showScreen('main-screen');
+                } else {
+                    showScreen('form-screen');
+                }
             } else {
-                showScreen('form-screen');
+                // No directory in settings, first boot
+                showScreen('directory-screen');
             }
         } else {
             // No settings at all, first boot
             showScreen('directory-screen');
         }
     } catch (error) {
+        console.error("Renderer Init Error:", error);
     }
 }
 
@@ -2488,54 +2591,107 @@ function formatToDDMMYYYY(date) {
 }
 
 async function renderActivityCalendar() {
+    const view = currentConfig.calendarView;
     const date = currentConfig.calendarDate;
     const year = date.getFullYear();
     const month = date.getMonth();
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-    elements.currentMonthDisplay.textContent = `${monthNames[month]} ${year}`;
     elements.calendarGrid.innerHTML = '';
+    const headerGrid = document.querySelector('.calendar-header-grid');
+    headerGrid.innerHTML = '';
 
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    if (view === 'month') {
+        elements.currentMonthDisplay.textContent = `${monthNames[month]} ${year}`;
+        elements.calendarGrid.className = 'calendar-grid month-view';
+        headerGrid.className = 'calendar-header-grid month-view';
 
-    // Empty cells before first day
-    for (let i = 0; i < firstDay; i++) {
-        const empty = document.createElement('div');
-        empty.className = 'calendar-day empty';
-        elements.calendarGrid.appendChild(empty);
-    }
-
-    // Days with activities
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dayCell = document.createElement('div');
-        dayCell.className = 'calendar-day';
-        const today = new Date();
-        if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
-            dayCell.classList.add('today');
-        }
-
-        dayCell.innerHTML = `<span class="day-number">${d}</span><div class="calendar-events"></div>`;
-        const eventContainer = dayCell.querySelector('.calendar-events');
-
-        // Activities for this specific day
-        const dayActivities = getActivityForDay(year, month, d);
-        dayActivities.forEach(act => {
-            const evBtn = document.createElement('div');
-            evBtn.className = `calendar-event event-${act.type}`;
-            evBtn.textContent = `${act.type.toUpperCase()}: ${act.activity}`;
-            evBtn.title = `${act.oppName}\n${act.activity}\n${act.responsible}`;
-            evBtn.onclick = (e) => {
-                e.stopPropagation();
-                goToOpportunity(act.oppId);
-            };
-            eventContainer.appendChild(evBtn);
+        dayNames.forEach(d => {
+            const div = document.createElement('div');
+            div.textContent = d.substring(0, 3);
+            headerGrid.appendChild(div);
         });
 
-        elements.calendarGrid.appendChild(dayCell);
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'calendar-day empty';
+            elements.calendarGrid.appendChild(empty);
+        }
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            renderDayCell(year, month, d);
+        }
+    } else if (view === 'day') {
+        elements.currentMonthDisplay.textContent = `${date.getDate()} ${monthNames[month]} ${year}`;
+        elements.calendarGrid.className = 'calendar-grid day-view';
+        headerGrid.className = 'calendar-header-grid day-view';
+
+        const div = document.createElement('div');
+        div.textContent = dayNames[date.getDay()];
+        headerGrid.appendChild(div);
+
+        renderDayCell(year, month, date.getDate());
+    } else if (view === 'work-week' || view === 'full-week') {
+        elements.calendarGrid.className = `calendar-grid week-view ${view}`;
+        headerGrid.className = `calendar-header-grid week-view ${view}`;
+
+        // Find Monday
+        const currentDay = date.getDay();
+        const diff = date.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+        const monday = new Date(date);
+        monday.setDate(diff);
+
+        const daysToShow = view === 'work-week' ? 5 : 7;
+
+        // Update title to show range
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + (daysToShow - 1));
+        elements.currentMonthDisplay.textContent = `${monday.getDate()} ${monthNames[monday.getMonth()]} - ${sunday.getDate()} ${monthNames[sunday.getMonth()]} ${year}`;
+
+        for (let i = 0; i < daysToShow; i++) {
+            const current = new Date(monday);
+            current.setDate(monday.getDate() + i);
+
+            const div = document.createElement('div');
+            div.textContent = dayNames[current.getDay()].substring(0, 3);
+            headerGrid.appendChild(div);
+
+            renderDayCell(current.getFullYear(), current.getMonth(), current.getDate());
+        }
     }
+}
+
+function renderDayCell(year, month, day) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+    const today = new Date();
+    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+        dayCell.classList.add('today');
+    }
+
+    dayCell.innerHTML = `<span class="day-number">${day}</span><div class="calendar-events"></div>`;
+    const eventContainer = dayCell.querySelector('.calendar-events');
+
+    const dayActivities = getActivityForDay(year, month, day);
+    dayActivities.forEach(act => {
+        const evBtn = document.createElement('div');
+        evBtn.className = `calendar-event event-${act.type}`;
+        evBtn.textContent = `${act.type.toUpperCase()}: ${act.activity}`;
+        evBtn.title = `${act.oppName}\n${act.activity}\n${act.responsible}`;
+        evBtn.onclick = (e) => {
+            e.stopPropagation();
+            goToOpportunity(act.oppId);
+        };
+        eventContainer.appendChild(evBtn);
+    });
+
+    elements.calendarGrid.appendChild(dayCell);
 }
 
 function getActivityForDay(year, month, day) {
@@ -2581,7 +2737,8 @@ function getActivityForDay(year, month, day) {
         if (account.attackPlan && account.attackPlan.activities) {
             const accName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
             account.attackPlan.activities.forEach(act => {
-                if (act.date && act.date === targetDateStr) {
+                const actDate = act.startDate || act.date;
+                if (actDate && actDate === targetDateStr) {
                     dayActs.push({
                         activity: act.name,
                         responsible: 'Account Plan',
@@ -2618,6 +2775,7 @@ window.openAttackPlan = (accountId) => {
 
     renderAttackPlanLicenses();
     renderAttackPlanActivities();
+    renderAttackTimelineChart();
     elements.attackPlanStrategy.value = currentAttackPlanData.strategy || '';
 
     elements.attackPlanModal.classList.remove('hidden');
@@ -2651,32 +2809,105 @@ elements.addAttackLicenseBtn.onclick = () => {
     renderAttackPlanLicenses();
 };
 
+// --- Módulo de Actividades (Attack Plan / Timeline) ---
 function renderAttackPlanActivities() {
     elements.attackPlanActivitiesBody.innerHTML = '';
     currentAttackPlanData.activities.forEach((act, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><input type="text" class="activity-input" value="${act.name || ''}" onchange="updateAttackActivity(${idx}, 'name', this.value)" placeholder="Hito/Actividad"></td>
-            <td><input type="date" class="activity-input" value="${act.date || ''}" onchange="updateAttackActivity(${idx}, 'date', this.value)"></td>
+            <td><input type="date" class="activity-input" value="${act.startDate || act.date || ''}" onchange="updateAttackActivity(${idx}, 'startDate', this.value)"></td>
+            <td><input type="date" class="activity-input" value="${act.endDate || ''}" onchange="updateAttackActivity(${idx}, 'endDate', this.value)"></td>
             <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="Comentarios...">${act.comments || ''}</textarea></td>
-            <td><button class="remove-item-btn" onclick="removeAttackActivity(${idx})">&times;</button></td>
+            <td style="white-space: nowrap;">
+                <button class="add-item-btn-inline" onclick="insertAttackActivity(${idx})" title="Insertar arriba">+</button>
+                <button class="remove-item-btn" onclick="removeAttackActivity(${idx})" title="Eliminar">&times;</button>
+            </td>
         `;
         elements.attackPlanActivitiesBody.appendChild(tr);
     });
 }
 
+function renderAttackTimelineChart() {
+    if (!elements.attackPlanTimelineChart) return;
+    elements.attackPlanTimelineChart.innerHTML = '';
+
+    const activities = currentAttackPlanData.activities.filter(a => a.startDate);
+    if (activities.length === 0) {
+        elements.attackPlanTimelineChart.innerHTML = '<p class="sub-text">Define al menos una fecha de inicio para ver el timeline.</p>';
+        return;
+    }
+
+    // Add central axis
+    const axis = document.createElement('div');
+    axis.className = 'timeline-axis';
+    elements.attackPlanTimelineChart.appendChild(axis);
+
+    // Sort by start date
+    activities.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+    const minDate = new Date(Math.min(...activities.map(a => new Date(a.startDate))));
+    const maxDate = new Date(Math.max(...activities.map(a => new Date(a.endDate || a.startDate))));
+
+    // Add small buffer to dates for better visualization
+    const buffer = (maxDate - minDate) * 0.1 || 86400000; // 10% buffer or 1 day
+    const chartStart = new Date(minDate.getTime() - buffer);
+    const chartEnd = new Date(maxDate.getTime() + buffer);
+    const totalDuration = chartEnd - chartStart;
+
+    activities.forEach((act, idx) => {
+        const start = new Date(act.startDate);
+        const position = ((start - chartStart) / totalDuration) * 100;
+
+        const verticalLevels = ['milestone-top-far', 'milestone-bottom-near', 'milestone-top-near', 'milestone-bottom-far'];
+        const milestoneClass = verticalLevels[idx % 4];
+
+        const milestone = document.createElement('div');
+        milestone.className = `timeline-milestone ${milestoneClass}`;
+        milestone.style.left = `${Math.min(Math.max(position, 5), 95)}%`;
+
+        const safeDate = (ds) => ds ? new Date(ds.replace(/-/g, '/')).toLocaleDateString() : '';
+        const startDateStr = safeDate(act.startDate);
+        const endDateStr = safeDate(act.endDate);
+
+        const displayDate = (act.endDate && act.startDate !== act.endDate)
+            ? `${startDateStr} - ${endDateStr}`
+            : startDateStr;
+
+        milestone.innerHTML = `
+            <div class="milestone-content">
+                <div class="milestone-date">${displayDate}</div>
+                <h5>${act.name || 'Hito'}</h5>
+                <div class="milestone-desc">${act.comments || ''}</div>
+            </div>
+            <div class="milestone-dot" title="${act.name}: ${startDateStr}${endDateStr ? ' al ' + endDateStr : ''}"></div>
+        `;
+
+        elements.attackPlanTimelineChart.appendChild(milestone);
+    });
+}
+
 window.updateAttackActivity = (idx, field, val) => {
     currentAttackPlanData.activities[idx][field] = val;
+    renderAttackTimelineChart();
 };
 
 window.removeAttackActivity = (idx) => {
     currentAttackPlanData.activities.splice(idx, 1);
     renderAttackPlanActivities();
+    renderAttackTimelineChart();
+};
+
+window.insertAttackActivity = (idx) => {
+    currentAttackPlanData.activities.splice(idx, 0, { name: '', startDate: '', endDate: '', comments: '' });
+    renderAttackPlanActivities();
+    renderAttackTimelineChart();
 };
 
 elements.addAttackActivityBtn.onclick = () => {
-    currentAttackPlanData.activities.push({ name: '', date: '', comments: '' });
+    currentAttackPlanData.activities.push({ name: '', startDate: '', endDate: '', comments: '' });
     renderAttackPlanActivities();
+    renderAttackTimelineChart();
 };
 
 elements.saveAttackPlanBtn.onclick = async () => {

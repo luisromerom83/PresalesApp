@@ -51,6 +51,8 @@ app.whenReady().then(() => {
     // Domains involved in To-Do and Microsoft Login
     const targetDomains = [
       'to-do.office.com',
+      'outlook.office.com',
+      'outlook.live.com',
       'login.microsoftonline.com',
       'login.live.com',
       'account.microsoft.com',
@@ -77,16 +79,21 @@ app.whenReady().then(() => {
   createWindow();
 
   // Auto-Update Events
-  autoUpdater.on('update-available', () => {
-    if (mainWindow) mainWindow.webContents.send('update-available');
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update-available', info);
   });
 
-  autoUpdater.on('update-downloaded', () => {
-    if (mainWindow) mainWindow.webContents.send('update-downloaded');
+  autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    if (mainWindow) mainWindow.webContents.send('update-progress', progressObj);
   });
 
   autoUpdater.on('error', (err) => {
     console.error('Update error:', err);
+    if (mainWindow) mainWindow.webContents.send('update-error', err.message);
   });
 
   // Check for updates
@@ -134,8 +141,13 @@ ipcMain.handle('get-settings', () => {
   return {};
 });
 
-ipcMain.handle('save-settings', (event, settings) => {
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+ipcMain.handle('save-settings', (event, newSettings) => {
+  let existingSettings = {};
+  if (fs.existsSync(settingsPath)) {
+    existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  }
+  const mergedSettings = { ...existingSettings, ...newSettings };
+  fs.writeFileSync(settingsPath, JSON.stringify(mergedSettings, null, 2));
   return { success: true };
 });
 
