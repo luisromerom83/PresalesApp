@@ -28,7 +28,8 @@ let currentConfig = {
     ],
     activeFilters: {}, // { filterId: value/ruleLabel }
     expandedFilters: new Set(), // Track open submenus (empty by default means all collapsed)
-    expandedManagerFilterId: null // Track which filter is expanded in the settings manager
+    expandedManagerFilterId: null, // Track which filter is expanded in the settings manager
+    viewHistory: [] // Stack for navigation history
 };
 
 let activeOppId = null;
@@ -142,7 +143,7 @@ const elements = {
     globalContactsSearchInput: document.getElementById('contacts-search-input'),
     accountsWithPlanList: document.getElementById('accounts-with-plan-list'),
     helpBtn: document.getElementById('help-btn'),
-
+    backBtn: document.getElementById('back-btn'),
     oppTableHead: document.getElementById('opp-table-head'),
     detailsModal: document.getElementById('details-modal'),
     detailsContent: document.getElementById('details-content'),
@@ -200,14 +201,39 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
-function showView(viewId) {
+function showView(viewId, isBack = false) {
+    const activeView = document.querySelector('.view.active');
+    const currentViewId = activeView ? activeView.id : null;
+
+    if (!isBack && currentViewId && currentViewId !== viewId) {
+        currentConfig.viewHistory.push(currentViewId);
+    }
+
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
-    document.getElementById(viewId).classList.add('active');
+    const targetView = document.getElementById(viewId);
+    if (targetView) targetView.classList.add('active');
+
     const navBtn = document.querySelector(`[data-target="${viewId}"]`);
     if (navBtn) navBtn.classList.add('active');
+
+    // Show/Hide back button based on history
+    if (currentConfig.viewHistory.length > 0) {
+        elements.backBtn.classList.remove('hidden');
+    } else {
+        elements.backBtn.classList.add('hidden');
+    }
 }
+
+window.goBack = () => {
+    if (currentConfig.viewHistory.length > 0) {
+        const prevViewId = currentConfig.viewHistory.pop();
+        showView(prevViewId, true);
+    }
+};
+
+elements.backBtn.onclick = window.goBack;
 
 // Window Controls Logic
 
@@ -321,7 +347,7 @@ document.querySelectorAll('.calendar-view-switcher .view-btn').forEach(btn => {
 
 elements.prevMonthBtn.onclick = () => {
     const view = currentConfig.calendarView;
-    if (view === 'month') {
+    if (view === 'month' || view === 'agenda') {
         currentConfig.calendarDate.setMonth(currentConfig.calendarDate.getMonth() - 1);
     } else if (view === 'full-week' || view === 'work-week') {
         currentConfig.calendarDate.setDate(currentConfig.calendarDate.getDate() - 7);
@@ -333,7 +359,7 @@ elements.prevMonthBtn.onclick = () => {
 
 elements.nextMonthBtn.onclick = () => {
     const view = currentConfig.calendarView;
-    if (view === 'month') {
+    if (view === 'month' || view === 'agenda') {
         currentConfig.calendarDate.setMonth(currentConfig.calendarDate.getMonth() + 1);
     } else if (view === 'full-week' || view === 'work-week') {
         currentConfig.calendarDate.setDate(currentConfig.calendarDate.getDate() + 7);
@@ -996,6 +1022,7 @@ async function finalizeDirChange() {
     if (loaded && currentConfig.user) {
         updateHeaderInfo();
         renderOpportunities();
+        currentConfig.viewHistory = []; // Clear history on major context change
         showScreen('main-screen');
         showView('opp-list-view');
     } else {
@@ -2664,7 +2691,55 @@ async function renderActivityCalendar() {
 
             renderDayCell(current.getFullYear(), current.getMonth(), current.getDate());
         }
+    } else if (view === 'agenda') {
+        elements.currentMonthDisplay.textContent = `${monthNames[month]} ${year}`;
+        elements.calendarGrid.className = 'calendar-grid agenda-view';
+        headerGrid.innerHTML = ''; // Hide standard header grid
+
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let d = 1; d <= daysInMonth; d++) {
+            renderDayAgenda(year, month, d);
+        }
     }
+}
+
+function renderDayAgenda(year, month, day) {
+    const dayActivities = getActivityForDay(year, month, day);
+    if (dayActivities.length === 0) return;
+
+    const dayGroup = document.createElement('div');
+    dayGroup.className = 'agenda-day-group';
+
+    const dateObj = new Date(year, month, day);
+    const dayNamesShort = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+    const monthNamesShort = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+
+    const dateHtml = `
+        <div class="agenda-date-col">
+            <span class="agenda-day-num">${day}</span>
+            <span class="agenda-day-name">${monthNamesShort[month]}, ${dayNamesShort[dateObj.getDay()]}</span>
+        </div>
+    `;
+
+    const activitiesHtml = dayActivities.map(act => `
+        <div class="agenda-activity-row" onclick="goToOpportunity('${act.oppId}')">
+            <div class="agenda-dot-col">
+                <span class="agenda-dot dot-${act.type}"></span>
+            </div>
+            <span class="agenda-time">Todo el día</span>
+            <span class="agenda-title">${act.activity}</span>
+            <span class="agenda-opp-name">${act.oppName}</span>
+        </div>
+    `).join('');
+
+    dayGroup.innerHTML = `
+        ${dateHtml}
+        <div class="agenda-activities-list">
+            ${activitiesHtml}
+        </div>
+    `;
+
+    elements.calendarGrid.appendChild(dayGroup);
 }
 
 function renderDayCell(year, month, day) {
@@ -2745,7 +2820,7 @@ function getActivityForDay(year, month, day) {
                         comments: act.comments,
                         type: 'attack',
                         oppName: accName,
-                        oppId: null // It's at account level
+                        oppId: accountId // Use accountId as oppId for navigation
                     });
                 }
             });
