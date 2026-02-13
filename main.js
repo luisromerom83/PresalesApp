@@ -79,11 +79,15 @@ app.whenReady().then(() => {
   createWindow();
 
   // Auto-Update Events
+  autoUpdater.autoDownload = false; // We will trigger download manually
+
   autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
     if (mainWindow) mainWindow.webContents.send('update-available', info);
   });
 
   autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
     if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
   });
 
