@@ -14,19 +14,23 @@
     <div class="app-container">
         <header>
             <div class="header-left">
-                <button id="back-btn" class="back-btn hidden" title="Volver">&larr;</button>
+                <button id="back-btn" class="back-btn hidden" title="Volver" data-i18n="btn_back"
+                    data-i18n-prop="title">&larr;</button>
                 <img src="assets/logo_shield.svg" alt="Logo" class="app-logo">
-                <h1 id="app-title">Presales LatinTool</h1>
+                <h1 id="app-title" data-i18n="app_title">Presales LatinTool</h1>
             </div>
             <div class="header-right">
-                <div id="update-badge" class="update-badge hidden" title="Nueva actualización disponible">
+                <div id="update-badge" class="update-badge hidden" title="Nueva actualización disponible"
+                    data-i18n="update_available" data-i18n-prop="title">
                     <span class="badge-icon">☁️</span>
-                    <span class="badge-text">Update</span>
+                    <span class="badge-text" data-i18n="update_badge_text">Update</span>
                 </div>
-                <button id="help-btn" class="help-btn" title="Manual de Ayuda">?</button>
+                <button id="help-btn" class="help-btn" title="Manual de Ayuda" data-i18n="help_manual"
+                    data-i18n-prop="title">?</button>
                 <div class="header-user-info">
-                    <span id="header-display-name" style="font-weight: 600; color: var(--brand-orange);">Usuario</span>
-                    <span id="header-display-company"
+                    <span id="header-display-name" data-i18n="user_name"
+                        style="font-weight: 600; color: var(--brand-orange);">Usuario</span>
+                    <span id="header-display-company" data-i18n="company_name"
                         style="font-size: 0.8rem; color: var(--text-secondary);">Empresa</span>
                 </div>
                 <div class="header-logo">
@@ -40,11 +44,13 @@
             <section id="directory-screen" class="screen active">
                 <div class="card center-content">
                     <img src="assets/logo.svg" alt="Quadient Logo" class="entry-logo theme-logo">
-                    <h2>Configuración Inicial</h2>
-                    <p>Selecciona el directorio donde se alojarán todos los archivos de configuración (JSON).</p>
-                    <button id="select-dir-btn" class="primary-btn">Seleccionar Directorio</button>
-                    <p id="selected-path" class="path-display"></p>
-                    <button id="continue-btn" class="secondary-btn hidden">Continuar</button>
+                    <h2 data-i18n="init_config_title">Configuración Inicial</h2>
+                    <p data-i18n="init_config_desc">Selecciona el directorio donde se alojarán todos los archivos de
+                        configuración (JSON).</p>
+                    <button id="select-dir-btn" class="primary-btn" data-i18n="btn_select_dir">Seleccionar
+                        Directorio</button>
+                    <p id="selected-path" class="path-display" data-i18n="path_not_selected"></p>
+                    <button id="continue-btn" class="secondary-btn hidden" data-i18n="btn_continue">Continuar</button>
                 </div>
             </section>
 
@@ -52,23 +58,27 @@
             <section id="form-screen" class="screen">
                 <div class="card center-content">
                     <img src="assets/logo.svg" alt="Quadient Logo" class="entry-logo theme-logo">
-                    <h2>Datos de Usuario</h2>
+                    <h2 data-i18n="user_data_title">Datos de Usuario</h2>
                     <form id="user-form">
                         <div class="form-group">
-                            <label for="name">Nombre Completo</label>
-                            <input type="text" id="name" required placeholder="Ej. Juan Pérez">
+                            <label for="name" data-i18n="label_full_name">Nombre Completo</label>
+                            <input type="text" id="name" required placeholder="Ej. Juan Pérez"
+                                data-i18n="placeholder_full_name" data-i18n-prop="placeholder">
                         </div>
                         <div class="form-group">
-                            <label for="email">Correo Electrónico</label>
-                            <input type="email" id="email" required placeholder="juan@ejemplo.com">
+                            <label for="email" data-i18n="label_email">Correo Electrónico</label>
+                            <input type="email" id="email" required placeholder="juan@ejemplo.com"
+                                data-i18n="placeholder_email" data-i18n-prop="placeholder">
                         </div>
                         <div class="form-group">
-                            <label for="company">Empresa</label>
-                            <input type="text" id="company" placeholder="Nombre de tu empresa">
+                            <label for="company" data-i18n="label_company">Empresa</label>
+                            <input type="text" id="company" placeholder="Nombre de tu empresa"
+                                data-i18n="placeholder_company" data-i18n-prop="placeholder">
                         </div>
                         <div class="form-actions">
-                            <button type="button" id="back-to-dir-btn" class="text-btn">Volver</button>
-                            <button type="submit" class="primary-btn">Entrar</button>
+                            <button type="button" id="back-to-dir-btn" class="text-btn"
+                                data-i18n="btn_back">Volver</button>
+                            <button type="submit" class="primary-btn" data-i18n="btn_enter">Entrar</button>
                         </div>
                     </form>
                 </div>
@@ -81,12 +91,14 @@
                         <nav>
                             <div id="opp-group-container">
                                 <div class="nav-group-label" id="toggle-opp-group">
-                                    <span>Todas las oportunidades</span><span class="toggle-icon">▾</span>
+                                    <span data-i18n="sidebar_opps">Oportunidades</span><span
+                                        class="toggle-icon">▾</span>
                                 </div>
                                 <div id="opp-group-submenu" class="submenu">
-                                    <button class="nav-btn active" data-target="opp-list-view"
-                                        id="all-opps-btn">Todas</button>
-                                    <button class="nav-btn" data-target="opp-list-view" id="favorites-nav-btn">⭐
+                                    <button class="nav-btn active" data-target="opp-list-view" id="all-opps-btn"
+                                        data-i18n="sidebar_all">Todas</button>
+                                    <button class="nav-btn" data-target="opp-list-view" id="favorites-nav-btn"
+                                        data-i18n="sidebar_favorites">⭐
                                         Favoritos</button>
                                     <div id="dynamic-filters-container">
                                         <!-- Dynamic groups injected here -->
@@ -96,11 +108,16 @@
 
                             <div
                                 style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                                <button class="nav-btn" data-target="activity-calendar-view"
-                                    id="calendar-nav-btn">Calendario de Actividades</button>
-                                <button class="nav-btn" data-target="global-contacts-view">Contactos</button>
-                                <button class="nav-btn" data-target="accounts-with-plan-view">Planes de Cuenta</button>
-                                <button class="nav-btn" data-target="notes-history-view">Historial</button>
+                                <button class="nav-btn" data-target="activity-calendar-view" id="calendar-nav-btn"
+                                    data-i18n="sidebar_calendar">Calendario de Actividades</button>
+                                <button class="nav-btn" data-target="global-contacts-view"
+                                    data-i18n="sidebar_contacts">Contactos</button>
+                                <button class="nav-btn" data-target="accounts-with-plan-view"
+                                    data-i18n="sidebar_account_plans">Planes de Cuenta</button>
+                                <button class="nav-btn" data-target="notes-history-view"
+                                    data-i18n="sidebar_history">Historial</button>
+                                <button class="nav-btn" data-target="resources-view"
+                                    data-i18n="sidebar_resources">Recursos</button>
 
                                 <div id="ms-group-container">
                                     <div class="nav-group-label" id="toggle-ms-group">
@@ -114,7 +131,8 @@
                                     </div>
                                 </div>
 
-                                <button class="nav-btn" data-target="settings-view">Configuración</button>
+                                <button class="nav-btn" data-target="settings-view"
+                                    data-i18n="sidebar_settings">Configuración</button>
                             </div>
                         </nav>
                         <div id="app-version" class="sidebar-version">v1.0.0</div>
@@ -124,19 +142,19 @@
                         <!-- Notes History View -->
                         <div id="notes-history-view" class="view">
                             <div class="toolbar">
-                                <h2>Historial Global de Notas</h2>
+                                <h2 data-i18n="view_title_history">Historial Global de Notas</h2>
                             </div>
                             <div class="history-container">
                                 <section class="history-group">
-                                    <h3>Esta Semana</h3>
+                                    <h3 data-i18n="history_this_week">Esta Semana</h3>
                                     <div id="history-week" class="history-list"></div>
                                 </section>
                                 <section class="history-group">
-                                    <h3>Este Mes</h3>
+                                    <h3 data-i18n="history_this_month">Este Mes</h3>
                                     <div id="history-month" class="history-list"></div>
                                 </section>
                                 <section class="history-group">
-                                    <h3>Este Año</h3>
+                                    <h3 data-i18n="history_this_year">Este Año</h3>
                                     <div id="history-year" class="history-list"></div>
                                 </section>
                             </div>
@@ -157,13 +175,16 @@
                         <!-- Opportunities View -->
                         <div id="opp-list-view" class="view active">
                             <div class="toolbar">
-                                <h2>Oportunidades</h2>
+                                <h2 id="opp-view-title" data-i18n="view_title_opps">Oportunidades</h2>
                                 <div class="search-container">
                                     <input type="text" id="opp-search-input"
-                                        placeholder="Buscar por nombre, ID o cuenta...">
+                                        placeholder="Buscar por nombre, ID o cuenta..."
+                                        data-i18n="placeholder_search_opps" data-i18n-prop="placeholder">
                                 </div>
+                                <button id="add-general-note-btn" class="secondary-btn small" title="Notas Generales"
+                                    data-i18n="btn_general_notes" data-i18n-prop="title">📝</button>
                                 <label class="csv-upload-btn primary-btn small">
-                                    Importar CSV
+                                    <span data-i18n="btn_import_csv">Importar CSV</span>
                                     <input type="file" id="csv-input" accept=".csv" hidden>
                                 </label>
                             </div>
@@ -183,14 +204,19 @@
                         <!-- Activity Calendar View -->
                         <div id="activity-calendar-view" class="view">
                             <div class="toolbar calendar-toolbar">
-                                <h2>Calendario de Actividades</h2>
+                                <h2 data-i18n="view_title_calendar">Calendario de Actividades</h2>
                                 <div class="calendar-controls">
                                     <div class="calendar-view-switcher">
-                                        <button class="view-btn small" data-view="agenda">Agenda</button>
-                                        <button class="view-btn small" data-view="day">Día</button>
-                                        <button class="view-btn small" data-view="work-week">Semana (L-V)</button>
-                                        <button class="view-btn small" data-view="full-week">Semana Completa</button>
-                                        <button class="view-btn small active" data-view="month">Mes</button>
+                                        <button class="view-btn small" data-view="agenda"
+                                            data-i18n="cal_btn_agenda">Agenda</button>
+                                        <button class="view-btn small" data-view="day"
+                                            data-i18n="cal_btn_day">Día</button>
+                                        <button class="view-btn small" data-view="work-week"
+                                            data-i18n="cal_btn_work_week">Semana (L-V)</button>
+                                        <button class="view-btn small" data-view="full-week"
+                                            data-i18n="cal_btn_full_week">Semana Completa</button>
+                                        <button class="view-btn small active" data-view="month"
+                                            data-i18n="cal_btn_month">Mes</button>
                                     </div>
                                     <div class="calendar-nav">
                                         <button id="prev-month-btn" class="secondary-btn small">&larr;</button>
@@ -201,13 +227,13 @@
                             </div>
                             <div class="calendar-container">
                                 <div class="calendar-header-grid">
-                                    <div>Dom</div>
-                                    <div>Lun</div>
-                                    <div>Mar</div>
-                                    <div>Mié</div>
-                                    <div>Jue</div>
-                                    <div>Vie</div>
-                                    <div>Sáb</div>
+                                    <div data-i18n="day_sun">Dom</div>
+                                    <div data-i18n="day_mon">Lun</div>
+                                    <div data-i18n="day_tue">Mar</div>
+                                    <div data-i18n="day_wed">Mié</div>
+                                    <div data-i18n="day_thu">Jue</div>
+                                    <div data-i18n="day_fri">Vie</div>
+                                    <div data-i18n="day_sat">Sáb</div>
                                 </div>
                                 <div id="calendar-grid" class="calendar-grid">
                                     <!-- Days injected here -->
@@ -218,9 +244,10 @@
                         <!-- Global Contacts View -->
                         <div id="global-contacts-view" class="view">
                             <div class="toolbar">
-                                <h2>Contactos Globales</h2>
+                                <h2 data-i18n="view_title_contacts">Contactos Globales</h2>
                                 <div class="search-container">
                                     <input type="text" id="contacts-search-input" placeholder="Buscar contactos..."
+                                        data-i18n="placeholder_search_contacts" data-i18n-prop="placeholder"
                                         class="form-input">
                                 </div>
                             </div>
@@ -247,7 +274,7 @@
                         <!-- Accounts with Plan View -->
                         <div id="accounts-with-plan-view" class="view">
                             <div class="toolbar">
-                                <h2>Cuentas con Plan de Ataque</h2>
+                                <h2 data-i18n="view_title_account_plans">Cuentas con Plan de Ataque</h2>
                             </div>
                             <div id="accounts-with-plan-list" class="opp-groups-container"
                                 style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
@@ -255,27 +282,59 @@
                             </div>
                         </div>
 
+                        <!-- Resources View -->
+                        <div id="resources-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_resources">Recursos Globales</h2>
+                                <div class="search-container">
+                                    <input type="text" id="resources-search-input" placeholder="Buscar recursos..."
+                                        data-i18n="placeholder_search_resources" data-i18n-prop="placeholder"
+                                        class="form-input">
+                                </div>
+                                <button id="add-resource-btn" class="primary-btn small"
+                                    data-i18n="btn_add_resource">Añadir Recurso</button>
+                            </div>
+                            <div class="table-container">
+                                <table id="resources-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="label_resource_name">Nombre</th>
+                                            <th data-i18n="label_resource_content">Enlace / Email / Nota</th>
+                                            <th style="width: 100px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resources-body">
+                                        <!-- Resources injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <!-- Settings View -->
                         <div id="settings-view" class="view">
                             <div class="toolbar">
-                                <h2>Configuración</h2>
+                                <h2 data-i18n="view_title_settings">Configuración</h2>
                             </div>
 
                             <div class="settings-tabs">
-                                <button class="settings-tab-btn active" data-tab="settings-general">General</button>
-                                <button class="settings-tab-btn"
-                                    data-tab="settings-classifications">Clasificaciones</button>
-                                <button class="settings-tab-btn" data-tab="settings-sidebar-filters">Filtros
+                                <button class="settings-tab-btn active" data-tab="settings-general"
+                                    data-i18n="settings_tab_general">General</button>
+                                <button class="settings-tab-btn" data-tab="settings-classifications"
+                                    data-i18n="settings_tab_classifications">Clasificaciones</button>
+                                <button class="settings-tab-btn" data-tab="settings-sidebar-filters"
+                                    data-i18n="settings_tab_sidebar">Filtros
                                     Sidebar</button>
-                                <button class="settings-tab-btn" data-tab="settings-api">API / Integración</button>
-                                <button class="settings-tab-btn" data-tab="settings-structure">Estructura CSV</button>
+                                <button class="settings-tab-btn" data-tab="settings-api"
+                                    data-i18n="settings_tab_api">API / Integración</button>
+                                <button class="settings-tab-btn" data-tab="settings-structure"
+                                    data-i18n="settings_tab_structure">Estructura CSV</button>
                             </div>
 
                             <!-- Tab 1: General -->
                             <div id="settings-general" class="tab-pane active">
                                 <div class="card settings-card">
                                     <div class="form-group">
-                                        <label>Tema Visual</label>
+                                        <label data-i18n="label_theme">Tema Visual</label>
                                         <select id="theme-select" class="form-input">
                                             <option value="auto">Sistema (Auto)</option>
                                             <option value="light">Claro (Blanco)</option>
@@ -284,10 +343,20 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label>Carpeta de Trabajo</label>
+                                        <label data-i18n="label_language">Lenguaje / Language</label>
+                                        <select id="language-select" class="form-input">
+                                            <option value="es_MX">Español (MX)</option>
+                                            <option value="pt_BR">Português (BR)</option>
+                                            <option value="en_US">English (US)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="label_work_dir">Carpeta de Trabajo</label>
                                         <div class="path-display" id="settings-path-display"
-                                            style="display: block; margin-bottom: 1rem;">No seleccionada</div>
-                                        <button id="change-dir-btn" class="secondary-btn small">Cambiar Carpeta</button>
+                                            data-i18n="path_not_selected" style="display: block; margin-bottom: 1rem;">
+                                            No seleccionada</div>
+                                        <button id="change-dir-btn" class="secondary-btn small"
+                                            data-i18n="btn_change_dir">Cambiar Carpeta</button>
                                     </div>
                                     <div class="form-group">
                                         <label for="crm-url-template">Plantilla de URL Oportunidad (CRM)</label>
@@ -400,7 +469,8 @@
                             </div>
 
                             <div class="form-actions" style="margin-top: 2rem;">
-                                <button id="save-settings-btn" class="primary-btn">Guardar Ajustes</button>
+                                <button id="save-settings-btn" class="primary-btn" data-i18n="btn_save_settings">Guardar
+                                    Ajustes</button>
                             </div>
                         </div>
                     </div>
@@ -415,7 +485,7 @@
                         <button id="close-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div class="opp-details-grid">
+                        <div id="modal-opp-details-grid" class="opp-details-grid">
                             <div><strong>ID:</strong> <span id="modal-opp-id" class="dynamic-link"></span></div>
                             <div><strong>Account:</strong> <span id="modal-opp-account"></span></div>
                         </div>
@@ -538,6 +608,35 @@
                             </div>
                             <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
                                 Agregar Actividad</button>
+
+                            <div class="poc-form-section"
+                                style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h4 data-i18n="label_walkthrough" style="margin: 0;">Demo Walkthrough (Pasos)</h4>
+                                </div>
+
+                                <div class="walkthrough-container"
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                    <div class="walkthrough-section">
+                                        <h5 data-i18n="label_prep_steps"
+                                            style="margin-bottom: 0.5rem; color: var(--brand-teal);">Preparación (Antes)
+                                        </h5>
+                                        <div id="walkthrough-prep-body" class="dynamic-list"></div>
+                                        <button id="add-walkthrough-prep-btn" class="text-btn small"
+                                            style="margin-top: 0.5rem; color: var(--brand-teal);">+ Añadir Paso</button>
+                                    </div>
+                                    <div class="walkthrough-section">
+                                        <h5 data-i18n="label_flow_steps"
+                                            style="margin-bottom: 0.5rem; color: var(--brand-orange);">Presentación
+                                            (Durante)</h5>
+                                        <div id="walkthrough-flow-body" class="dynamic-list"></div>
+                                        <button id="add-walkthrough-flow-btn" class="text-btn small"
+                                            style="margin-top: 0.5rem; color: var(--brand-orange);">+ Añadir
+                                            Paso</button>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-actions" style="margin-top: 2rem;">
                                 <button id="save-demo-btn" class="primary-btn">Guardar Demo</button>
                             </div>
@@ -699,7 +798,7 @@
             <div id="details-modal" class="modal hidden">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3 id="details-modal-title">Detalles de la Oportunidad</h3>
+                        <h2 id="details-modal-title" data-i18n="modal_details_title">Detalles de la Oportunidade</h2>
                         <button class="close-modal-btn" id="close-details-btn">&times;</button>
                     </div>
                     <div class="modal-body">
@@ -837,6 +936,32 @@
                 </div>
             </div>
 
+            <!-- Resource Modal -->
+            <div id="resource-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="resource-modal-title" data-i18n="modal_resource_title">Nuevo Recurso</h2>
+                        <button id="close-resource-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label data-i18n="label_resource_name">Nombre del Recurso</label>
+                            <input type="text" id="resource-name-input" class="form-input"
+                                data-i18n="placeholder_resource_name" data-i18n-prop="placeholder">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="label_resource_content">Enlace / Email / Nota</label>
+                            <textarea id="resource-content-input" class="form-input" rows="3"
+                                data-i18n="placeholder_resource_content" data-i18n-prop="placeholder"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button id="save-resource-btn" class="primary-btn"
+                                data-i18n="btn_save_settings">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Ticket View Modal -->
             <div id="ticket-view-modal" class="modal hidden">
                 <div class="modal-content large"
@@ -860,7 +985,7 @@
             </div>
 
             <!-- Success Overlay -->
-            <div id="success-toast" class="toast hidden">
+            <div id="success-toast" class="toast hidden" data-i18n="toast_success_update">
                 ¡Actualizado con éxito!
             </div>
 
@@ -869,6 +994,7 @@
     </div>
 
     <script src="node_modules/papaparse/papaparse.min.js"></script>
+    <script src="translations.js"></script>
     <script src="renderer.js"></script>
 </body>
 

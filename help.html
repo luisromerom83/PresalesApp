@@ -191,16 +191,14 @@
             <li><a href="#contacts">4. Contactos</a></li>
             <li><a href="#account-plans">5. Planes de Cuenta</a></li>
             <li><a href="#history">6. Historial</a></li>
-            <li><a href="#todo">7. Microsoft To-Do</a></li>
-            <li><a href="#settings">8. Configuración</a>
-                <ul>
-                    <li><a href="#s-general">8.1 General</a></li>
-                    <li><a href="#s-class">8.2 Clasificaciones</a></li>
-                    <li><a href="#s-filters">8.3 Filtros Sidebar</a></li>
-                    <li><a href="#s-api">8.4 API/Integración</a></li>
-                    <li><a href="#s-csv">8.5 Estructura CSV</a></li>
-                </ul>
-            </li>
+            <li><a href="#resources">7. Recursos</a></li>
+            <li><a href="#todo">8. Microsoft To-Do</a></li>
+            <li><a href="#settings">9. Configuración</a></li>
+            <li><a href="#s-general">9.1 General</a></li>
+            <li><a href="#s-class">9.2 Clasificaciones</a></li>
+            <li><a href="#s-filters">9.3 Filtros Sidebar</a></li>
+            <li><a href="#s-api">9.4 API/Integración</a></li>
+            <li><a href="#s-csv">9.5 Estructura CSV</a></li>
         </ul>
     </nav>
 
@@ -208,7 +206,7 @@
         <header>
             <div>
                 <h1>Presales LatinTool</h1>
-                <p style="color:var(--text-secondary)">Guía de Usuario v1.1.12</p>
+                <p class="sub-text">Manual de Usuario v1.2.0</p>
             </div>
             <img src="assets/logo_shield.svg" alt="Presales LatinTool Logo" class="logo">
         </header>
@@ -326,43 +324,61 @@
             <img src="assets/screenshots/Historial.png" alt="Historial de Actividad" class="screenshot">
         </section>
 
-        <!-- 7. Microsoft To-Do -->
+        <!-- 7. Recursos -->
+        <section id="resources">
+            <h2>7. Recursos</h2>
+            <p>Sección centralizada para gestionar enlaces, correos electrónicos y notas de utilidad global.</p>
+            <div class="feature-box">
+                <ul>
+                    <li><strong>Gestión de Enlaces:</strong> Guarda URLs de portales técnicos, SharePoint o herramientas
+                        web. Al detectar <code>http</code>, el sistema genera automáticamente un enlace cliqueable.</li>
+                    <li><strong>Directorio de Correos:</strong> Almacena correos de soporte o áreas clave. Las
+                        direcciones detectadas permiten abrir tu cliente de correo local directamente.</li>
+                    <li><strong>Notas Rápidas:</strong> Espacio para guardar IDs de proyectos o recordatorios rápidos
+                        accesibles para todo el equipo.</li>
+                </ul>
+            </div>
+            <p>Puedes <strong>añadir, editar y eliminar</strong> recursos en tiempo real. La base de datos es local y se
+                guarda en el archivo <code>resources.json</code> de tu directorio de trabajo.</p>
+        </section>
+
+        <!-- 8. Microsoft To-Do -->
         <section id="todo">
-            <h2>7. Microsoft To-Do</h2>
+            <h2>8. Microsoft To-Do</h2>
             <p>Integración directa con tus tareas personales de Microsoft.</p>
         </section>
 
-        <!-- 8. Configuración -->
+        <!-- 9. Configuración -->
         <section id="settings">
-            <h2>8. Configuración</h2>
+            <h2>9. Configuración</h2>
             <p>Administra las variables del sistema y la integración con Quadient Cloud.</p>
 
             <div id="s-general">
-                <h3>8.1 General</h3>
+                <h3>9.1 General</h3>
                 <p>Ajustes de tema, directorio y plantillas de URL para el CRM.</p>
                 <img src="assets/screenshots/Config.png" alt="Ajustes Generales" class="screenshot">
             </div>
 
             <div id="s-class">
-                <h3>8.2 Clasificaciones</h3>
+                <h3>9.2 Clasificaciones</h3>
                 <p>Personaliza las categorías de cuentas utilizadas en la organización.</p>
                 <img src="assets/screenshots/Clasificaciones.png" alt="Gestión de Clasificaciones" class="screenshot">
             </div>
 
             <div id="s-filters">
-                <h3>8.3 Filtros Sidebar</h3>
+                <h3>9.3 Filtros Sidebar</h3>
                 <p>Crea reglas lógicas avanzadas para segmentar tu pipeline en el sidebar.</p>
                 <img src="assets/screenshots/Filtros.png" alt="Editor de Filtros" class="screenshot">
             </div>
 
             <div id="s-api">
-                <h3>8.4 API/Integración (Front Office)</h3>
+                <h3>9.4 API/Integración (Front Office)</h3>
                 <p>Conexión segura con el API de generación de documentos de Quadient Cloud.</p>
                 <img src="assets/screenshots/API.png" alt="Configuración de API" class="screenshot">
             </div>
 
             <div id="s-csv">
-                <h3>8.5 Estructura CSV</h3>
+                <h3>9.5 Estructura CSV</h3>
                 <p>Mapeo dinámico de las columnas de tu reporte CRM con los campos del sistema.</p>
                 <img src="assets/screenshots/Estructura.png" alt="Estructura de CSV" class="screenshot">
             </div>

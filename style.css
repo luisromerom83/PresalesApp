@@ -2386,3 +2386,14 @@ body {
     border-color: var(--brand-orange);
     transform: scale(1.1);
 }
+ / *   H i g h l i g h t i n g   f o r   c h a n g e d   s t a g e s   * / 
+ . s t a g e - c h a n g e d   { 
+         b a c k g r o u n d - c o l o r :   r g b a ( 2 6 ,   2 0 7 ,   1 9 1 ,   0 . 1 5 )   ! i m p o r t a n t ; 
+         b o r d e r - l e f t :   4 p x   s o l i d   v a r ( - - b r a n d - t e a l )   ! i m p o r t a n t ; 
+ } 
+ 
+ . s t a g e - c h a n g e d : h o v e r   { 
+         b a c k g r o u n d - c o l o r :   r g b a ( 2 6 ,   2 0 7 ,   1 9 1 ,   0 . 2 5 )   ! i m p o r t a n t ; 
+ } 
+  
+ 

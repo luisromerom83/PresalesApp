@@ -29,7 +29,9 @@ let currentConfig = {
     activeFilters: {}, // { filterId: value/ruleLabel }
     expandedFilters: new Set(), // Track open submenus (empty by default means all collapsed)
     expandedManagerFilterId: null, // Track which filter is expanded in the settings manager
-    viewHistory: [] // Stack for navigation history
+    viewHistory: [], // Stack for navigation history
+    resources: [],
+    changedStages: {} // Tracks opps whose stage changed after CSV import
 };
 
 let activeOppId = null;
@@ -53,7 +55,8 @@ const elements = {
     backToDirBtn: document.getElementById('back-to-dir-btn'),
     csvInput: document.getElementById('csv-input'),
     oppListBody: document.getElementById('opp-list-body'),
-
+    oppViewTitle: document.getElementById('opp-view-title'),
+    oppSearchInput: document.getElementById('opp-search-input'),
     closeModalBtn: document.getElementById('close-modal-btn'),
     addNoteBtn: document.getElementById('add-note-btn'),
     newNoteInput: document.getElementById('new-note-input'),
@@ -109,6 +112,7 @@ const elements = {
     changeDirBtn: document.getElementById('change-dir-btn'),
     crmUrlInput: document.getElementById('crm-url-template'),
     themeSelect: document.getElementById('theme-select'),
+    languageSelect: document.getElementById('language-select'),
     historyWeek: document.getElementById('history-week'),
     historyMonth: document.getElementById('history-month'),
     historyYear: document.getElementById('history-year'),
@@ -138,6 +142,12 @@ const elements = {
     accountContactsBody: document.getElementById('account-contacts-body'),
     addAccountContactBtn: document.getElementById('add-account-contact-btn'),
     saveAccountContactsBtn: document.getElementById('save-account-contacts-btn'),
+    addGeneralNoteBtn: document.getElementById('add-general-note-btn'),
+    walkthroughPrepBody: document.getElementById('walkthrough-prep-body'),
+    walkthroughFlowBody: document.getElementById('walkthrough-flow-body'),
+    addWalkthroughPrepBtn: document.getElementById('add-walkthrough-prep-btn'),
+    addWalkthroughFlowBtn: document.getElementById('add-walkthrough-flow-btn'),
+    modalOppDetailsGrid: document.getElementById('modal-opp-details-grid'),
     // Global Views Elements
     globalContactsBody: document.getElementById('global-contacts-body'),
     globalContactsSearchInput: document.getElementById('contacts-search-input'),
@@ -191,7 +201,19 @@ const elements = {
     // Sidebar Filter Elements
     dynamicFiltersContainer: document.getElementById('dynamic-filters-container'),
     sidebarFiltersManagerList: document.getElementById('sidebar-filters-manager-list'),
-    addSidebarFilterBtn: document.getElementById('add-sidebar-filter-btn')
+    addSidebarFilterBtn: document.getElementById('add-sidebar-filter-btn'),
+
+    // Resources Elements
+    resourcesView: document.getElementById('resources-view'),
+    addResourceBtn: document.getElementById('add-resource-btn'),
+    resourcesBody: document.getElementById('resources-body'),
+    resourcesSearchInput: document.getElementById('resources-search-input'),
+    resourceModal: document.getElementById('resource-modal'),
+    resourceModalTitle: document.getElementById('resource-modal-title'),
+    closeResourceModalBtn: document.getElementById('close-resource-modal-btn'),
+    resourceNameInput: document.getElementById('resource-name-input'),
+    resourceContentInput: document.getElementById('resource-content-input'),
+    saveResourceBtn: document.getElementById('save-resource-btn')
 };
 
 // Navigation
@@ -234,6 +256,10 @@ window.goBack = () => {
 };
 
 elements.backBtn.onclick = window.goBack;
+
+if (elements.addGeneralNoteBtn) {
+    elements.addGeneralNoteBtn.onclick = () => window.openGeneralNotes();
+}
 
 // Window Controls Logic
 
@@ -325,6 +351,9 @@ document.addEventListener('click', (e) => {
     if (target === 'settings-view') {
         renderStructureEditor();
         renderSidebarFilterManager();
+    }
+    if (target === 'resources-view') {
+        renderResources();
     }
     showView(target);
 });
@@ -491,7 +520,7 @@ function renderClassificationManager() {
         div.className = 'category-item';
         div.innerHTML = `
             <span>${cat}</span>
-            <button class="delete-cat-btn" onclick="deleteAccountCategory('${cat}')">Eliminar</button>
+            <button class="delete-cat-btn" onclick="deleteAccountCategory('${cat}')">${getTranslation('btn_delete')}</button>
         `;
         elements.classificationManagerList.appendChild(div);
     });
@@ -503,14 +532,14 @@ elements.addClassificationBtn.onclick = () => {
         currentConfig.accountCategories.push(val);
         elements.newClassificationInput.value = '';
         renderClassificationManager();
-        showToast('Categoría añadida');
+        showToast(getTranslation('toast_cat_added'));
     }
 };
 
 window.deleteAccountCategory = (cat) => {
     currentConfig.accountCategories = currentConfig.accountCategories.filter(c => c !== cat);
     renderClassificationManager();
-    showToast('Categoría eliminada');
+    showToast(getTranslation('toast_cat_deleted'));
 };
 
 function evaluateRule(itemValue, rule) {
@@ -860,6 +889,10 @@ async function init() {
             if (elements.foApiHolderInput) elements.foApiHolderInput.value = settings.foApiHolder || '';
             elements.themeSelect.value = theme;
             applyTheme(theme);
+            if (settings.language) {
+                elements.languageSelect.value = settings.language;
+            }
+            applyLanguage(elements.languageSelect.value);
 
             currentConfig.responsibles = settings.responsibles || [];
             currentConfig.accountCategories = settings.accountCategories || ['Anchor Account', 'Key Account', 'Partner', 'Tactical Account'];
@@ -936,6 +969,9 @@ async function loadAllData(dir) {
         const favorites = await window.electronAPI.loadFile(dir, 'favorites.json');
         currentConfig.favorites = favorites || [];
 
+        const resourcesData = await window.electronAPI.loadFile(dir, 'resources.json');
+        currentConfig.resources = resourcesData || [];
+
         const structure = await window.electronAPI.loadFile(dir, 'structure.json');
         if (structure) {
             currentConfig.dataStructure = structure;
@@ -988,7 +1024,8 @@ async function handleNewDirectory(dir) {
         lastDirectory: dir,
         crmUrlTemplate: currentConfig.crmUrlTemplate,
         accountUrlTemplate: currentConfig.accountUrlTemplate,
-        theme: elements.themeSelect.value
+        theme: elements.themeSelect.value,
+        language: elements.languageSelect.value
     });
 
     elements.selectedPath.textContent = dir;
@@ -1035,12 +1072,15 @@ elements.saveSettingsBtn.addEventListener('click', async () => {
     currentConfig.crmUrlTemplate = elements.crmUrlInput.value.trim();
     currentConfig.accountUrlTemplate = elements.accountUrlInput.value.trim();
     const theme = elements.themeSelect.value;
+    const language = elements.languageSelect.value;
     applyTheme(theme);
+    applyLanguage(language);
     await window.electronAPI.saveSettings({
         lastDirectory: currentConfig.directory,
         crmUrlTemplate: currentConfig.crmUrlTemplate,
         accountUrlTemplate: currentConfig.accountUrlTemplate,
         theme: theme,
+        language: language,
         accountCategories: currentConfig.accountCategories,
         sidebarFilters: currentConfig.sidebarFilters,
         responsibles: currentConfig.responsibles,
@@ -1095,9 +1135,133 @@ if (downloadSampleBtn) {
     downloadSampleBtn.addEventListener('click', downloadSampleCSV);
 }
 
+// Resources Logic
+function renderResources() {
+    if (!elements.resourcesBody) return;
+    elements.resourcesBody.innerHTML = '';
+    const query = elements.resourcesSearchInput.value.toLowerCase().trim();
+
+    currentConfig.resources.forEach((res, index) => {
+        if (!res.name.toLowerCase().includes(query) && !res.content.toLowerCase().includes(query)) return;
+
+        const tr = document.createElement('tr');
+
+        let displayContent = res.content;
+        if (res.content.startsWith('http')) {
+            displayContent = `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, '${res.content}')">${res.content}</a>`;
+        } else if (res.content.includes('@')) {
+            displayContent = `<a href="mailto:${res.content}" class="dynamic-link">${res.content}</a>`;
+        }
+
+        tr.innerHTML = `
+            <td><strong>${res.name}</strong></td>
+            <td>${displayContent}</td>
+            <td style="text-align: right;">
+                <button class="primary-btn small edit-res-btn" data-index="${index}" title="Editar">✏️</button>
+                <button class="delete-row-btn delete-res-btn" data-index="${index}" title="Eliminar">&times;</button>
+            </td>
+        `;
+        elements.resourcesBody.appendChild(tr);
+    });
+
+    elements.resourcesBody.querySelectorAll('.edit-res-btn').forEach(btn => {
+        btn.onclick = () => openResourceModal(parseInt(btn.dataset.index));
+    });
+
+    elements.resourcesBody.querySelectorAll('.delete-res-btn').forEach(btn => {
+        btn.onclick = () => deleteResource(parseInt(btn.dataset.index));
+    });
+}
+
+let editingResourceIndex = null;
+
+function openResourceModal(index = null) {
+    editingResourceIndex = index;
+    if (index !== null) {
+        const res = currentConfig.resources[index];
+        elements.resourceNameInput.value = res.name;
+        elements.resourceContentInput.value = res.content;
+        if (elements.resourceModalTitle) elements.resourceModalTitle.textContent = getTranslation('modal_resource_edit_title');
+    } else {
+        elements.resourceNameInput.value = '';
+        elements.resourceContentInput.value = '';
+        if (elements.resourceModalTitle) elements.resourceModalTitle.textContent = getTranslation('modal_resource_title');
+    }
+    elements.resourceModal.classList.remove('hidden');
+}
+
+async function deleteResource(index) {
+    if (confirm(getTranslation('confirm_delete') || '¿Eliminar este recurso?')) {
+        currentConfig.resources.splice(index, 1);
+        await window.electronAPI.saveFile(currentConfig.directory, 'resources.json', currentConfig.resources);
+        renderResources();
+    }
+}
+
+if (elements.addResourceBtn) {
+    elements.addResourceBtn.onclick = () => openResourceModal();
+}
+if (elements.closeResourceModalBtn) {
+    elements.closeResourceModalBtn.onclick = () => elements.resourceModal.classList.add('hidden');
+}
+
+if (elements.saveResourceBtn) {
+    elements.saveResourceBtn.onclick = async () => {
+        const name = elements.resourceNameInput.value.trim();
+        const content = elements.resourceContentInput.value.trim();
+
+        if (!name || !content) {
+            showToast('Nombre y contenido obligatorios');
+            return;
+        }
+
+        const resData = { name, content };
+
+        if (editingResourceIndex !== null) {
+            currentConfig.resources[editingResourceIndex] = resData;
+        } else {
+            currentConfig.resources.push(resData);
+        }
+
+        await window.electronAPI.saveFile(currentConfig.directory, 'resources.json', currentConfig.resources);
+        showToast(getTranslation('toast_settings_saved'));
+        elements.resourceModal.classList.add('hidden');
+        renderResources();
+    };
+}
+
+if (elements.resourcesSearchInput) {
+    elements.resourcesSearchInput.oninput = renderResources;
+}
+
+
 // Navigation Helpers
-elements.continueBtn.addEventListener('click', () => showScreen('form-screen'));
-elements.backToDirBtn.addEventListener('click', () => showScreen('directory-screen'));
+elements.continueBtn.onclick = () => showScreen('form-screen');
+elements.backToDirBtn.onclick = () => showScreen('directory-screen');
+
+function applyLanguage(langCode) {
+    if (typeof translations === 'undefined') return;
+    const langStrings = translations[langCode] || translations['es_MX'];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const prop = el.getAttribute('data-i18n-prop') || 'textContent';
+        if (langStrings[key]) {
+            el[prop] = langStrings[key];
+        }
+    });
+
+    // Restore dynamic values if they exist
+    if (currentConfig.user) {
+        updateHeaderInfo();
+    }
+}
+
+function getTranslation(key) {
+    if (typeof translations === 'undefined') return key;
+    const lang = (elements && elements.languageSelect) ? elements.languageSelect.value : 'es_MX';
+    const langStrings = translations[lang] || translations['es_MX'];
+    return langStrings[key] || key;
+}
 
 elements.closeDetailsBtn.addEventListener('click', () => {
     elements.detailsModal.classList.add('hidden');
@@ -1199,12 +1363,23 @@ elements.csvInput.addEventListener('change', async (e) => {
             skipEmptyLines: true,
             complete: async (results) => {
                 const newData = results.data;
+                currentConfig.changedStages = {}; // Reset changes on new import
+
                 newData.forEach(newItem => {
                     const oppId = newItem['Opportunity ID'];
                     if (!oppId) return;
 
                     const existingIndex = currentConfig.opportunities.findIndex(o => o['Opportunity ID'] === oppId);
                     if (existingIndex > -1) {
+                        const existing = currentConfig.opportunities[existingIndex];
+                        // Detect stage change
+                        if (existing['Stage'] && newItem['Stage'] && existing['Stage'] !== newItem['Stage']) {
+                            currentConfig.changedStages[oppId] = {
+                                from: existing['Stage'],
+                                to: newItem['Stage']
+                            };
+                        }
+
                         currentConfig.opportunities[existingIndex] = {
                             ...currentConfig.opportunities[existingIndex],
                             ...newItem
@@ -1398,16 +1573,17 @@ function renderGlobalNotesHistory() {
     const allItems = [];
 
     // Collect Notes
-    for (const oppId in currentConfig.notes) {
-        const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
-        const name = opp ? opp['Opportunity Name'] : 'Oportunidad Desconocida';
-        const account = opp ? opp['Account Name'] : 'Sin Cuenta';
+    for (const [id, notes] of Object.entries(currentConfig.notes)) {
+        const isGlobal = id === 'global';
+        const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === id);
+        const name = isGlobal ? (getTranslation('btn_general_notes') || 'Notas Generales') : (opp ? opp['Opportunity Name'] : id);
+        const account = isGlobal ? '-' : (opp ? opp['Account Name'] : '-');
 
-        currentConfig.notes[oppId].forEach(note => {
+        notes.forEach(note => {
             allItems.push({
                 ...note,
                 type: 'note',
-                oppId,
+                oppId: id,
                 oppName: name,
                 accountName: account
             });
@@ -1585,6 +1761,12 @@ function renderOpportunities() {
 
     let filteredOpps = currentConfig.opportunities;
 
+    if (elements.oppViewTitle) {
+        elements.oppViewTitle.textContent = currentConfig.currentFavoritesFilter
+            ? getTranslation('view_title_favorites')
+            : getTranslation('view_title_opps');
+    }
+
     // Phase 1: Dynamic Sidebar Filters
     if (currentConfig.currentFavoritesFilter) {
         filteredOpps = filteredOpps.filter(o => currentConfig.favorites.includes(o['Opportunity ID']));
@@ -1694,6 +1876,12 @@ function renderOpportunities() {
                 const tr = document.createElement('tr');
                 tr.className = 'clickable';
                 const oppId = opp['Opportunity ID'];
+
+                if (currentConfig.changedStages && currentConfig.changedStages[oppId]) {
+                    tr.classList.add('stage-changed');
+                    const change = currentConfig.changedStages[oppId];
+                    tr.title = `Stage changed: ${change.from} -> ${change.to}`;
+                }
 
                 // Open details on row click
                 tr.onclick = () => openDetails(oppId);
@@ -1808,6 +1996,14 @@ elements.saveOppDescriptionBtn.onclick = async () => {
 };
 
 // Notes
+window.openGeneralNotes = () => {
+    activeOppId = 'global';
+    document.getElementById('modal-opp-name').textContent = getTranslation('btn_general_notes') || 'Notas Generales';
+    if (elements.modalOppDetailsGrid) elements.modalOppDetailsGrid.style.display = 'none';
+    renderNotes();
+    elements.notesModal.classList.remove('hidden');
+};
+
 window.openNotes = (oppId) => {
     activeOppId = oppId;
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
@@ -1815,6 +2011,7 @@ window.openNotes = (oppId) => {
     document.getElementById('modal-opp-name').textContent = opp['Opportunity Name'];
     document.getElementById('modal-opp-id').innerHTML = createLinkIfPossible(oppId, opp);
     document.getElementById('modal-opp-account').textContent = opp['Account Name'];
+    if (elements.modalOppDetailsGrid) elements.modalOppDetailsGrid.style.display = 'grid';
     renderNotes();
     elements.notesModal.classList.remove('hidden');
 };
@@ -1906,7 +2103,7 @@ elements.addNoteBtn.addEventListener('click', async () => {
     if (!text) return;
 
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
-    const currentStage = opp ? opp['Stage'] : 'N/A';
+    const currentStage = activeOppId === 'global' ? '-' : (opp ? opp['Stage'] : 'N/A');
 
     if (!currentConfig.notes[activeOppId]) currentConfig.notes[activeOppId] = [];
     currentConfig.notes[activeOppId].push({
@@ -2468,7 +2665,48 @@ function renderDemoTab() {
 
     // Trigger preview
     initUrlField(elements.demoUrl);
+
+    // Render Walkthrough
+    const walkthrough = mat.walkthrough || { prep: [], flow: [] };
+    renderWalkthroughList(elements.walkthroughPrepBody, walkthrough.prep || [], 'prep');
+    renderWalkthroughList(elements.walkthroughFlowBody, walkthrough.flow || [], 'flow');
 }
+
+function renderWalkthroughList(container, steps, type) {
+    container.innerHTML = '';
+    steps.forEach((step, index) => {
+        const div = document.createElement('div');
+        div.className = 'list-item-row';
+        div.style.marginBottom = '0.5rem';
+        div.innerHTML = `
+            <input type="text" class="step-desc" placeholder="${getTranslation('placeholder_step_desc') || 'Descripción del paso...'}" value="${step.desc || ''}" style="flex: 1;">
+            <button class="delete-row-btn" onclick="removeWalkthroughStep('${type}', ${index})">&times;</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+window.removeWalkthroughStep = (type, index) => {
+    const mat = currentConfig.materials[activeOppId] || {};
+    if (!mat.walkthrough) mat.walkthrough = { prep: [], flow: [] };
+    mat.walkthrough[type].splice(index, 1);
+    const container = type === 'prep' ? elements.walkthroughPrepBody : elements.walkthroughFlowBody;
+    renderWalkthroughList(container, mat.walkthrough[type], type);
+};
+
+elements.addWalkthroughPrepBtn.onclick = () => {
+    const mat = currentConfig.materials[activeOppId] || {};
+    if (!mat.walkthrough) mat.walkthrough = { prep: [], flow: [] };
+    mat.walkthrough.prep.push({ desc: '' });
+    renderWalkthroughList(elements.walkthroughPrepBody, mat.walkthrough.prep, 'prep');
+};
+
+elements.addWalkthroughFlowBtn.onclick = () => {
+    const mat = currentConfig.materials[activeOppId] || {};
+    if (!mat.walkthrough) mat.walkthrough = { prep: [], flow: [] };
+    mat.walkthrough.flow.push({ desc: '' });
+    renderWalkthroughList(elements.walkthroughFlowBody, mat.walkthrough.flow, 'flow');
+};
 
 function renderDemoActivities(activities) {
     renderActivityInputs(activities, elements.demoActivitiesBody, 'removeDemoActivity');
@@ -2501,11 +2739,17 @@ elements.saveDemoBtn.onclick = async () => {
     });
 
     if (!currentConfig.materials[activeOppId]) currentConfig.materials[activeOppId] = {};
+
+    // Collect walkthrough
+    const prep = Array.from(elements.walkthroughPrepBody.querySelectorAll('.step-desc')).map(i => ({ desc: i.value }));
+    const flow = Array.from(elements.walkthroughFlowBody.querySelectorAll('.step-desc')).map(i => ({ desc: i.value }));
+
     currentConfig.materials[activeOppId].demo = {
         description: elements.demoDesc.value,
         url: elements.demoUrl.value,
         activities
     };
+    currentConfig.materials[activeOppId].walkthrough = { prep, flow };
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
     showToast('Demo guardada');
@@ -2608,7 +2852,7 @@ function initUrlField(inputId) {
 }
 
 function formatToDDMMYYYY(date) {
-    if (!date) return 'Sin fecha';
+    if (!date) return getTranslation('label_no_date');
     const d = new Date(date);
     if (isNaN(d.getTime())) return date;
     const day = String(d.getDate()).padStart(2, '0');
@@ -2623,24 +2867,26 @@ async function renderActivityCalendar() {
     const year = date.getFullYear();
     const month = date.getMonth();
 
-    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const lang = elements.languageSelect.value.replace('_', '-');
+    const monthFormatter = new Intl.DateTimeFormat(lang, { month: 'long' });
+    const currentMonthName = monthFormatter.format(date);
 
     elements.calendarGrid.innerHTML = '';
     const headerGrid = document.querySelector('.calendar-header-grid');
     headerGrid.innerHTML = '';
 
     if (view === 'month') {
-        elements.currentMonthDisplay.textContent = `${monthNames[month]} ${year}`;
+        elements.currentMonthDisplay.textContent = `${currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)} ${year}`;
         elements.calendarGrid.className = 'calendar-grid month-view';
         headerGrid.className = 'calendar-header-grid month-view';
 
-        dayNames.forEach(d => {
+        const days = ['day_sun', 'day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat'];
+        days.forEach(dKey => {
             const div = document.createElement('div');
-            div.textContent = d.substring(0, 3);
+            div.setAttribute('data-i18n', dKey);
             headerGrid.appendChild(div);
         });
+        applyLanguage(elements.languageSelect.value); // Localize new headers
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -3070,7 +3316,7 @@ elements.saveAccountContactsBtn.onclick = async () => {
     currentConfig.accounts[activeAccountId].contacts = currentContactsData;
 
     await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-    showToast('Contactos guardados correctamente');
+    showToast(getTranslation('toast_contact_saved'));
     elements.accountContactsModal.classList.add('hidden');
 };
 
