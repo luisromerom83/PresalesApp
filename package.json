@@ -1,7 +1,7 @@
 {
   "name": "presales",
   "productName": "Presales LatinTool",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "Presales LatinTool - Productivity tool for Presales Engineers",
   "main": "main.js",
   "author": "Presales Latin America Team",
@@ -22,7 +22,7 @@
     "appId": "com.presales.manager",
     "productName": "Presales LatinTool",
     "directories": {
-      "output": "dist/v1.1.10"
+      "output": "dist/v1.1.11"
     },
     "win": {
       "target": [
@@ -59,6 +59,7 @@
     "electron-builder": "^26.7.0"
   },
   "dependencies": {
+    "electron-log": "^5.4.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.7.3",
     "papaparse": "^5.5.3"
