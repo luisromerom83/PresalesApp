@@ -225,6 +225,15 @@ header {
     min-height: 250px;
 }
 
+.medd-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-bottom: 0.8rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--brand-orange);
+}
+
 .back-btn.hidden {
     display: none;
 }

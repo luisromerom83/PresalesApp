@@ -130,7 +130,15 @@ const translations = {
         label_champion: "C - Champion (Campeón/Aliado)",
         label_competition: "C - Competition (Competencia)",
         placeholder_meddpicc: "Escribe aquí los detalles estratégicos...",
-        btn_save_meddpicc: "Guardar MEDDPICC"
+        btn_save_meddpicc: "Guardar MEDDPICC",
+        hint_m: "Métricas: Resultados de negocio cuantificables.",
+        hint_e: "Comprador Económico: Persona con autoridad de firma manual.",
+        hint_d1: "Criterios de Decisión: Requerimientos técnicos y de negocio.",
+        hint_d2: "Proceso de Decisión: Pasos para llegar a la firma.",
+        hint_p: "Proceso de Papeles: Legal, compras y administración.",
+        hint_i: "Implicar el Dolor: Costo de no hacer nada.",
+        hint_c: "Campeón: Tu aliado interno con influencia.",
+        hint_c2: "Competencia: Alternativas y riesgo de status-quo."
     },
     pt_BR: {
         // App Header
@@ -263,7 +271,15 @@ const translations = {
         label_champion: "C - Champion (Campeão/Aliado)",
         label_competition: "C - Competition (Competência)",
         placeholder_meddpicc: "Escreva aqui os detalhes estratégicos...",
-        btn_save_meddpicc: "Salvar MEDDPICC"
+        btn_save_meddpicc: "Salvar MEDDPICC",
+        hint_m: "Métricas: Resultados de negócios quantificáveis.",
+        hint_e: "Comprador Econômico: Pessoa com autoridade de decisão final.",
+        hint_d1: "Critérios de Decisão: Requisitos técnicos e de negócio.",
+        hint_d2: "Processo de Decisão: Etapas até a assinatura.",
+        hint_p: "Processo de Papéis: Jurídico, compras e administração.",
+        hint_i: "Implicar a Dor: Custo de não fazer nada.",
+        hint_c: "Campeão: Seu aliado interno com influência.",
+        hint_c2: "Competência: Alternativas e risco de status-quo."
     },
     en_US: {
         // App Header
@@ -396,7 +412,15 @@ const translations = {
         label_champion: "C - Champion",
         label_competition: "C - Competition",
         placeholder_meddpicc: "Enter strategic details here...",
-        btn_save_meddpicc: "Save MEDDPICC"
+        btn_save_meddpicc: "Save MEDDPICC",
+        hint_m: "Metrics: Quantifiable business outcomes.",
+        hint_e: "Economic Buyer: Person with ultimate signing authority.",
+        hint_d1: "Decision Criteria: Technical and business requirements.",
+        hint_d2: "Decision Process: Steps to reach the approval.",
+        hint_p: "Paper Process: Legal, procurement, and admin steps.",
+        hint_i: "Implicate Pain: The cost of doing nothing.",
+        hint_c: "Champion: Internal advocate with influence.",
+        hint_c2: "Competition: Alternatives and status-quo risk."
     }
 };
 

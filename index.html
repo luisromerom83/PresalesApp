@@ -828,20 +828,30 @@
                         <!-- MEDDPICC Tab Content -->
                         <div id="tab-meddpicc" class="tab-content">
                             <div class="meddpicc-sub-tabs">
-                                <button class="sub-tab-btn active" data-sub-tab="m">M</button>
-                                <button class="sub-tab-btn" data-sub-tab="e">E</button>
-                                <button class="sub-tab-btn" data-sub-tab="d1">D</button>
-                                <button class="sub-tab-btn" data-sub-tab="d2">D</button>
-                                <button class="sub-tab-btn" data-sub-tab="p">P</button>
-                                <button class="sub-tab-btn" data-sub-tab="i">I</button>
-                                <button class="sub-tab-btn" data-sub-tab="c">C</button>
-                                <button class="sub-tab-btn" data-sub-tab="c2">C</button>
+                                <button class="sub-tab-btn active" data-sub-tab="m" data-i18n="hint_m"
+                                    data-i18n-prop="title">M</button>
+                                <button class="sub-tab-btn" data-sub-tab="e" data-i18n="hint_e"
+                                    data-i18n-prop="title">E</button>
+                                <button class="sub-tab-btn" data-sub-tab="d1" data-i18n="hint_d1"
+                                    data-i18n-prop="title">D</button>
+                                <button class="sub-tab-btn" data-sub-tab="d2" data-i18n="hint_d2"
+                                    data-i18n-prop="title">D</button>
+                                <button class="sub-tab-btn" data-sub-tab="p" data-i18n="hint_p"
+                                    data-i18n-prop="title">P</button>
+                                <button class="sub-tab-btn" data-sub-tab="i" data-i18n="hint_i"
+                                    data-i18n-prop="title">I</button>
+                                <button class="sub-tab-btn" data-sub-tab="c" data-i18n="hint_c"
+                                    data-i18n-prop="title">C</button>
+                                <button class="sub-tab-btn" data-sub-tab="c2" data-i18n="hint_c2"
+                                    data-i18n-prop="title">C</button>
                             </div>
 
                             <div class="meddpicc-content">
                                 <div id="sub-tab-m" class="sub-tab-pane active">
                                     <div class="form-group">
                                         <label data-i18n="label_metrics">M - Metrics</label>
+                                        <p class="medd-hint" data-i18n="hint_m">Métricas: Resultados de negocio
+                                            cuantificables.</p>
                                         <textarea id="medd-m" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -849,6 +859,8 @@
                                 <div id="sub-tab-e" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_economic_buyer">E - Economic Buyer</label>
+                                        <p class="medd-hint" data-i18n="hint_e">Comprador Económico: Persona con
+                                            autoridad de firma.</p>
                                         <textarea id="medd-e" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -856,6 +868,8 @@
                                 <div id="sub-tab-d1" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_decision_criteria">D - Decision Criteria</label>
+                                        <p class="medd-hint" data-i18n="hint_d1">Criterios de Decisión: Requerimientos
+                                            técnicos y de negocio.</p>
                                         <textarea id="medd-d1" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -863,6 +877,8 @@
                                 <div id="sub-tab-d2" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_decision_process">D - Decision Process</label>
+                                        <p class="medd-hint" data-i18n="hint_d2">Proceso de Decisión: Pasos para llegar
+                                            a la firma.</p>
                                         <textarea id="medd-d2" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -870,6 +886,8 @@
                                 <div id="sub-tab-p" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_paper_process">P - Paper Process</label>
+                                        <p class="medd-hint" data-i18n="hint_p">Proceso de Papeles: Legal, compras y
+                                            administración.</p>
                                         <textarea id="medd-p" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -877,6 +895,8 @@
                                 <div id="sub-tab-i" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_implicate_pain">I - Implicate Pain</label>
+                                        <p class="medd-hint" data-i18n="hint_i">Implicar el Dolor: Costo de no hacer
+                                            nada.</p>
                                         <textarea id="medd-i" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -884,6 +904,8 @@
                                 <div id="sub-tab-c" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_champion">C - Champion</label>
+                                        <p class="medd-hint" data-i18n="hint_c">Campeón: Tu aliado interno con
+                                            influencia.</p>
                                         <textarea id="medd-c" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
@@ -891,6 +913,8 @@
                                 <div id="sub-tab-c2" class="sub-tab-pane">
                                     <div class="form-group">
                                         <label data-i18n="label_competition">C - Competition</label>
+                                        <p class="medd-hint" data-i18n="hint_c2">Competencia: Alternativas y riesgo de
+                                            status-quo.</p>
                                         <textarea id="medd-c2" data-i18n="placeholder_meddpicc"
                                             data-i18n-prop="placeholder" rows="8"></textarea>
                                     </div>
