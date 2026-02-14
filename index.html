@@ -802,16 +802,104 @@
                         <button class="close-modal-btn" id="close-details-btn">&times;</button>
                     </div>
                     <div class="modal-body">
-                        <div id="details-content" class="details-grid">
-                            <!-- Dynamic labels and values -->
+                        <!-- Modal Tabs -->
+                        <div class="modal-tabs">
+                            <button class="tab-btn active" data-tab="general" data-i18n="tab_general">General</button>
+                            <button class="tab-btn" data-tab="meddpicc" data-i18n="tab_meddpicc">MEDDPICC</button>
                         </div>
-                        <div class="opportunity-overview">
-                            <h4>Explicación de la Oportunidad</h4>
-                            <textarea id="opp-description"
-                                placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
-                            <div class="form-actions">
-                                <button id="save-opp-description-btn" class="primary-btn small">Guardar
-                                    Explicación</button>
+
+                        <!-- General Tab Content -->
+                        <div id="tab-general" class="tab-content active">
+                            <div id="details-content" class="details-grid">
+                                <!-- Dynamic labels and values -->
+                            </div>
+                            <div class="opportunity-overview">
+                                <h4 data-i18n="label_opp_explanation">Explicación de la Oportunidad</h4>
+                                <textarea id="opp-description"
+                                    placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
+                                <div class="form-actions">
+                                    <button id="save-opp-description-btn" class="primary-btn small"
+                                        data-i18n="btn_save_explanation">Guardar
+                                        Explicación</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MEDDPICC Tab Content -->
+                        <div id="tab-meddpicc" class="tab-content">
+                            <div class="meddpicc-sub-tabs">
+                                <button class="sub-tab-btn active" data-sub-tab="m">M</button>
+                                <button class="sub-tab-btn" data-sub-tab="e">E</button>
+                                <button class="sub-tab-btn" data-sub-tab="d1">D</button>
+                                <button class="sub-tab-btn" data-sub-tab="d2">D</button>
+                                <button class="sub-tab-btn" data-sub-tab="p">P</button>
+                                <button class="sub-tab-btn" data-sub-tab="i">I</button>
+                                <button class="sub-tab-btn" data-sub-tab="c">C</button>
+                                <button class="sub-tab-btn" data-sub-tab="c2">C</button>
+                            </div>
+
+                            <div class="meddpicc-content">
+                                <div id="sub-tab-m" class="sub-tab-pane active">
+                                    <div class="form-group">
+                                        <label data-i18n="label_metrics">M - Metrics</label>
+                                        <textarea id="medd-m" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-e" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_economic_buyer">E - Economic Buyer</label>
+                                        <textarea id="medd-e" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-d1" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_decision_criteria">D - Decision Criteria</label>
+                                        <textarea id="medd-d1" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-d2" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_decision_process">D - Decision Process</label>
+                                        <textarea id="medd-d2" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-p" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_paper_process">P - Paper Process</label>
+                                        <textarea id="medd-p" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-i" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_implicate_pain">I - Implicate Pain</label>
+                                        <textarea id="medd-i" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-c" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_champion">C - Champion</label>
+                                        <textarea id="medd-c" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-c2" class="sub-tab-pane">
+                                    <div class="form-group">
+                                        <label data-i18n="label_competition">C - Competition</label>
+                                        <textarea id="medd-c2" data-i18n="placeholder_meddpicc"
+                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 1rem;">
+                                <button id="save-meddpicc-btn" class="primary-btn" data-i18n="btn_save_meddpicc">Guardar
+                                    MEDDPICC</button>
                             </div>
                         </div>
                     </div>

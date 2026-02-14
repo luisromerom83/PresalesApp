@@ -128,6 +128,103 @@ header {
     transform: translateX(-3px);
 }
 
+.stage-changed:hover {
+    background: var(--brand-teal-dim);
+}
+
+/* Modal Tabs */
+.modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.modal-tabs .tab-btn {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.modal-tabs .tab-btn:hover {
+    color: var(--brand-orange);
+}
+
+.modal-tabs .tab-btn.active {
+    color: var(--brand-orange);
+    border-bottom-color: var(--brand-orange);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* MEDDPICC Sub-Tabs (Selector Boxes) */
+.meddpicc-sub-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    justify-content: space-around;
+}
+
+.sub-tab-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sub-tab-btn:hover {
+    background: rgba(255, 66, 0, 0.1);
+    border-color: var(--brand-orange);
+}
+
+.sub-tab-btn.active {
+    background: var(--brand-orange);
+    color: white;
+    border-color: var(--brand-orange);
+    box-shadow: 0 0 10px rgba(255, 66, 0, 0.3);
+}
+
+.sub-tab-pane {
+    display: none;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.sub-tab-pane.active {
+    display: block;
+}
+
+.meddpicc-content {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    min-height: 250px;
+}
+
 .back-btn.hidden {
     display: none;
 }
@@ -2386,14 +2483,13 @@ body {
     border-color: var(--brand-orange);
     transform: scale(1.1);
 }
- / *   H i g h l i g h t i n g   f o r   c h a n g e d   s t a g e s   * / 
- . s t a g e - c h a n g e d   { 
-         b a c k g r o u n d - c o l o r :   r g b a ( 2 6 ,   2 0 7 ,   1 9 1 ,   0 . 1 5 )   ! i m p o r t a n t ; 
-         b o r d e r - l e f t :   4 p x   s o l i d   v a r ( - - b r a n d - t e a l )   ! i m p o r t a n t ; 
- } 
- 
- . s t a g e - c h a n g e d : h o v e r   { 
-         b a c k g r o u n d - c o l o r :   r g b a ( 2 6 ,   2 0 7 ,   1 9 1 ,   0 . 2 5 )   ! i m p o r t a n t ; 
- } 
-  
- 
+
+/* Highlighting for changed stages */
+.stage-changed {
+    background-color: rgba(26, 207, 191, 0.15) !important;
+    border-left: 4px solid var(--brand-teal) !important;
+}
+
+.stage-changed:hover {
+    background-color: rgba(26, 207, 191, 0.25) !important;
+}

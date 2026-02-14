@@ -118,7 +118,19 @@ const translations = {
         label_walkthrough: "Demo Walkthrough (Pasos)",
         label_prep_steps: "Preparación (Antes)",
         label_flow_steps: "Presentación (Durante)",
-        placeholder_step_desc: "Descripción del paso..."
+        placeholder_step_desc: "Descripción del paso...",
+        tab_general: "General",
+        tab_meddpicc: "MEDDPICC",
+        label_metrics: "M - Metrics (Métricas)",
+        label_economic_buyer: "E - Economic Buyer (Comprador Económico)",
+        label_decision_criteria: "D - Decision Criteria (Criterios de Decisión)",
+        label_decision_process: "D - Decision Process (Proceso de Decisión)",
+        label_paper_process: "P - Paper Process (Proceso de Papeles/Legal)",
+        label_implicate_pain: "I - Implicate Pain (Implicar el Dolor)",
+        label_champion: "C - Champion (Campeón/Aliado)",
+        label_competition: "C - Competition (Competencia)",
+        placeholder_meddpicc: "Escribe aquí los detalles estratégicos...",
+        btn_save_meddpicc: "Guardar MEDDPICC"
     },
     pt_BR: {
         // App Header
@@ -239,7 +251,19 @@ const translations = {
         label_walkthrough: "Demo Walkthrough (Passos)",
         label_prep_steps: "Preparação (Antes)",
         label_flow_steps: "Apresentação (Durante)",
-        placeholder_step_desc: "Descrição do passo..."
+        placeholder_step_desc: "Descrição do passo...",
+        tab_general: "Geral",
+        tab_meddpicc: "MEDDPICC",
+        label_metrics: "M - Metrics (Métricas)",
+        label_economic_buyer: "E - Economic Buyer (Comprador Econômico)",
+        label_decision_criteria: "D - Decision Criteria (Critérios de Decisão)",
+        label_decision_process: "D - Decision Process (Processo de Decisão)",
+        label_paper_process: "P - Paper Process (Processo Legais/Papéis)",
+        label_implicate_pain: "I - Implicate Pain (Implicar a Dor)",
+        label_champion: "C - Champion (Campeão/Aliado)",
+        label_competition: "C - Competition (Competência)",
+        placeholder_meddpicc: "Escreva aqui os detalhes estratégicos...",
+        btn_save_meddpicc: "Salvar MEDDPICC"
     },
     en_US: {
         // App Header
@@ -360,7 +384,19 @@ const translations = {
         label_walkthrough: "Demo Walkthrough (Steps)",
         label_prep_steps: "Preparation (Before)",
         label_flow_steps: "Presentation (During)",
-        placeholder_step_desc: "Step description..."
+        placeholder_step_desc: "Step description...",
+        tab_general: "General",
+        tab_meddpicc: "MEDDPICC",
+        label_metrics: "M - Metrics",
+        label_economic_buyer: "E - Economic Buyer",
+        label_decision_criteria: "D - Decision Criteria",
+        label_decision_process: "D - Decision Process",
+        label_paper_process: "P - Paper Process",
+        label_implicate_pain: "I - Implicate Pain",
+        label_champion: "C - Champion",
+        label_competition: "C - Competition",
+        placeholder_meddpicc: "Enter strategic details here...",
+        btn_save_meddpicc: "Save MEDDPICC"
     }
 };
 

@@ -174,6 +174,15 @@ const elements = {
     responsiblesList: document.getElementById('responsibles-list'),
     oppDescription: document.getElementById('opp-description'),
     saveOppDescriptionBtn: document.getElementById('save-opp-description-btn'),
+    saveMeddpiccBtn: document.getElementById('save-meddpicc-btn'),
+    meddM: document.getElementById('medd-m'),
+    meddE: document.getElementById('medd-e'),
+    meddD1: document.getElementById('medd-d1'),
+    meddD2: document.getElementById('medd-d2'),
+    meddP: document.getElementById('medd-p'),
+    meddI: document.getElementById('medd-i'),
+    meddC: document.getElementById('medd-c'),
+    meddC2: document.getElementById('medd-c2'),
 
     // Front Office Settings
     foApiUrlInput: document.getElementById('fo-api-url'),
@@ -1970,12 +1979,78 @@ window.openDetails = (oppId) => {
         elements.detailsContent.appendChild(item);
     });
 
-    // Load opportunity description from materials
+    // Load opportunity description and MEDDPICC from materials
     const materials = currentConfig.materials[oppId] || {};
     elements.oppDescription.value = materials.description || '';
 
+    // Load MEDDPICC
+    const medd = materials.meddpicc || {};
+    elements.meddM.value = medd.m || '';
+    elements.meddE.value = medd.e || '';
+    elements.meddD1.value = medd.d1 || '';
+    elements.meddD2.value = medd.d2 || '';
+    elements.meddP.value = medd.p || '';
+    elements.meddI.value = medd.i || '';
+    elements.meddC.value = medd.c || '';
+    elements.meddC2.value = medd.c2 || '';
+
+    // Initialize tabs (reset to General)
+    const tabs = elements.detailsModal.querySelectorAll('.tab-btn');
+    const contents = elements.detailsModal.querySelectorAll('.tab-content');
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    elements.detailsModal.querySelector('[data-tab="general"]').classList.add('active');
+    elements.detailsModal.querySelector('#tab-general').classList.add('active');
+
+    // Initialize MEDDPICC sub-tabs (reset to M)
+    const subTabs = elements.detailsModal.querySelectorAll('.sub-tab-btn');
+    const subPanes = elements.detailsModal.querySelectorAll('.sub-tab-pane');
+    subTabs.forEach(t => t.classList.remove('active'));
+    subPanes.forEach(p => p.classList.remove('active'));
+    const defaultSubTab = elements.detailsModal.querySelector('[data-sub-tab="m"]');
+    if (defaultSubTab) defaultSubTab.classList.add('active');
+    const defaultSubPane = elements.detailsModal.querySelector('#sub-tab-m');
+    if (defaultSubPane) defaultSubPane.classList.add('active');
+
     elements.detailsModal.classList.remove('hidden');
 };
+
+// Handle Tab and Sub-Tab Switching globally
+document.addEventListener('click', (e) => {
+    // Main Tabs
+    if (e.target.classList.contains('tab-btn')) {
+        const tabContainer = e.target.closest('.modal-body');
+        if (!tabContainer) return;
+
+        const tabId = e.target.getAttribute('data-tab');
+        const tabs = tabContainer.querySelectorAll('.tab-btn');
+        const contents = tabContainer.querySelectorAll('.tab-content');
+
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+
+        e.target.classList.add('active');
+        const activeContent = tabContainer.querySelector(`#tab-${tabId}`);
+        if (activeContent) activeContent.classList.add('active');
+    }
+
+    // MEDDPICC Sub-Tabs
+    if (e.target.classList.contains('sub-tab-btn')) {
+        const subTabContainer = e.target.closest('#tab-meddpicc');
+        if (!subTabContainer) return;
+
+        const subTabId = e.target.getAttribute('data-sub-tab');
+        const subTabs = subTabContainer.querySelectorAll('.sub-tab-btn');
+        const subPanes = subTabContainer.querySelectorAll('.sub-tab-pane');
+
+        subTabs.forEach(t => t.classList.remove('active'));
+        subPanes.forEach(p => p.classList.remove('active'));
+
+        e.target.classList.add('active');
+        const activePane = subTabContainer.querySelector(`#sub-tab-${subTabId}`);
+        if (activePane) activePane.classList.add('active');
+    }
+});
 
 // Save Opportunity Description
 elements.saveOppDescriptionBtn.onclick = async () => {
@@ -1993,6 +2068,33 @@ elements.saveOppDescriptionBtn.onclick = async () => {
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
     showToast('Explicación guardada correctamente');
+};
+
+// Save MEDDPICC
+elements.saveMeddpiccBtn.onclick = async () => {
+    if (!activeOppId) return;
+
+    if (!currentConfig.materials[activeOppId]) {
+        currentConfig.materials[activeOppId] = {
+            pocs: [],
+            rfp: { url: '', activities: [] },
+            demo: { desc: '', url: '', activities: [] }
+        };
+    }
+
+    currentConfig.materials[activeOppId].meddpicc = {
+        m: elements.meddM.value.trim(),
+        e: elements.meddE.value.trim(),
+        d1: elements.meddD1.value.trim(),
+        d2: elements.meddD2.value.trim(),
+        p: elements.meddP.value.trim(),
+        i: elements.meddI.value.trim(),
+        c: elements.meddC.value.trim(),
+        c2: elements.meddC2.value.trim()
+    };
+
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+    showToast(getTranslation('toast_saved_success') || 'Guardado correctamente');
 };
 
 // Notes
