@@ -1,3 +1,22 @@
+const parseCustomDate = (dateStr) => {
+    if (!dateStr) return null;
+    dateStr = dateStr.toString().trim();
+    // Try dd/MM/yyyy
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            const d = new Date(year, month, day);
+            if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) return d;
+        }
+    }
+    // Try YYYY-MM-DD
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 let currentConfig = {
     directory: null,
     user: null,
@@ -31,7 +50,9 @@ let currentConfig = {
     expandedManagerFilterId: null, // Track which filter is expanded in the settings manager
     viewHistory: [], // Stack for navigation history
     resources: [],
-    changedStages: {} // Tracks opps whose stage changed after CSV import
+    changedStages: {}, // Tracks opps whose stage changed after CSV import
+    assessmentStructure: [], // Grouped discovery questions
+    managerSettings: { team: [], docs: [] } // Hidden manager section data
 };
 
 let activeOppId = null;
@@ -133,8 +154,16 @@ const elements = {
     attackPlanActivitiesBody: document.getElementById('attack-plan-activities-body'),
     addAttackActivityBtn: document.getElementById('add-attack-activity-btn'),
     attackPlanStrategy: document.getElementById('attack-plan-strategy'),
+    attackPlanOwner: document.getElementById('attack-plan-owner'),
     saveAttackPlanBtn: document.getElementById('save-attack-plan-btn'),
+    resetAttackPlanBtn: document.getElementById('reset-attack-plan-btn'),
     attackPlanTimelineChart: document.getElementById('attack-plan-timeline-chart'),
+
+    // CSV Mapping Elements
+    csvMappingModal: document.getElementById('csv-mapping-modal'),
+    csvMappingBody: document.getElementById('csv-mapping-body'),
+    closeCsvMappingModalBtn: document.getElementById('close-csv-mapping-modal-btn'),
+    confirmCsvMappingBtn: document.getElementById('confirm-csv-mapping-btn'),
     // Account Contacts Elements
     accountContactsModal: document.getElementById('account-contacts-modal'),
     accountContactsModalTitle: document.getElementById('account-contacts-modal-title'),
@@ -160,9 +189,11 @@ const elements = {
     detailsModalTitle: document.getElementById('details-modal-title'),
     closeDetailsBtn: document.getElementById('close-details-btn'),
     accountUrlInput: document.getElementById('account-url-template'),
+    accountsGroupBySelect: document.getElementById('accounts-groupby-select'),
     appVersion: document.getElementById('app-version'),
     updateBadge: document.getElementById('update-badge'),
     updateModal: document.getElementById('update-modal'),
+    installUpdateBtn: document.getElementById('install-update-btn'),
     confirmUpdateBtn: document.getElementById('confirm-update-btn'),
     cancelUpdateBtn: document.getElementById('cancel-update-btn'),
     closeUpdateModalBtn: document.getElementById('close-update-modal-btn'),
@@ -175,19 +206,26 @@ const elements = {
     oppDescription: document.getElementById('opp-description'),
     saveOppDescriptionBtn: document.getElementById('save-opp-description-btn'),
     saveMeddpiccBtn: document.getElementById('save-meddpicc-btn'),
-    meddM: document.getElementById('medd-m'),
-    meddE: document.getElementById('medd-e'),
-    meddD1: document.getElementById('medd-d1'),
-    meddD2: document.getElementById('medd-d2'),
-    meddP: document.getElementById('medd-p'),
-    meddI: document.getElementById('medd-i'),
-    meddC: document.getElementById('medd-c'),
-    meddC2: document.getElementById('medd-c2'),
+    meddMList: document.getElementById('medd-m-list'),
+    meddEContact: document.getElementById('medd-e-contact'),
+    meddERole: document.getElementById('medd-e-role'),
+    meddEInfluence: document.getElementById('medd-e-influence'),
+    meddESupport: document.getElementById('medd-e-support'),
+    meddD1List: document.getElementById('medd-d1-list'),
+    meddD2List: document.getElementById('medd-d2-list'),
+    meddPList: document.getElementById('medd-p-list'),
+    meddIList: document.getElementById('medd-i-list'),
+    meddCContact: document.getElementById('medd-c-contact'),
+    meddCRole: document.getElementById('medd-c-role'),
+    meddCInfluence: document.getElementById('medd-c-influence'),
+    meddCValidated: document.getElementById('medd-c-validated'),
+    meddC2List: document.getElementById('medd-c2-list'),
 
     // Front Office Settings
     foApiUrlInput: document.getElementById('fo-api-url'),
     foApiTokenInput: document.getElementById('fo-api-token'),
     foApiTemplateInput: document.getElementById('fo-api-template'),
+    foApiAssessmentTemplateInput: document.getElementById('fo-api-assessment-template'),
     foApiHolderInput: document.getElementById('fo-api-holder'),
     generateFoTicketBtn: document.getElementById('generate-fo-ticket-btn'),
     viewFoTicketBtn: document.getElementById('view-fo-ticket-btn'),
@@ -222,7 +260,48 @@ const elements = {
     closeResourceModalBtn: document.getElementById('close-resource-modal-btn'),
     resourceNameInput: document.getElementById('resource-name-input'),
     resourceContentInput: document.getElementById('resource-content-input'),
-    saveResourceBtn: document.getElementById('save-resource-btn')
+    saveResourceBtn: document.getElementById('save-resource-btn'),
+
+    // Assessment Elements
+    assessmentQuestList: document.getElementById('assessment-questions-list'),
+    assessmentSearchInput: document.getElementById('assessment-search-input'),
+    assessmentGeneralNotes: document.getElementById('assessment-general-notes'),
+    saveAssessmentBtn: document.getElementById('save-assessment-btn'),
+    generateAssessmentDocBtn: document.getElementById('generate-assessment-doc-btn'),
+    viewAssessmentPdfBtn: document.getElementById('view-assessment-pdf-btn'),
+    downloadAssessmentDocxBtn: document.getElementById('download-assessment-docx-btn'),
+    activitiesOppInfoAssessment: document.getElementById('activities-opp-info-assessment'),
+    activitiesOppInfoPoc: document.getElementById('activities-opp-info-poc'),
+    activitiesOppInfoRfp: document.getElementById('activities-opp-info-rfp'),
+    activitiesOppInfoDemo: document.getElementById('activities-opp-info-demo'),
+    activitiesOppInfoHandover: document.getElementById('activities-opp-info-handover'),
+    isReferenceCaseCheckbox: document.getElementById('is-reference-case-checkbox'),
+    referenceKeywords: document.getElementById('reference-keywords'),
+    generateHandoverDocBtn: document.getElementById('generate-handover-doc-btn'),
+    exportDataBtn: document.getElementById('export-data-btn'),
+    importDataBtn: document.getElementById('import-data-btn'),
+
+    // Assessment Structure Management
+    assessmentStructureList: document.getElementById('assessment-structure-list'),
+    addAssessmentQuestionBtn: document.getElementById('add-assessment-question-btn'),
+
+    // Manager Section Elements
+    managerTrigger: document.getElementById('app-logo-trigger'),
+    managerView: document.getElementById('manager-view'),
+    managerTeamList: document.getElementById('manager-team-list'),
+    newMemberName: document.getElementById('new-member-name'),
+    addMemberBtn: document.getElementById('add-member-btn'),
+
+    // Calculator Elements
+    calcAmount: document.getElementById('calc-amount'),
+    calcPercent: document.getElementById('calc-percent'),
+    calcExchange: document.getElementById('calc-exchange'),
+    calcResult: document.getElementById('calc-result')
+};
+
+// Account Plans Grouping Listener
+elements.accountsGroupBySelect.onchange = () => {
+    renderAccountsWithPlan();
 };
 
 // Navigation
@@ -273,6 +352,17 @@ if (elements.addGeneralNoteBtn) {
 // Window Controls Logic
 
 // Keyboard Shortcuts
+window.goToAccount = (accountId) => {
+    currentConfig.activeFilters = {};
+    currentConfig.currentFavoritesFilter = false;
+    currentConfig.currentSearchQuery = accountId.toLowerCase();
+    elements.oppSearchInput.value = accountId;
+
+    renderOpportunities();
+    renderDynamicFilters();
+    showView('opp-list-view');
+};
+
 window.goToOpportunity = (oppId) => {
     currentConfig.activeFilters = {};
     currentConfig.currentFavoritesFilter = false;
@@ -413,7 +503,7 @@ elements.helpBtn.onclick = () => {
 
 
 // Tab Switching for Activities Modal
-document.querySelectorAll('.tab-btn').forEach(btn => {
+elements.activitiesModal.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const targetTab = btn.getAttribute('data-tab');
         const modal = elements.activitiesModal;
@@ -424,12 +514,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
         // Update content
         modal.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        modal.querySelector(`#${targetTab}`).classList.add('active');
+        const activeContent = modal.querySelector(`#${targetTab}`);
+        if (activeContent) activeContent.classList.add('active');
 
         // Initial render for the tab
+        if (targetTab === 'tab-assessment') renderAssessmentTab(activeOppId);
         if (targetTab === 'tab-pocs') renderPocsList();
         if (targetTab === 'tab-rfp') renderRfpTab();
         if (targetTab === 'tab-demo') renderDemoTab();
+        if (targetTab === 'tab-handover') renderHandoverTab(activeOppId);
     });
 });
 
@@ -519,6 +612,7 @@ document.querySelectorAll('.settings-tab-btn').forEach(btn => {
         document.getElementById(targetTab).classList.add('active');
 
         if (targetTab === 'settings-classifications') renderClassificationManager();
+        if (targetTab === 'settings-assessment') renderAssessmentStructureEditor();
     };
 });
 
@@ -887,6 +981,7 @@ async function init() {
     try {
         const settings = await window.electronAPI.getSettings();
         if (settings) {
+            currentConfig.settings = settings;
             currentConfig.crmUrlTemplate = settings.crmUrlTemplate || '';
             currentConfig.accountUrlTemplate = settings.accountUrlTemplate || '';
             const theme = settings.theme || 'auto';
@@ -895,6 +990,7 @@ async function init() {
             if (elements.foApiUrlInput) elements.foApiUrlInput.value = settings.foApiUrl || '';
             if (elements.foApiTokenInput) elements.foApiTokenInput.value = settings.foApiToken || '';
             if (elements.foApiTemplateInput) elements.foApiTemplateInput.value = settings.foApiTemplate || '';
+            if (elements.foApiAssessmentTemplateInput) elements.foApiAssessmentTemplateInput.value = settings.foApiAssessmentTemplate || '';
             if (elements.foApiHolderInput) elements.foApiHolderInput.value = settings.foApiHolder || '';
             elements.themeSelect.value = theme;
             applyTheme(theme);
@@ -1005,11 +1101,79 @@ async function loadAllData(dir) {
             ];
         }
 
+        const assessmentStruct = await window.electronAPI.loadFile(dir, 'assessment_structure.json');
+        if (assessmentStruct) {
+            // Ensure every question has a 'type', default to 'open' if missing (migration)
+            currentConfig.assessmentStructure = assessmentStruct.map(q => ({
+                ...q,
+                type: q.type || 'open'
+            }));
+        } else {
+            // Default Assessment Structure
+            currentConfig.assessmentStructure = [
+                { id: "2.1", stage: "2.1", area: "Diseño", question: "¿Cuenta actualmente con algún sistema de diseño documental?", type: "closed" },
+                { id: "2.2", stage: "2.2", area: "Diseño", question: "¿Qué tipo de producción necesitan? (on demand, batch, ambas)", type: "open" },
+                { id: "2.3", stage: "2.3", area: "Diseño", question: "¿Qué tipo de inputs tienen en su producción?", type: "open" },
+                { id: "2.4", stage: "2.4", area: "Diseño", question: "¿Qué tipos de formatos necesitan generar (PDF, PCL, PS, otro)?", type: "open" },
+                { id: "2.5", stage: "2.5", area: "Diseño", question: "¿Cuántas plantillas de comunicaciones tienen actualmente?", type: "quantity" },
+                { id: "2.6", stage: "2.6", area: "Producción", question: "¿La información para la generación de comunicaciones se entregará a partir de sus core systems o Quadient tiene que ir a recuperarla?", type: "open" },
+                { id: "2.7", stage: "2.7", area: "Producción", question: "Por favor describa el escenario básico de producción de comunicaciones", type: "open" },
+                { id: "2.8", stage: "2.8", area: "Composición de documentos vía web", question: "¿Se necesita que usuarios de negocio creen o modifiquen plantillas desde una interfaz de usuario web?", type: "closed" },
+                { id: "2.9", stage: "2.9", area: "Composición de documentos vía web", question: "¿Se necesita que usuarios de oficina puedan utilizar las plantillas para generación documental bajo demanda? (Por ejemplo, contratos o pólizas a partir de una plantilla)", type: "closed" },
+                { id: "2.10", stage: "2.10", area: "Email", question: "¿Se espera realizar envíos de emails?", type: "closed" },
+                { id: "2.11", stage: "2.11", area: "Email", question: "¿Estos emails llevan archivos adjuntos?", type: "closed" },
+                { id: "2.12", stage: "2.12", area: "SMS", question: "¿Se espera realizar envíos de sms?", type: "closed" },
+                { id: "2.13", stage: "2.13", area: "Whatsapp", question: "¿Se espera realizar push a whatsapp?", type: "closed" },
+                { id: "2.14", stage: "2.14", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Actualmente cuenta con una aplicación web o móvil? ¿Si sí, en qué está desarrollada?", type: "open" },
+                { id: "2.15", stage: "2.15", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Desean entregar contenido a su aplicación web o móvil? (¿por ejemplo, estado de cuenta interactivo, cotizadores, formularios de contratación?", type: "closed" },
+                { id: "2.16", stage: "2.16", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Desean realizar envíos de push notifications?", type: "closed" },
+                { id: "2.17", stage: "2.17", area: "Orquestación", question: "¿Cuenta o tiene planeada la realización de una orquestación de envíos de comunicaciones? (por ejemplo, si un cliente no abre un correo electrónico enviarle un sms)", type: "closed" },
+                { id: "2.18", stage: "2.18", area: "Orquestación", question: "¿Que canales planean manejar dentro de la orquestación de la jornada del cliente? (por ejemplo, email, sms, whatsapp, impreso)", type: "open" },
+                { id: "2.19", stage: "2.19", area: "Customer Experience", question: "¿Existe la necesidad de mapear la experiencia del usuario en una interfaz web?", type: "closed" },
+                { id: "2.20", stage: "2.20", area: "Customer Experience", question: "¿Cuenta con una herramienta de mapeo de la jornada de clientes?", type: "closed" },
+                { id: "2.21", stage: "2.21", area: "Archiving", question: "¿Cuenta con alguna herramienta de archiving?", type: "closed" },
+                { id: "2.22", stage: "2.22", area: "Archiving", question: "¿Necesita almacenar los archivos producidos por Quadient?", type: "closed" },
+                { id: "2.23", stage: "2.23", area: "Archiving", question: "¿En qué formato necesita almacenarlos?", type: "open" },
+                { id: "3.1", stage: "3.1", area: "Diseño", question: "¿Cuántos analistas/programadores trabajan concurrentemente con diseño documental?", type: "quantity" },
+                { id: "3.2", stage: "3.2", area: "Diseño", question: "¿Necesitan manejo de espacios en blanco?", type: "closed" },
+                { id: "3.3", stage: "3.3", area: "Diseño", question: "¿Cuántas plantillas de comunicaciones tienen actualmente?", type: "quantity" },
+                { id: "3.4", stage: "3.4", area: "Diseño", question: "¿Qué cantidad de páginas (lado de una hoja) son producidas o se esperan producir por año?", type: "quantity" },
+                { id: "3.5", stage: "3.5", area: "Diseño", question: "¿Hay que migrar estas viejas plantillas o se espera que convivan los dos sistemas?", type: "closed" },
+                { id: "3.6", stage: "3.6", area: "Producción", question: "¿Cuál es el pico más alto de producción?", type: "quantity" },
+                { id: "3.7", stage: "3.7", area: "Producción", question: "¿Cuáles son los SLA definido para la producción de comunicaciones?", type: "open" },
+                { id: "3.8", stage: "3.8", area: "Composición de documentos vía Web", question: "¿Cuántos usuarios/departamentos van a colaborar (crear o modificar) con el contenido de las plantillas?", type: "quantity" },
+                { id: "3.9", stage: "3.9", area: "Composición de documentos vía Web", question: "¿Se espera que cada departamento/línea de negocio pueda crear o modificar las plantillas y que no sean visibles para los demás departamentos?", type: "closed" },
+                { id: "3.10", stage: "3.10", area: "Composición de documentos vía Web", question: "¿Hay un flujo de aprobación de las plantillas modificadas por los usuarios de negocio?", type: "closed" },
+                { id: "3.11", stage: "3.11", area: "Email", question: "¿Estos archivos adjuntos son documentos genericos de la compañía o documentos generados personalizados para cada cliente?", type: "open" },
+                { id: "3.12", stage: "3.12", area: "Email", question: "¿Qué cantidad de páginas tienen los archivos adjuntos?, si aplica)", type: "quantity" },
+                { id: "3.13", stage: "3.13", area: "Email", question: "¿Qué cantidad de emails se esperan enviar al año?", type: "quantity" },
+                { id: "3.14", stage: "3.14", area: "SMS", question: "¿Qué tipo de mensaje se va a enviar por sms, texto plano, liga a una pagina interactiva HTML5, otro?", type: "open" },
+                { id: "3.15", stage: "3.15", area: "SMS", question: "¿Qué cantidad de SMS se esperan enviar al año?", type: "quantity" },
+                { id: "3.16", stage: "3.16", area: "Whatsapp", question: "¿Qué tipo de mensaje se va a enviar por whatsapp, texto plano, liga a una pagina interactiva HTML5, otro?", type: "open" },
+                { id: "3.17", stage: "3.17", area: "Whatsapp", question: "¿Qué cantidad de mensajes se esperan enviar al año?", type: "quantity" },
+                { id: "3.18", stage: "3.18", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Se espera enviar emails con una Landingpage en formato interactivo (HTML5)?", type: "closed" },
+                { id: "3.19", stage: "3.19", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Con cuántos usuarios activos cuenta la aplicación? ¿O cuántos se esperan tener?", type: "quantity" },
+                { id: "3.20", stage: "3.20", area: "Orquestación", question: "¿Cuántos usuarios realizarían los flujos de orquestación?", type: "quantity" },
+                { id: "3.21", stage: "3.21", area: "Customer Experience", question: "¿Cuántos mapas de jornada de cliente utilizan hoy?", type: "quantity" },
+                { id: "3.22", stage: "3.22", area: "Customer Experience", question: "¿Cuántos usuarios participarían en la revisión y edición del mapa de la experiencia del usuario?", type: "quantity" },
+                { id: "3.23", stage: "3.23", area: "Archiving", question: "¿Cuántos usuarios internos realizarían consultas al sistema de archivado?", type: "quantity" },
+                { id: "3.24", stage: "3.24", area: "Archiving", question: "¿Cuántos usuarios externos realizarían consultas al sistema de archivado?", type: "quantity" },
+                { id: "3.25", stage: "3.25", area: "Infraestructura", question: "¿Qué ambientes deberian ser partes de la solución? (QA, Testing, Development, HA, Disaster Recovery)", type: "open" },
+                { id: "3.26", stage: "3.26", area: "Infraestructura", question: "¿En qué plataforma y/o sistema operativo prefiere que se ejecuten las aplicaciones?", type: "open" }
+            ];
+            await window.electronAPI.saveFile(dir, 'assessment_structure.json', currentConfig.assessmentStructure);
+        }
+
         return true;
     } catch (e) {
         console.warn("Renderer: Error cargando archivos:", e);
         return true;
     }
+}
+
+async function saveMaterials() {
+    if (!currentConfig.directory) return;
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
 }
 
 // Directory Selection
@@ -1076,15 +1240,272 @@ async function finalizeDirChange() {
     }
 }
 
+
+// --- HIDDEN MANAGER LOGIC ---
+let managerClickCount = 0;
+let managerClickTimer = null;
+
+if (elements.managerTrigger) {
+    elements.managerTrigger.addEventListener('click', () => {
+        managerClickCount++;
+        clearTimeout(managerClickTimer);
+        managerClickTimer = setTimeout(() => { managerClickCount = 0; }, 500);
+
+        if (managerClickCount === 3) {
+            managerClickCount = 0;
+            console.log("Manager: Entrando a vista de gestión");
+            showView('manager-view');
+            renderManagerView();
+        }
+    });
+}
+
+function renderManagerView() {
+    elements.managerTeamList.innerHTML = '';
+
+    (currentConfig.managerSettings.team || []).forEach((member, memberIdx) => {
+        if (typeof member === 'string') {
+            currentConfig.managerSettings.team[memberIdx] = { name: member, docs: [], isCollapsed: true };
+            member = currentConfig.managerSettings.team[memberIdx];
+        }
+
+        const isCollapsed = member.isCollapsed !== false;
+
+        const memberCard = document.createElement('div');
+        memberCard.className = 'card settings-card';
+        memberCard.style.padding = isCollapsed ? '0.6rem 1rem' : '1.25rem 1.5rem';
+        memberCard.style.marginBottom = isCollapsed ? '0.5rem' : '1.5rem';
+        memberCard.style.background = 'rgba(255,255,255,0.03)';
+        memberCard.style.transition = 'all 0.2s ease';
+        memberCard.style.height = 'auto';
+        memberCard.style.minHeight = '0';
+
+        let docsHtml = (member.docs || []).map((doc, docIdx) => `
+            <div class="member-doc-item" style="margin-bottom: 0.8rem;">
+                <div class="category-item" style="display: grid; grid-template-columns: 120px 1fr auto auto auto auto; gap: 0.5rem; align-items: center; margin-bottom: 0.2rem; background: rgba(255,255,255,0.05); padding: 4px 8px;">
+                    <input type="text" class="form-input" value="${doc.label}" 
+                        onchange="updateMemberDoc(${memberIdx}, ${docIdx}, 'label', this.value)" 
+                        style="height: 28px; padding: 2px 6px; font-size: 0.8rem; font-weight: 700; background: transparent; border: 1px solid transparent;"
+                        onfocus="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='var(--glass-border)'"
+                        onblur="this.style.background='transparent'; this.style.borderColor='transparent'">
+                    
+                    <span class="sub-text" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8;" title="${doc.path}">${doc.path}</span>
+                    
+                    <button class="secondary-btn small" onclick="changeMemberDocPath(${memberIdx}, ${docIdx})" title="Cambiar ruta">...</button>
+                    <button class="secondary-btn small" onclick="exploreDir('${doc.path.replace(/\\/g, '\\\\')}', 'sub-list-${memberIdx}-${docIdx}')" title="Listar contenido">📂</button>
+                    <button class="secondary-btn small" onclick="openDocPath('${doc.path.replace(/\\/g, '\\\\')}')">Abrir</button>
+                    <button class="delete-cat-btn" style="padding: 2px 8px;" onclick="removeMemberDoc(${memberIdx}, ${docIdx})">×</button>
+                </div>
+                <div id="sub-list-${memberIdx}-${docIdx}" class="sub-list-container" style="display: none; margin-left: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 4px; border-left: 2px solid var(--brand-orange);">
+                    <div class="loading-text" style="font-size: 0.8rem; color: var(--text-secondary);">Cargando contenido...</div>
+                </div>
+            </div>
+        `).join('');
+
+        memberCard.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleMemberCollapse(${memberIdx})">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                    <span style="display: inline-block; transform: ${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; transition: transform 0.2s; font-size: 0.8rem; opacity: 0.6;">▼</span>
+                    <input type="text" value="${member.name}" 
+                        onclick="event.stopPropagation()" 
+                        onchange="updateMemberName(${memberIdx}, this.value)"
+                        title="Haz clic para editar el nombre"
+                        style="background: transparent; border: none; border-bottom: 1px solid transparent; color: var(--brand-orange); font-size: ${isCollapsed ? '1rem' : '1.15rem'}; font-weight: 700; padding: 2px 4px; width: 100%; transition: all 0.2s; outline: none;"
+                        onfocus="this.style.borderBottomColor='var(--brand-orange)'; this.style.background='rgba(255,255,255,0.05)'"
+                        onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
+                </div>
+                <button class="delete-cat-btn" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 1rem;" onclick="event.stopPropagation(); removeTeamMember(${memberIdx})">Eliminar</button>
+            </div>
+            
+            <div id="member-content-${memberIdx}" style="display: ${isCollapsed ? 'none' : 'block'}; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                <div id="member-docs-${memberIdx}" style="margin-bottom: 1.5rem;">
+                    ${docsHtml || '<p class="sub-text" style="text-align: center;">Sin documentos asignados</p>'}
+                </div>
+
+                <div class="form-group" style="border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <label style="font-size: 0.8rem; margin-bottom: 0.5rem; display: block;">Asignar nuevo documento ó directorio:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr auto auto; gap: 0.5rem;">
+                        <input type="text" id="new-doc-label-${memberIdx}" class="form-input" placeholder="Etiqueta (ej. Guías)">
+                        <input type="text" id="new-doc-path-${memberIdx}" class="form-input" placeholder="Ruta de carpeta o archivo..." readonly>
+                        <button class="secondary-btn small" onclick="selectMemberDocPath(${memberIdx})">...</button>
+                        <button class="primary-btn small" onclick="addMemberDoc(${memberIdx})">Añadir</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        elements.managerTeamList.appendChild(memberCard);
+    });
+}
+
+window.toggleMemberCollapse = (idx) => {
+    const member = currentConfig.managerSettings.team[idx];
+    member.isCollapsed = !member.isCollapsed;
+    renderManagerView();
+};
+
+window.updateMemberName = async (idx, newName) => {
+    if (newName.trim()) {
+        currentConfig.managerSettings.team[idx].name = newName.trim();
+        await autoSaveManager();
+        showToast('Nombre actualizado');
+    }
+};
+
+window.updateMemberDoc = async (mIdx, dIdx, field, value) => {
+    if (value.trim()) {
+        currentConfig.managerSettings.team[mIdx].docs[dIdx][field] = value.trim();
+        await autoSaveManager();
+        if (field === 'label') showToast('Etiqueta actualizada');
+    }
+};
+
+window.changeMemberDocPath = async (mIdx, dIdx) => {
+    const result = await window.electronAPI.selectDirectory();
+    if (result) {
+        currentConfig.managerSettings.team[mIdx].docs[dIdx].path = result;
+        renderManagerView();
+        await autoSaveManager();
+        showToast('Ruta actualizada');
+    }
+};
+
+async function autoSaveManager() {
+    await window.electronAPI.saveSettings({
+        ...currentConfig,
+        lastDirectory: currentConfig.directory,
+        managerSettings: currentConfig.managerSettings,
+        theme: elements.themeSelect.value,
+        language: elements.languageSelect.value
+    });
+}
+
+if (elements.addMemberBtn) {
+    elements.addMemberBtn.onclick = async () => {
+        const name = elements.newMemberName.value.trim();
+        if (name) {
+            if (!currentConfig.managerSettings.team) currentConfig.managerSettings.team = [];
+            currentConfig.managerSettings.team.push({ name: name, docs: [], isCollapsed: false });
+            elements.newMemberName.value = '';
+            renderManagerView();
+            await autoSaveManager();
+            showToast(getTranslation('toast_member_added'));
+        }
+    };
+}
+
+window.removeTeamMember = async (idx) => {
+    if (confirm('¿Estás seguro de eliminar a este miembro y sus documentos?')) {
+        currentConfig.managerSettings.team.splice(idx, 1);
+        renderManagerView();
+        await autoSaveManager();
+        showToast(getTranslation('toast_member_deleted'));
+    }
+};
+
+window.selectMemberDocPath = async (memberIdx) => {
+    const result = await window.electronAPI.selectDirectory();
+    if (result) {
+        document.getElementById(`new-doc-path-${memberIdx}`).value = result;
+    }
+};
+
+window.addMemberDoc = async (memberIdx) => {
+    const labelInput = document.getElementById(`new-doc-label-${memberIdx}`);
+    const pathInput = document.getElementById(`new-doc-path-${memberIdx}`);
+    const label = labelInput.value.trim();
+    const path = pathInput.value.trim();
+
+    if (label && path) {
+        const member = currentConfig.managerSettings.team[memberIdx];
+        if (!member.docs) member.docs = [];
+        member.docs.push({ label, path });
+        renderManagerView();
+        await autoSaveManager();
+        showToast(getTranslation('toast_doc_added'));
+    } else {
+        showToast('Completa etiqueta y ruta');
+    }
+};
+
+window.removeMemberDoc = async (memberIdx, docIdx) => {
+    currentConfig.managerSettings.team[memberIdx].docs.splice(docIdx, 1);
+    renderManagerView();
+    await autoSaveManager();
+    showToast(getTranslation('toast_doc_deleted'));
+};
+
+window.exploreDir = async (basePath, containerId) => {
+    const container = document.getElementById(containerId);
+    if (container.style.display === 'block') {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    const files = await window.electronAPI.listFiles(basePath);
+
+    if (files.length === 0) {
+        container.innerHTML = '<p class="sub-text" style="font-size: 0.8rem; margin: 0;">Directorio vacío o ilegible</p>';
+        return;
+    }
+
+    // Sort: Directories first, then files
+    files.sort((a, b) => {
+        if (a.isDirectory === b.isDirectory) return a.name.localeCompare(b.name);
+        return a.isDirectory ? -1 : 1;
+    });
+
+    container.innerHTML = files.map(f => {
+        const fullPath = `${basePath}/${f.name}`.replace(/\\/g, '\\\\');
+        const icon = f.isDirectory ? '📁' : '📄';
+        const color = f.isDirectory ? 'var(--brand-cyan)' : 'var(--text-secondary)';
+
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span style="font-size: 0.85rem; color: ${color}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;">
+                    ${icon} ${f.name}
+                </span>
+                <button class="text-btn" style="font-size: 0.75rem; color: var(--brand-orange); padding: 2px 8px;" 
+                        onclick="openDocPath('${fullPath}')">Abrir</button>
+            </div>
+        `;
+    }).join('');
+};
+
+// Calculator Logic
+function updateCommission() {
+    const amount = parseFloat(elements.calcAmount.value) || 0;
+    const percent = parseFloat(elements.calcPercent.value) || 0;
+    const exchange = parseFloat(elements.calcExchange.value) || 1;
+
+    const result = (amount * (percent / 100)) * exchange;
+    elements.calcResult.textContent = `$ ${result.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+if (elements.calcAmount) {
+    elements.calcAmount.addEventListener('input', updateCommission);
+    elements.calcPercent.addEventListener('input', updateCommission);
+    elements.calcExchange.addEventListener('input', updateCommission);
+}
+
+window.openDocPath = async (path) => {
+    const result = await window.electronAPI.openPath(path);
+    if (!result.success) {
+        showToast('Error al abrir la ruta: ' + (result.error || 'No encontrado'));
+    }
+};
+
 // Settings Saving
 elements.saveSettingsBtn.addEventListener('click', async () => {
-    currentConfig.crmUrlTemplate = elements.crmUrlInput.value.trim();
-    currentConfig.accountUrlTemplate = elements.accountUrlInput.value.trim();
+    if (elements.crmUrlInput) currentConfig.crmUrlTemplate = elements.crmUrlInput.value.trim();
+    if (elements.accountUrlInput) currentConfig.accountUrlTemplate = elements.accountUrlInput.value.trim();
+
     const theme = elements.themeSelect.value;
     const language = elements.languageSelect.value;
     applyTheme(theme);
     applyLanguage(language);
-    await window.electronAPI.saveSettings({
+
+    const settingsData = {
         lastDirectory: currentConfig.directory,
         crmUrlTemplate: currentConfig.crmUrlTemplate,
         accountUrlTemplate: currentConfig.accountUrlTemplate,
@@ -1093,11 +1514,17 @@ elements.saveSettingsBtn.addEventListener('click', async () => {
         accountCategories: currentConfig.accountCategories,
         sidebarFilters: currentConfig.sidebarFilters,
         responsibles: currentConfig.responsibles,
-        foApiUrl: elements.foApiUrlInput.value.trim(),
-        foApiToken: elements.foApiTokenInput.value.trim(),
-        foApiTemplate: elements.foApiTemplateInput.value.trim(),
-        foApiHolder: elements.foApiHolderInput.value.trim()
-    });
+        foApiUrl: elements.foApiUrlInput?.value?.trim() || '',
+        foApiToken: elements.foApiTokenInput?.value?.trim() || '',
+        foApiTemplate: elements.foApiTemplateInput?.value?.trim() || '',
+        foApiAssessmentTemplate: elements.foApiAssessmentTemplateInput?.value?.trim() || '',
+        foApiHolder: elements.foApiHolderInput?.value?.trim() || '',
+        managerSettings: currentConfig.managerSettings
+    };
+
+    await window.electronAPI.saveSettings(settingsData);
+    await window.electronAPI.saveFile(currentConfig.directory, 'assessment_structure.json', currentConfig.assessmentStructure);
+
     renderOpportunities();
     showToast('Ajustes guardados');
 });
@@ -1360,10 +1787,16 @@ window.handleExternalLink = (e, url) => {
 };
 
 // CSV Logic
+// --- Mapeo y Validación de CSV ---
+let pendingCsvResults = null;
+
 elements.csvInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Copy for record keeping
     await window.electronAPI.copyFileToDir(file.path, currentConfig.directory);
+
     const reader = new FileReader();
     reader.onload = async (e) => {
         const text = e.target.result;
@@ -1371,42 +1804,138 @@ elements.csvInput.addEventListener('change', async (e) => {
             header: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                const newData = results.data;
-                currentConfig.changedStages = {}; // Reset changes on new import
+                pendingCsvResults = results;
+                const csvHeaders = results.meta.fields;
+                const coreMandatoryFields = ['Account ID', 'Account Name', 'Amount', 'Close Date', 'Opportunity Owner', 'Opportunity ID', 'Stage'];
+                const mandatoryFields = currentConfig.dataStructure.filter(s => coreMandatoryFields.includes(s.header));
 
-                newData.forEach(newItem => {
-                    const oppId = newItem['Opportunity ID'];
-                    if (!oppId) return;
+                // Check if all mandatory fields match exactly
+                const missingMandatory = mandatoryFields.filter(f => !csvHeaders.includes(f.header));
 
-                    const existingIndex = currentConfig.opportunities.findIndex(o => o['Opportunity ID'] === oppId);
-                    if (existingIndex > -1) {
-                        const existing = currentConfig.opportunities[existingIndex];
-                        // Detect stage change
-                        if (existing['Stage'] && newItem['Stage'] && existing['Stage'] !== newItem['Stage']) {
-                            currentConfig.changedStages[oppId] = {
-                                from: existing['Stage'],
-                                to: newItem['Stage']
-                            };
-                        }
-
-                        currentConfig.opportunities[existingIndex] = {
-                            ...currentConfig.opportunities[existingIndex],
-                            ...newItem
-                        };
-                    } else {
-                        currentConfig.opportunities.push(newItem);
-                    }
-                });
-
-                await window.electronAPI.saveFile(currentConfig.directory, 'opportunities.json', currentConfig.opportunities);
-                updateStageSubmenu();
-                renderOpportunities();
-                showToast('CSV importado (ISO-8859-1)');
+                if (missingMandatory.length > 0) {
+                    showCsvMappingModal(csvHeaders, mandatoryFields);
+                } else {
+                    processCsvImport(results.data, null); // No mapping needed
+                }
             }
         });
     };
-    reader.readAsText(file, "ISO-8859-1");
+    reader.readAsText(file, 'ISO-8859-1');
 });
+
+function showCsvMappingModal(csvHeaders, mandatoryFields) {
+    elements.csvMappingBody.innerHTML = '';
+    const coreMandatoryFields = ['Account ID', 'Account Name', 'Amount', 'Close Date', 'Opportunity Owner', 'Opportunity ID', 'Stage'];
+
+    // Combine mandatory and other visible fields for mapping
+    const fieldsToMap = currentConfig.dataStructure.filter(s => s.visible || coreMandatoryFields.includes(s.header));
+
+    fieldsToMap.forEach(field => {
+        const tr = document.createElement('tr');
+        const isMandatory = coreMandatoryFields.includes(field.header);
+
+        // Try to find a best match for default selection
+        const bestMatch = csvHeaders.find(h => h.toLowerCase() === field.header.toLowerCase()) || '';
+
+        tr.innerHTML = `
+            <td style="font-weight: 500;">
+                ${field.header}${isMandatory ? ' <span style="color: var(--brand-orange)">*</span>' : ''}
+            </td>
+            <td>
+                <select class="form-input mapping-select" data-internal="${field.header}" data-mandatory="${isMandatory}">
+                    <option value="">-- Ignorar este campo --</option>
+                    ${csvHeaders.map(h => `<option value="${h}" ${h === bestMatch ? 'selected' : ''}>${h}</option>`).join('')}
+                </select>
+            </td>
+        `;
+        elements.csvMappingBody.appendChild(tr);
+    });
+
+    elements.csvMappingModal.classList.remove('hidden');
+}
+
+elements.confirmCsvMappingBtn.onclick = () => {
+    const mappings = {};
+    let allMandatoryMapped = true;
+
+    const selects = elements.csvMappingBody.querySelectorAll('.mapping-select');
+    selects.forEach(sel => {
+        const internal = sel.dataset.internal;
+        const csvCol = sel.value;
+        const isMandatory = sel.dataset.mandatory === 'true';
+
+        if (csvCol) {
+            mappings[internal] = csvCol;
+        } else if (isMandatory) {
+            allMandatoryMapped = false;
+        }
+    });
+
+    if (!allMandatoryMapped) {
+        showToast('Error: Debes mapear todos los campos obligatorios (*)');
+        return;
+    }
+
+    elements.csvMappingModal.classList.add('hidden');
+    processCsvImport(pendingCsvResults.data, mappings);
+};
+
+elements.closeCsvMappingModalBtn.onclick = () => {
+    elements.csvMappingModal.classList.add('hidden');
+    pendingCsvResults = null;
+    elements.csvInput.value = '';
+};
+
+async function processCsvImport(data, mappings) {
+    currentConfig.changedStages = {};
+
+    // Ensure we have a way to identify the key field
+    const keyField = 'Opportunity ID'; // This is hardcoded as core
+
+    data.forEach(row => {
+        // Apply mapping if exists
+        const mappedItem = {};
+        if (mappings) {
+            Object.keys(mappings).forEach(internalKey => {
+                const val = row[mappings[internalKey]];
+                // Date validation for "Close Date"
+                if (internalKey === 'Close Date' && val) {
+                    if (!parseCustomDate(val)) {
+                        console.warn(`Invalid date format for Close Date: ${val}. Expected dd/MM/yyyy or YYYY-MM-DD.`);
+                        // We keep the value but warn, or we could reject.
+                        // Let's at least ensure sorting works by assigning a null if totally invalid.
+                    }
+                }
+                mappedItem[internalKey] = val;
+            });
+        } else {
+            Object.assign(mappedItem, row);
+        }
+
+        const oppId = mappedItem[keyField];
+        if (!oppId) return;
+
+        const existingIndex = currentConfig.opportunities.findIndex(o => o[keyField] === oppId);
+        if (existingIndex > -1) {
+            const existing = currentConfig.opportunities[existingIndex];
+            if (existing['Stage'] && mappedItem['Stage'] && existing['Stage'] !== mappedItem['Stage']) {
+                currentConfig.changedStages[oppId] = {
+                    from: existing['Stage'],
+                    to: mappedItem['Stage']
+                };
+            }
+            currentConfig.opportunities[existingIndex] = { ...existing, ...mappedItem };
+        } else {
+            currentConfig.opportunities.push(mappedItem);
+        }
+    });
+
+    await window.electronAPI.saveFile(currentConfig.directory, 'opportunities.json', currentConfig.opportunities);
+    updateStageSubmenu();
+    renderOpportunities();
+    showToast('CSV importado correctamente');
+    elements.csvInput.value = '';
+}
 
 
 
@@ -1426,20 +1955,21 @@ function renderStructureEditor() {
             </td>
             <td><input type="text" value="${item.dummy}" class="struct-dummy" data-index="${index}"></td>
             <td>
-                <select class="struct-type" data-index="${index}" onchange="currentConfig.dataStructure[${index}].type = this.value; renderStructureEditor();">
-                    <option value="string" ${item.type === 'string' ? 'selected' : ''}>Texto</option>
-                    <option value="number" ${item.type === 'number' ? 'selected' : ''}>Número</option>
-                    <option value="currency" ${item.type === 'currency' ? 'selected' : ''}>Moneda</option>
-                    <option value="bool" ${item.type === 'bool' ? 'selected' : ''}>Booleano</option>
-                    <option value="formula" ${item.type === 'formula' ? 'selected' : ''}>Fórmula</option>
-                </select>
-            </td>
-            <td>
-                ${item.type === 'formula' ?
-                `<input type="text" value="${item.formula || ''}" class="struct-formula" placeholder="{Var1} {Var2}" data-index="${index}" onchange="currentConfig.dataStructure[${index}].formula = this.value">` :
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select class="struct-type" data-index="${index}" onchange="currentConfig.dataStructure[${index}].type = this.value; renderStructureEditor();" style="width: auto;">
+                        <option value="string" ${item.type === 'string' ? 'selected' : ''}>Texto</option>
+                        <option value="number" ${item.type === 'number' ? 'selected' : ''}>Número</option>
+                        <option value="currency" ${item.type === 'currency' ? 'selected' : ''}>Moneda</option>
+                        <option value="bool" ${item.type === 'bool' ? 'selected' : ''}>Booleano</option>
+                        <option value="formula" ${item.type === 'formula' ? 'selected' : ''}>Fórmula</option>
+                    </select>
+                    ${item.type === 'formula' ?
+                `<input type="text" value="${item.formula || ''}" class="struct-formula" placeholder="{Var1} {Var2}" data-index="${index}" onchange="currentConfig.dataStructure[${index}].formula = this.value" style="flex: 1;">` :
                 ''}
+                </div>
             </td>
             <td style="text-align: center;"><input type="checkbox" class="struct-visible" ${item.visible ? 'checked' : ''} data-index="${index}" onchange="currentConfig.dataStructure[${index}].visible = this.checked"></td>
+            <td style="text-align: center;"><input type="checkbox" class="struct-groupby" ${item.groupBy ? 'checked' : ''} data-index="${index}" onchange="currentConfig.dataStructure[${index}].groupBy = this.checked"></td>
             <td style="text-align: right;"><button class="delete-row-btn" data-index="${index}">&times;</button></td>
         `;
         elements.structureBody.appendChild(tr);
@@ -1496,7 +2026,8 @@ elements.saveStructureBtn.addEventListener('click', async () => {
                 dummy: dummies[i].value.trim(),
                 type: types[i].value,
                 formula: formulaInput ? formulaInput.value.trim() : '',
-                visible: visibilities[i].checked
+                visible: visibilities[i].checked,
+                groupBy: document.querySelectorAll('.struct-groupby')[i].checked
             });
         }
     });
@@ -1689,7 +2220,7 @@ function renderGlobalNotesHistory() {
             </div>
             <div class="history-card-body">
                 <span class="note-type-badge ${typeInfo.class}">${typeInfo.label}</span>
-                <p style="margin-top: 0.5rem;">${item.text || item.activity || ''}</p>
+                <div style="margin-top: 0.5rem; word-break: break-all;">${item.text || item.activity || ''}</div>
                 <p class="sub-text" style="font-size: 0.8rem;">${item.comments || ''}</p>
             </div>
             <div class="history-card-footer">
@@ -1924,8 +2455,8 @@ function renderOpportunities() {
                         <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite('${oppId}')" title="Marcar como favorito">
                             ${currentConfig.favorites.includes(oppId) ? '★' : '☆'}
                         </button>
-                        <button class="primary-btn small" onclick="openNotes('${oppId}')">Notas</button>
-                        <button class="secondary-btn small" onclick="openActivities('${oppId}')">Actividades</button>
+                        <button class="primary-btn small" onclick="openNotes('${oppId}')" data-i18n="btn_notes">${getTranslation('btn_notes') || 'Notas'}</button>
+                        <button class="secondary-btn small" onclick="openActivities('${oppId}')" data-i18n="btn_activities">${getTranslation('btn_activities') || 'Actividades'}</button>
                     </div>
                 </td>
             `;
@@ -1933,6 +2464,135 @@ function renderOpportunities() {
             });
         }
     });
+}
+
+// Opportunity Details
+let tempMeddData = {};
+
+function populateMeddContacts(accountId) {
+    const account = currentConfig.accounts[accountId] || {};
+    const contacts = account.contacts || [];
+
+    const selects = [elements.meddEContact, elements.meddCContact];
+    selects.forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = `<option value="" data-i18n="placeholder_select_contact">${getTranslation('placeholder_select_contact')}</option>`;
+        contacts.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.name;
+            opt.textContent = `${c.name} (${c.position || ''})`;
+            sel.appendChild(opt);
+        });
+        sel.value = currentVal;
+    });
+}
+
+function renderMeddItems(type) {
+    const container = elements[`medd${type.toUpperCase()}List`];
+    if (!container) return;
+    container.innerHTML = '';
+
+    const items = tempMeddData[type] || [];
+    items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'medd-item-row';
+
+        if (type === 'm') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.desc || ''}" placeholder="Descripción" onchange="updateMeddItem('m', ${idx}, 'desc', this.value)">
+                <input type="text" class="medd-row-input" value="${item.value || ''}" placeholder="Valor/Objetivo" onchange="updateMeddItem('m', ${idx}, 'value', this.value)">
+            `;
+        } else if (type === 'd1') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.req || ''}" placeholder="Requerimiento" onchange="updateMeddItem('d1', ${idx}, 'req', this.value)">
+                <input type="number" min="1" max="5" class="medd-row-input" style="flex: 0 0 60px" value="${item.priority || 1}" onchange="updateMeddItem('d1', ${idx}, 'priority', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('d1', ${idx}, 'status', this.value)">
+                    <option value="Cumple" ${item.status === 'Cumple' ? 'selected' : ''}>Cumple</option>
+                    <option value="Parcial" ${item.status === 'Parcial' ? 'selected' : ''}>Parcial</option>
+                    <option value="No Cumple" ${item.status === 'No Cumple' ? 'selected' : ''}>No Cumple</option>
+                </select>
+            `;
+        } else if (type === 'd2') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.step || ''}" placeholder="Paso" onchange="updateMeddItem('d2', ${idx}, 'step', this.value)">
+                <input type="date" class="medd-row-input" value="${item.date || ''}" onchange="updateMeddItem('d2', ${idx}, 'date', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('d2', ${idx}, 'status', this.value)">
+                    <option value="Planeado" ${item.status === 'Planeado' ? 'selected' : ''}>Planeado</option>
+                    <option value="Completado" ${item.status === 'Completado' ? 'selected' : ''}>Completado</option>
+                </select>
+            `;
+        } else if (type === 'p') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.stage || ''}" placeholder="Hito/Etapa" onchange="updateMeddItem('p', ${idx}, 'stage', this.value)">
+                <input type="text" class="medd-row-input" value="${item.owner || ''}" placeholder="Dueño" onchange="updateMeddItem('p', ${idx}, 'owner', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('p', ${idx}, 'status', this.value)">
+                    <option value="Pendiente" ${item.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                    <option value="En Proceso" ${item.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+                    <option value="Firmado" ${item.status === 'Firmado' ? 'selected' : ''}>Firmado</option>
+                </select>
+            `;
+        } else if (type === 'i') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.pain || ''}" placeholder="Dolor" onchange="updateMeddItem('i', ${idx}, 'pain', this.value)">
+                <input type="text" class="medd-row-input" value="${item.impact || ''}" placeholder="Impacto" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('i', ${idx}, 'urgency', this.value)">
+                    <option value="Baja" ${item.urgency === 'Baja' ? 'selected' : ''}>Baja</option>
+                    <option value="Media" ${item.urgency === 'Media' ? 'selected' : ''}>Media</option>
+                    <option value="Alta" ${item.urgency === 'Alta' ? 'selected' : ''}>Alta</option>
+                </select>
+            `;
+        } else if (type === 'c2') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.competitor || ''}" placeholder="Competidor" onchange="updateMeddItem('c2', ${idx}, 'competitor', this.value)">
+                <input type="text" class="medd-row-input" value="${item.advantage || ''}" placeholder="Nuestra Ventaja" onchange="updateMeddItem('c2', ${idx}, 'advantage', this.value)">
+                <input type="text" class="medd-row-input" value="${item.weakness || ''}" placeholder="Su Debilidad" onchange="updateMeddItem('c2', ${idx}, 'weakness', this.value)">
+            `;
+        }
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'remove-item-btn';
+        delBtn.innerHTML = '&times;';
+        delBtn.onclick = () => removeMeddItem(type, idx);
+        row.appendChild(delBtn);
+
+        container.appendChild(row);
+    });
+}
+
+window.updateMeddItem = (type, idx, field, val) => {
+    tempMeddData[type][idx][field] = val;
+};
+
+window.removeMeddItem = (type, idx) => {
+    tempMeddData[type].splice(idx, 1);
+    renderMeddItems(type);
+};
+
+function loadMeddpicc(medd, accountId) {
+    tempMeddData = JSON.parse(JSON.stringify(medd || {}));
+    // Ensure all arrays exist
+    ['m', 'd1', 'd2', 'p', 'i', 'c2'].forEach(t => {
+        if (!tempMeddData[t]) tempMeddData[t] = [];
+    });
+
+    // Handle fixed forms (E and C)
+    const e = tempMeddData.e || { contact: '', role: '', influence: 'Medio', support: 'Neutral' };
+    const c = tempMeddData.c || { contact: '', role: '', influence: 'Medio', validated: false };
+
+    populateMeddContacts(accountId);
+
+    elements.meddEContact.value = e.contact || '';
+    elements.meddERole.value = e.role || '';
+    elements.meddEInfluence.value = e.influence || 'Medio';
+    elements.meddESupport.value = e.support || 'Neutral';
+
+    elements.meddCContact.value = c.contact || '';
+    elements.meddCRole.value = c.role || '';
+    elements.meddCInfluence.value = c.influence || 'Medio';
+    elements.meddCValidated.checked = !!c.validated;
+
+    // Render lists
+    ['m', 'd1', 'd2', 'p', 'i', 'c2'].forEach(renderMeddItems);
 }
 
 // Opportunity Details
@@ -1984,15 +2644,7 @@ window.openDetails = (oppId) => {
     elements.oppDescription.value = materials.description || '';
 
     // Load MEDDPICC
-    const medd = materials.meddpicc || {};
-    elements.meddM.value = medd.m || '';
-    elements.meddE.value = medd.e || '';
-    elements.meddD1.value = medd.d1 || '';
-    elements.meddD2.value = medd.d2 || '';
-    elements.meddP.value = medd.p || '';
-    elements.meddI.value = medd.i || '';
-    elements.meddC.value = medd.c || '';
-    elements.meddC2.value = medd.c2 || '';
+    loadMeddpicc(materials.meddpicc, opp['Account ID']);
 
     // Initialize tabs (reset to General)
     const tabs = elements.detailsModal.querySelectorAll('.tab-btn');
@@ -2015,40 +2667,60 @@ window.openDetails = (oppId) => {
     elements.detailsModal.classList.remove('hidden');
 };
 
-// Handle Tab and Sub-Tab Switching globally
+// Handle Tab and Sub-Tab Switching globally and MEDDPICC Add Buttons
 document.addEventListener('click', (e) => {
     // Main Tabs
-    if (e.target.classList.contains('tab-btn')) {
-        const tabContainer = e.target.closest('.modal-body');
+    const tabBtn = e.target.closest('.tab-btn');
+    if (tabBtn) {
+        const tabContainer = tabBtn.closest('.modal-body');
         if (!tabContainer) return;
 
-        const tabId = e.target.getAttribute('data-tab');
+        const tabId = tabBtn.getAttribute('data-tab');
         const tabs = tabContainer.querySelectorAll('.tab-btn');
         const contents = tabContainer.querySelectorAll('.tab-content');
 
         tabs.forEach(t => t.classList.remove('active'));
         contents.forEach(c => c.classList.remove('active'));
 
-        e.target.classList.add('active');
+        tabBtn.classList.add('active');
         const activeContent = tabContainer.querySelector(`#tab-${tabId}`);
         if (activeContent) activeContent.classList.add('active');
     }
 
     // MEDDPICC Sub-Tabs
-    if (e.target.classList.contains('sub-tab-btn')) {
-        const subTabContainer = e.target.closest('#tab-meddpicc');
+    const subTabBtn = e.target.closest('.sub-tab-btn');
+    if (subTabBtn) {
+        const subTabContainer = subTabBtn.closest('#tab-meddpicc');
         if (!subTabContainer) return;
 
-        const subTabId = e.target.getAttribute('data-sub-tab');
+        const subTabId = subTabBtn.getAttribute('data-sub-tab');
         const subTabs = subTabContainer.querySelectorAll('.sub-tab-btn');
         const subPanes = subTabContainer.querySelectorAll('.sub-tab-pane');
 
         subTabs.forEach(t => t.classList.remove('active'));
         subPanes.forEach(p => p.classList.remove('active'));
 
-        e.target.classList.add('active');
+        subTabBtn.classList.add('active');
         const activePane = subTabContainer.querySelector(`#sub-tab-${subTabId}`);
         if (activePane) activePane.classList.add('active');
+    }
+
+    // MEDDPICC Add Buttons
+    const addBtn = e.target.closest('.add-medd-item-btn');
+    if (addBtn) {
+        const type = addBtn.getAttribute('data-type');
+        if (!tempMeddData[type]) tempMeddData[type] = [];
+
+        const newItem = {};
+        if (type === 'm') { newItem.desc = ''; newItem.value = ''; }
+        else if (type === 'd1') { newItem.req = ''; newItem.priority = 3; newItem.status = 'Parcial'; }
+        else if (type === 'd2') { newItem.step = ''; newItem.date = ''; newItem.status = 'Planeado'; }
+        else if (type === 'p') { newItem.stage = ''; newItem.owner = ''; newItem.status = 'Pendiente'; }
+        else if (type === 'i') { newItem.pain = ''; newItem.impact = ''; newItem.urgency = 'Media'; }
+        else if (type === 'c2') { newItem.competitor = ''; newItem.advantage = ''; newItem.weakness = ''; }
+
+        tempMeddData[type].push(newItem);
+        renderMeddItems(type);
     }
 });
 
@@ -2082,16 +2754,21 @@ elements.saveMeddpiccBtn.onclick = async () => {
         };
     }
 
-    currentConfig.materials[activeOppId].meddpicc = {
-        m: elements.meddM.value.trim(),
-        e: elements.meddE.value.trim(),
-        d1: elements.meddD1.value.trim(),
-        d2: elements.meddD2.value.trim(),
-        p: elements.meddP.value.trim(),
-        i: elements.meddI.value.trim(),
-        c: elements.meddC.value.trim(),
-        c2: elements.meddC2.value.trim()
+    // Collect fixed forms
+    tempMeddData.e = {
+        contact: elements.meddEContact.value,
+        role: elements.meddERole.value,
+        influence: elements.meddEInfluence.value,
+        support: elements.meddESupport.value
     };
+    tempMeddData.c = {
+        contact: elements.meddCContact.value,
+        role: elements.meddCRole.value,
+        influence: elements.meddCInfluence.value,
+        validated: elements.meddCValidated.checked
+    };
+
+    currentConfig.materials[activeOppId].meddpicc = tempMeddData;
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
     showToast(getTranslation('toast_saved_success') || 'Guardado correctamente');
@@ -2117,6 +2794,331 @@ window.openNotes = (oppId) => {
     renderNotes();
     elements.notesModal.classList.remove('hidden');
 };
+
+window.renderAssessmentTab = (oppId) => {
+    activeOppId = oppId;
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
+    if (!opp) return;
+
+    if (elements.activitiesOppInfoAssessment) {
+        elements.activitiesOppInfoAssessment.textContent = `${opp['Opportunity Name']} (${oppId})`;
+    }
+
+    // Load existing assessment data
+    const materials = currentConfig.materials[oppId] || {};
+    const assessmentData = materials.assessment || {};
+    const generalNotes = materials.assessmentGeneralNotes || '';
+
+    if (elements.assessmentGeneralNotes) {
+        elements.assessmentGeneralNotes.value = generalNotes;
+    }
+
+    if (elements.assessmentSearchInput) {
+        elements.assessmentSearchInput.value = '';
+        elements.assessmentSearchInput.oninput = () => renderAssessmentQuestions(assessmentData);
+    }
+
+    renderAssessmentQuestions(assessmentData);
+};
+
+function renderAssessmentQuestions(data) {
+    const query = elements.assessmentSearchInput ? elements.assessmentSearchInput.value.toLowerCase().trim() : '';
+    elements.assessmentQuestList.innerHTML = '';
+
+    // Group questions by area
+    const grouped = currentConfig.assessmentStructure.reduce((acc, q) => {
+        const area = q.area || 'General';
+        if (!acc[area]) acc[area] = [];
+        acc[area].push(q);
+        return acc;
+    }, {});
+
+    Object.keys(grouped).forEach(area => {
+        const filteredQuests = grouped[area].filter(q =>
+            q.question.toLowerCase().includes(query) || area.toLowerCase().includes(query)
+        );
+
+        if (filteredQuests.length > 0) {
+            const areaTitle = document.createElement('h4');
+            areaTitle.className = 'assessment-area-title';
+            areaTitle.textContent = area;
+            elements.assessmentQuestList.appendChild(areaTitle);
+
+            filteredQuests.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'assessment-item';
+
+                let inputHtml = '';
+                const savedValue = data[q.id] || {};
+
+                if (q.type === 'closed') {
+                    inputHtml = `
+                        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                            <label class="switch-container" style="flex-shrink: 0; margin-top: 5px;">
+                                <input type="checkbox" class="assessment-val-cb" data-id="${q.id}" ${savedValue.val === true ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <textarea class="assessment-answer" data-id="${q.id}" placeholder="Notas adicionales...">${savedValue.notes || ''}</textarea>
+                        </div>
+                    `;
+                } else if (q.type === 'quantity') {
+                    inputHtml = `
+                        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                            <input type="number" class="assessment-val-num form-input" data-id="${q.id}" style="width: 120px;" placeholder="Cantidad" value="${savedValue.val || ''}">
+                            <textarea class="assessment-answer" data-id="${q.id}" placeholder="Detalles...">${savedValue.notes || ''}</textarea>
+                        </div>
+                    `;
+                } else {
+                    // Default open
+                    inputHtml = `
+                        <textarea class="assessment-answer" data-id="${q.id}" placeholder="Respuesta...">${typeof savedValue === 'string' ? savedValue : (savedValue.notes || '')}</textarea>
+                    `;
+                }
+
+                item.innerHTML = `
+                    <label class="assessment-question">${q.stage ? q.stage + ' - ' : ''}${q.question}</label>
+                    ${inputHtml}
+                `;
+                elements.assessmentQuestList.appendChild(item);
+            });
+        }
+    });
+}
+
+
+function updateAssessmentMaterialsFromUI() {
+    if (!activeOppId) return;
+
+    if (!currentConfig.materials[activeOppId]) {
+        currentConfig.materials[activeOppId] = {
+            pocs: [],
+            rfp: { url: '', activities: [] },
+            demo: { desc: '', url: '', activities: [] }
+        };
+    }
+
+    const answers = {};
+    elements.assessmentQuestList.querySelectorAll('.assessment-item').forEach(item => {
+        const ta = item.querySelector('.assessment-answer');
+        if (!ta) return;
+        const id = ta.getAttribute('data-id');
+
+        const cb = item.querySelector('.assessment-val-cb');
+        const num = item.querySelector('.assessment-val-num');
+
+        if (cb) {
+            answers[id] = { val: cb.checked, notes: ta.value.trim() };
+        } else if (num) {
+            answers[id] = { val: num.value, notes: ta.value.trim() };
+        } else {
+            answers[id] = { notes: ta.value.trim() };
+        }
+    });
+
+    currentConfig.materials[activeOppId].assessment = answers;
+    currentConfig.materials[activeOppId].assessmentGeneralNotes = elements.assessmentGeneralNotes ? elements.assessmentGeneralNotes.value : '';
+}
+
+elements.saveAssessmentBtn.onclick = async () => {
+    updateAssessmentMaterialsFromUI();
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+    showToast(getTranslation('toast_assessment_saved') || 'Assessment guardado correctamente');
+};
+
+// Assessment Document Generation
+elements.generateAssessmentDocBtn.onclick = async () => {
+    const settings = await window.electronAPI.getSettings();
+    const baseUrl = settings.foApiUrl ? settings.foApiUrl.replace(/\/+$/, '') : '';
+    const apiUrl = `${baseUrl}/production/v7/onDemandDocument`;
+    const apiToken = settings.foApiToken;
+    const templatePath = settings.foApiAssessmentTemplate;
+
+    if (!baseUrl || !apiToken || !templatePath) {
+        showToast('Error: Configura la Base URL, API KEY y Plantilla de Assessment en Ajustes', 'error');
+        return;
+    }
+
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
+    if (!opp) return;
+
+    // IMPORTANT: Update local data from UI before generating
+    updateAssessmentMaterialsFromUI();
+
+    // Auto-save the updated data
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+
+    // Helper for Document Generation (Specific for Assessment)
+    const generateDoc = async (outputType) => {
+        // Prepare Assessment Data
+        const materials = currentConfig.materials[activeOppId] || {};
+        const assessmentData = materials.assessment || {};
+        const generalNotes = materials.assessmentGeneralNotes || '';
+
+        // Group questions by area for the document
+        const grouped = currentConfig.assessmentStructure.reduce((acc, q) => {
+            const area = q.area || 'General';
+            if (!acc[area]) acc[area] = [];
+
+            const savedValue = assessmentData[q.id] || {};
+            let displayVal = '';
+            let notes = '';
+
+            if (q.type === 'closed') {
+                displayVal = savedValue.val === true ? 'SÍ' : 'NO';
+                notes = savedValue.notes || '';
+            } else if (q.type === 'quantity') {
+                displayVal = savedValue.val || '';
+                notes = savedValue.notes || '';
+            } else {
+                notes = typeof savedValue === 'string' ? savedValue : (savedValue.notes || '');
+            }
+
+            acc[area].push({
+                stageId: q.stage || '',
+                question: q.question,
+                value: displayVal,
+                notes: notes
+            });
+            return acc;
+        }, {});
+
+        const sections = Object.keys(grouped).map(area => ({
+            area: area,
+            questions: grouped[area]
+        }));
+
+        const payload = {
+            Steps: [{
+                name: "Print",
+                generate: {
+                    template: templatePath,
+                    channel: "Print",
+                    generateType: "ContentAuthor",
+                    outputType: outputType,
+                    outputPath: "response://",
+                    inputPaths: [{ name: "DataInput", path: "request://" }]
+                }
+            }],
+            data: {
+                assessment: [{
+                    opportunityName: opp['Opportunity Name'] || activeOppId,
+                    accountName: opp['Account Name'] || '',
+                    generalNotes: generalNotes,
+                    sections: sections
+                }]
+            }
+        };
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': apiToken.startsWith('Bearer ') ? apiToken : `Bearer ${apiToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+        return await response.blob();
+    };
+
+    try {
+        elements.generateAssessmentDocBtn.disabled = true;
+        elements.generateAssessmentDocBtn.textContent = 'Generando...';
+
+        // 1. PDF
+        const pdfBlob = await generateDoc('PDF');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        showToast('Documento Assessment generado');
+
+        elements.viewAssessmentPdfBtn.classList.remove('hidden');
+        elements.downloadAssessmentDocxBtn.classList.remove('hidden');
+
+        elements.viewAssessmentPdfBtn.onclick = () => {
+            elements.ticketIframe.src = pdfUrl;
+            elements.ticketViewTitle.textContent = "Assessment PDF";
+            elements.ticketViewUrl.textContent = `Assessment_${activeOppId}.pdf`;
+            elements.ticketViewModal.classList.remove('hidden');
+            elements.ticketIframe.classList.remove('hidden');
+        };
+
+        // 2. DOCX
+        elements.downloadAssessmentDocxBtn.onclick = async () => {
+            try {
+                elements.downloadAssessmentDocxBtn.disabled = true;
+                const docxBlob = await generateDoc('DOCX');
+                const fileName = `Assessment_${activeOppId}_${new Date().getTime()}.docx`;
+                const url = window.URL.createObjectURL(docxBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                showToast('Error al descargar DOCX', 'error');
+            } finally {
+                elements.downloadAssessmentDocxBtn.disabled = false;
+            }
+        };
+
+        elements.viewAssessmentPdfBtn.click();
+    } catch (error) {
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        elements.generateAssessmentDocBtn.disabled = false;
+        elements.generateAssessmentDocBtn.textContent = 'Generar Documento';
+    }
+};
+
+// --- Assessment Structure Manager ---
+function renderAssessmentStructureEditor() {
+    if (!elements.assessmentStructureList) return;
+    elements.assessmentStructureList.innerHTML = '';
+
+    currentConfig.assessmentStructure.forEach((q, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="activity-input" value="${q.stage || ''}" onchange="updateAssessmentStructItem(${idx}, 'stage', this.value)"></td>
+            <td><input type="text" class="activity-input" value="${q.area || ''}" onchange="updateAssessmentStructItem(${idx}, 'area', this.value)"></td>
+            <td><textarea class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'question', this.value)">${q.question || ''}</textarea></td>
+            <td>
+                <select class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'type', this.value)">
+                    <option value="open" ${q.type === 'open' ? 'selected' : ''}>Abierta</option>
+                    <option value="closed" ${q.type === 'closed' ? 'selected' : ''}>Cerrada (Si/No)</option>
+                    <option value="quantity" ${q.type === 'quantity' ? 'selected' : ''}>Cantidad</option>
+                </select>
+            </td>
+            <td>
+                <button class="remove-item-btn" onclick="removeAssessmentStructItem(${idx})">&times;</button>
+            </td>
+        `;
+        elements.assessmentStructureList.appendChild(tr);
+    });
+}
+
+window.updateAssessmentStructItem = (idx, field, val) => {
+    currentConfig.assessmentStructure[idx][field] = val;
+    // If it's a new item or we changed ID/Stage, ensure we have an ID
+    if (!currentConfig.assessmentStructure[idx].id) {
+        currentConfig.assessmentStructure[idx].id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+    }
+};
+
+window.removeAssessmentStructItem = (idx) => {
+    currentConfig.assessmentStructure.splice(idx, 1);
+    renderAssessmentStructureEditor();
+};
+
+elements.addAssessmentQuestionBtn.onclick = () => {
+    currentConfig.assessmentStructure.push({ id: Date.now().toString(), stage: '', area: '', question: '', type: 'open' });
+    renderAssessmentStructureEditor();
+};
+
 
 function renderNotes() {
     elements.notesList.innerHTML = '';
@@ -2159,13 +3161,14 @@ window.editNote = (index) => {
 
     noteContent.innerHTML = `
         <div class="note-edit-container">
-            <textarea class="note-edit-textarea" id="edit-textarea-${index}">${originalText}</textarea>
+            <div class="rich-text-editor" id="edit-editor-${index}" contenteditable="true" style="min-height: 100px; background: rgba(0,0,0,0.2);">${originalText}</div>
             <div class="note-edit-actions">
                 <button class="secondary-btn small" onclick="renderNotes()">Cancelar</button>
                 <button class="primary-btn small" onclick="saveEditedNote(${index})">Guardar</button>
             </div>
         </div>
     `;
+    document.getElementById(`edit-editor-${index}`).focus();
 
     // Hide actions while editing
     noteItem.querySelector('.note-actions').style.display = 'none';
@@ -2175,8 +3178,8 @@ window.saveEditedNote = async (index) => {
     const history = currentConfig.notes[activeOppId];
     if (!history || !history[index]) return;
 
-    const newText = document.getElementById(`edit-textarea-${index}`).value.trim();
-    if (!newText) return;
+    const newText = document.getElementById(`edit-editor-${index}`).innerHTML.trim();
+    if (!newText || newText === '<br>') return;
 
     history[index].text = newText;
     history[index].updatedAt = new Date().toISOString();
@@ -2201,8 +3204,8 @@ window.deleteNote = async (index) => {
 };
 
 elements.addNoteBtn.addEventListener('click', async () => {
-    const text = elements.newNoteInput.value.trim();
-    if (!text) return;
+    const text = elements.newNoteInput.innerHTML.trim();
+    if (!text || text === '<br>') return;
 
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
     const currentStage = activeOppId === 'global' ? '-' : (opp ? opp['Stage'] : 'N/A');
@@ -2215,7 +3218,7 @@ elements.addNoteBtn.addEventListener('click', async () => {
     });
 
     await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
-    elements.newNoteInput.value = '';
+    elements.newNoteInput.innerHTML = '';
     renderNotes();
 });
 
@@ -2223,7 +3226,7 @@ elements.addNoteBtn.addEventListener('click', async () => {
 elements.closeModalBtn.addEventListener('click', () => elements.notesModal.classList.add('hidden'));
 
 // Consolidated Activities Modal
-window.openActivities = (oppId, initialTab = 'tab-pocs') => {
+window.openActivities = (oppId, initialTab = 'tab-assessment') => {
     activeOppId = oppId;
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
@@ -2241,7 +3244,8 @@ window.openActivities = (oppId, initialTab = 'tab-pocs') => {
     });
 
     // Render based on initial tab
-    if (initialTab === 'tab-pocs') openPocs(oppId);
+    if (initialTab === 'tab-assessment') renderAssessmentTab(oppId);
+    else if (initialTab === 'tab-pocs') openPocs(oppId);
     else if (initialTab === 'tab-rfp') openRfp(oppId);
     else if (initialTab === 'tab-demo') openDemo(oppId);
 
@@ -3193,8 +4197,33 @@ window.openAttackPlan = (accountId) => {
     currentAttackPlanData = account.attackPlan ? JSON.parse(JSON.stringify(account.attackPlan)) : {
         licenses: [],
         activities: [],
-        strategy: ''
+        strategy: '',
+        currentOwner: ''
     };
+
+    // Default Owner logic
+    if (elements.attackPlanOwner) {
+        if (currentAttackPlanData.currentOwner) {
+            elements.attackPlanOwner.value = currentAttackPlanData.currentOwner;
+        } else {
+            // Find most recent opportunity
+            const accountOpps = currentConfig.opportunities
+                .filter(o => o['Account ID'] === accountId)
+                .sort((a, b) => {
+                    const dateA = parseCustomDate(a['Close Date']) || new Date(0);
+                    const dateB = parseCustomDate(b['Close Date']) || new Date(0);
+                    return dateB - dateA;
+                });
+
+            if (accountOpps.length > 0) {
+                elements.attackPlanOwner.value = accountOpps[0]['Opportunity Owner'] || '';
+            } else {
+                elements.attackPlanOwner.value = '';
+            }
+        }
+    }
+
+    elements.attackPlanStrategy.value = currentAttackPlanData.strategy || '';
 
     renderAttackPlanLicenses();
     renderAttackPlanActivities();
@@ -3204,14 +4233,29 @@ window.openAttackPlan = (accountId) => {
     elements.attackPlanModal.classList.remove('hidden');
 };
 
+function getAppLocale() {
+    const lang = elements.languageSelect?.value || 'es_MX';
+    const mapping = { 'es_MX': 'es-MX', 'pt_BR': 'pt-BR', 'en_US': 'en-US' };
+    return mapping[lang] || 'es-MX';
+}
+
 function renderAttackPlanLicenses() {
     elements.attackPlanLicensesContainer.innerHTML = '';
+    const locale = getAppLocale();
     currentAttackPlanData.licenses.forEach((lic, idx) => {
+        const n = parseFloat(lic.volume) || 0;
+        const legend = (n > 0 && n < 1)
+            ? `${(n * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
+            : `${n.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
+
         const div = document.createElement('div');
         div.className = 'list-item-row';
         div.innerHTML = `
-            <input type="text" placeholder="Nombre de Licencia" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)">
-            <input type="number" placeholder="Volumen" value="${lic.volume || ''}" onchange="updateAttackLicense(${idx}, 'volume', this.value)" style="max-width: 120px;">
+            <input type="text" placeholder="Nombre de Licencia" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
+            <input type="number" step="any" placeholder="Volumen" value="${lic.volume || ''}" 
+                oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                style="max-width: 100px;">
+            <span id="vol-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--text-primary); min-width: 140px; text-align: left; display: inline-block;">${legend}</span>
             <button class="remove-item-btn" onclick="removeAttackLicense(${idx})">&times;</button>
         `;
         elements.attackPlanLicensesContainer.appendChild(div);
@@ -3243,6 +4287,8 @@ function renderAttackPlanActivities() {
             <td><input type="date" class="activity-input" value="${act.endDate || ''}" onchange="updateAttackActivity(${idx}, 'endDate', this.value)"></td>
             <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="Comentarios...">${act.comments || ''}</textarea></td>
             <td style="white-space: nowrap;">
+                <button class="order-btn" onclick="moveAttackActivity(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Subir">▲</button>
+                <button class="order-btn" onclick="moveAttackActivity(${idx}, 1)" ${idx === currentAttackPlanData.activities.length - 1 ? 'disabled' : ''} title="Bajar">▼</button>
                 <button class="add-item-btn-inline" onclick="insertAttackActivity(${idx})" title="Insertar arriba">+</button>
                 <button class="remove-item-btn" onclick="removeAttackActivity(${idx})" title="Eliminar">&times;</button>
             </td>
@@ -3250,6 +4296,19 @@ function renderAttackPlanActivities() {
         elements.attackPlanActivitiesBody.appendChild(tr);
     });
 }
+
+window.moveAttackActivity = (idx, direction) => {
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= currentAttackPlanData.activities.length) return;
+
+    // Swap
+    const temp = currentAttackPlanData.activities[idx];
+    currentAttackPlanData.activities[idx] = currentAttackPlanData.activities[newIdx];
+    currentAttackPlanData.activities[newIdx] = temp;
+
+    renderAttackPlanActivities();
+    renderAttackTimelineChart();
+};
 
 function renderAttackTimelineChart() {
     if (!elements.attackPlanTimelineChart) return;
@@ -3341,12 +4400,32 @@ elements.saveAttackPlanBtn.onclick = async () => {
     }
 
     currentAttackPlanData.strategy = elements.attackPlanStrategy.value;
+    currentAttackPlanData.currentOwner = elements.attackPlanOwner.value;
     currentConfig.accounts[activeAccountId].attackPlan = currentAttackPlanData;
 
     await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+    renderAccountsWithPlan(); // Refresh view to reflect group changes
     showToast('Plan de Ataque guardado correctamente');
     elements.attackPlanModal.classList.add('hidden');
     renderOpportunities();
+};
+
+elements.resetAttackPlanBtn.onclick = async () => {
+    if (!activeAccountId) return;
+
+    if (confirm('¿Estás seguro de que deseas borrar todos los datos de este Plan de Ataque? Esto hará que la cuenta ya no aparezca en la sección "Planes de Cuenta".')) {
+        if (currentConfig.accounts[activeAccountId]) {
+            delete currentConfig.accounts[activeAccountId].attackPlan;
+            await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+            showToast('Plan de Ataque eliminado');
+            elements.attackPlanModal.classList.add('hidden');
+            renderOpportunities();
+            // If we are in the attack plans view, refresh it
+            if (document.getElementById('accounts-with-plan-view').classList.contains('active')) {
+                renderAccountsWithPlan();
+            }
+        }
+    }
 };
 
 elements.closeAttackPlanModalBtn.onclick = () => {
@@ -3477,30 +4556,107 @@ function renderAccountsWithPlan() {
         return;
     }
 
-    accountsWithPlan.forEach(([accountId, account]) => {
-        const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
-        const lastAct = account.attackPlan.activities && account.attackPlan.activities.length > 0 ?
-            account.attackPlan.activities[account.attackPlan.activities.length - 1] : null;
+    // Populate GroupBy Select if empty (vibrates with data structure)
+    if (elements.accountsGroupBySelect.options.length <= 1) {
+        const groupByFields = currentConfig.dataStructure.filter(s => s.groupBy);
+        groupByFields.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.header;
+            opt.textContent = f.header;
+            elements.accountsGroupBySelect.appendChild(opt);
+        });
+    }
 
-        const card = document.createElement('div');
-        card.className = 'card settings-card';
-        card.style.margin = '0';
-        card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                <h3 style="margin: 0;">🏢 ${accountName}</h3>
-                <button class="primary-btn small" onclick="openAttackPlan('${accountId}')">Ver Plan</button>
-            </div>
-            <div class="sub-text" style="margin-bottom: 1rem;">
-                <strong>Estrategia:</strong> ${account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida'}
-            </div>
-            ${lastAct ? `
-                <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
-                    <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.date})
+    const groupBy = elements.accountsGroupBySelect.value;
+
+    if (groupBy === 'none') {
+        elements.accountsWithPlanList.style.display = 'grid';
+        elements.accountsWithPlanList.innerHTML = '';
+        accountsWithPlan.forEach(([accountId, account]) => {
+            const card = createAccountPlanCard(accountId, account);
+            elements.accountsWithPlanList.appendChild(card);
+        });
+    } else {
+        elements.accountsWithPlanList.style.display = 'block';
+        elements.accountsWithPlanList.innerHTML = '';
+
+        const groups = {};
+        accountsWithPlan.forEach(([accountId, account]) => {
+            const opp = currentConfig.opportunities.find(o => o['Account ID'] === accountId);
+            let groupValue = 'Sin asignar';
+
+            // Prioritize attackPlan.currentOwner if grouping by "Opportunity Owner" or similar
+            const isOwnerField = groupBy.toLowerCase().includes('owner');
+
+            if (isOwnerField && account.attackPlan.currentOwner) {
+                groupValue = account.attackPlan.currentOwner;
+            } else {
+                // Find all opportunities for this account
+                const accountOpps = currentConfig.opportunities.filter(o => o['Account ID'] === accountId);
+                if (accountOpps.length > 0) {
+                    // Sort by Close Date to get the "actual" owner/value of the latest record
+                    accountOpps.sort((a, b) => {
+                        const dateA = parseCustomDate(a['Close Date']) || new Date(0);
+                        const dateB = parseCustomDate(b['Close Date']) || new Date(0);
+                        return dateB - dateA;
+                    });
+                    groupValue = accountOpps[0][groupBy] || 'Sin asignar';
+                }
+            }
+
+            if (!groups[groupValue]) groups[groupValue] = [];
+            groups[groupValue].push({ accountId, account });
+        });
+
+        Object.entries(groups).sort().forEach(([groupName, items]) => {
+            const groupSection = document.createElement('div');
+            groupSection.style.marginBottom = '2.5rem';
+            groupSection.innerHTML = `
+                <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; color: var(--brand-orange);">
+                    📂 ${groupName} <span class="sub-text">(${items.length})</span>
+                </h3>
+                <div class="opp-groups-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                 </div>
-            ` : ''}
-        `;
-        elements.accountsWithPlanList.appendChild(card);
-    });
+            `;
+            const container = groupSection.querySelector('.opp-groups-container');
+            items.forEach(({ accountId, account }) => {
+                container.appendChild(createAccountPlanCard(accountId, account));
+            });
+            elements.accountsWithPlanList.appendChild(groupSection);
+        });
+    }
+}
+
+function createAccountPlanCard(accountId, account) {
+    const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
+    const lastAct = account.attackPlan.activities && account.attackPlan.activities.length > 0 ?
+        account.attackPlan.activities[account.attackPlan.activities.length - 1] : null;
+
+    const card = document.createElement('div');
+    card.className = 'card settings-card';
+    card.style.margin = '0';
+    card.style.height = 'auto';
+    card.style.padding = '1.5rem';
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <h3 style="margin: 0; cursor: pointer; color: var(--brand-orange);" onclick="goToAccount('${accountId}')" title="Ver oportunidades de esta cuenta">
+                🏢 ${accountName}
+            </h3>
+            <button class="primary-btn small" onclick="openAttackPlan('${accountId}')">Ver Plan</button>
+        </div>
+        <div class="sub-text" style="margin-bottom: 0.5rem;">
+            <strong>Responsable:</strong> ${account.attackPlan.currentOwner || 'No definido'}
+        </div>
+        <div class="sub-text" style="margin-bottom: 1rem;">
+            <strong>Estrategia:</strong> ${account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida'}
+        </div>
+        ${lastAct ? `
+            <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
+                <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.date})
+            </div>
+        ` : ''}
+    `;
+    return card;
 }
 
 initUrlField('poc-url-acceptance');
@@ -3508,4 +4664,92 @@ initUrlField('poc-url-content');
 initUrlField('rfp-url');
 initUrlField('demo-url');
 
+
+// Handover logic
+async function renderHandoverTab(oppId) {
+    const mat = currentConfig.materials[oppId] || {};
+    elements.isReferenceCaseCheckbox.checked = !!mat.isReferenceCase;
+    elements.referenceKeywords.value = mat.referenceKeywords || '';
+
+    elements.isReferenceCaseCheckbox.onchange = (e) => {
+        if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
+        currentConfig.materials[oppId].isReferenceCase = e.target.checked;
+        saveMaterials();
+    };
+    elements.referenceKeywords.oninput = (e) => {
+        if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
+        currentConfig.materials[oppId].referenceKeywords = e.target.value;
+        debounce(() => saveMaterials(), 1000)();
+    };
+}
+
+elements.generateHandoverDocBtn.onclick = async () => {
+    // Logic to consolidate everything into a PDF/DOCX handover
+    showToast('Generando Handover Document...');
+    // Real implementation would gather assessment + poC success + demo notes
+};
+
+// Data Portability
+elements.exportDataBtn.onclick = async () => {
+    const data = {
+        config: { ...currentConfig, opportunities: [] }, // Export everything but the raw CSV data (which is loaded from file)
+        notes: currentConfig.notes,
+        materials: currentConfig.materials,
+        favorites: currentConfig.favorites,
+        accounts: currentConfig.accounts
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LatinTool_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+};
+
+elements.importDataBtn.onclick = async () => {
+    // Implementation for JSON import
+    showToast('Funcionalidad de importación próxima...');
+};
+
+
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }, 100);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+window.formatDoc = (cmd, value = null) => {
+    document.execCommand(cmd, false, value);
+};
+
 init();
+
+// Initialize manager settings
+async function initManagerSettings() {
+    const settings = await window.electronAPI.getSettings();
+    if (settings && settings.managerSettings) {
+        currentConfig.managerSettings = settings.managerSettings;
+    }
+}
+initManagerSettings();

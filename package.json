@@ -1,7 +1,7 @@
 {
   "name": "presales",
   "productName": "Presales LatinTool",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "Presales LatinTool - Productivity tool for Presales Engineers",
   "main": "main.js",
   "author": "Presales Latin America Team",
@@ -22,7 +22,7 @@
     "appId": "com.presales.manager",
     "productName": "Presales LatinTool",
     "directories": {
-      "output": "dist/v1.2.0"
+      "output": "dist/v2.0.0"
     },
     "win": {
       "target": [

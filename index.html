@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="assets/logo_shield.svg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
@@ -16,7 +18,7 @@
             <div class="header-left">
                 <button id="back-btn" class="back-btn hidden" title="Volver" data-i18n="btn_back"
                     data-i18n-prop="title">&larr;</button>
-                <img src="assets/logo_shield.svg" alt="Logo" class="app-logo">
+                <img src="assets/logo_shield.svg" alt="Logo" class="app-logo" id="app-logo-trigger">
                 <h1 id="app-title" data-i18n="app_title">Presales LatinTool</h1>
             </div>
             <div class="header-right">
@@ -135,10 +137,11 @@
                                     data-i18n="sidebar_settings">Configuración</button>
                             </div>
                         </nav>
-                        <div id="app-version" class="sidebar-version">v1.0.0</div>
+                        <div id="app-version" class="sidebar-version">v2.0.0</div>
                     </aside>
 
                     <div class="content">
+
                         <!-- Notes History View -->
                         <div id="notes-history-view" class="view">
                             <div class="toolbar">
@@ -273,11 +276,20 @@
 
                         <!-- Accounts with Plan View -->
                         <div id="accounts-with-plan-view" class="view">
-                            <div class="toolbar">
+                            <div class="toolbar"
+                                style="display: flex; justify-content: space-between; align-items: center;">
                                 <h2 data-i18n="view_title_account_plans">Cuentas con Plan de Ataque</h2>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label for="accounts-groupby-select" class="sub-text"
+                                        style="margin: 0; font-weight: 600;">Agrupar por:</label>
+                                    <select id="accounts-groupby-select" class="form-input"
+                                        style="width: auto; min-width: 150px;">
+                                        <option value="none">Ninguno</option>
+                                    </select>
+                                </div>
                             </div>
                             <div id="accounts-with-plan-list" class="opp-groups-container"
-                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                                 <!-- Account plan cards injected here -->
                             </div>
                         </div>
@@ -310,6 +322,63 @@
                             </div>
                         </div>
 
+                        <!-- Manager View (Hidden) -->
+                        <div id="manager-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_manager">Gestión de Manager</h2>
+                            </div>
+
+                            <!-- Commission Calculator -->
+                            <div class="card settings-card"
+                                style="margin-bottom: 1.5rem; background: var(--grad-calm); color: #000; padding: 0.6rem 1rem; width: fit-content; height: auto !important; align-self: flex-start;">
+                                <h3 style="margin-bottom: 0.5rem; color: #000; font-size: 0.9rem; font-weight: 800;">🧮
+                                    Calculadora de Comisión</h3>
+                                <div style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: nowrap;">
+                                    <div style="width: 100px;">
+                                        <label
+                                            style="font-size: 0.65rem; font-weight: 800; margin-bottom: 0.2rem; display: block; text-transform: uppercase;">Monto</label>
+                                        <input type="number" id="calc-amount" class="form-input"
+                                            style="background: rgba(255,255,255,0.9); color: #000; border: 1px solid rgba(0,0,0,0.1); height: 26px; padding: 2px 6px; font-size: 0.8rem;"
+                                            placeholder="0.00">
+                                    </div>
+                                    <div style="width: 60px;">
+                                        <label
+                                            style="font-size: 0.65rem; font-weight: 800; margin-bottom: 0.2rem; display: block; text-transform: uppercase;">%</label>
+                                        <input type="number" id="calc-percent" class="form-input"
+                                            style="background: rgba(255,255,255,0.9); color: #000; border: 1px solid rgba(0,0,0,0.1); height: 26px; padding: 2px 6px; font-size: 0.8rem;"
+                                            placeholder="0">
+                                    </div>
+                                    <div style="width: 80px;">
+                                        <label
+                                            style="font-size: 0.65rem; font-weight: 800; margin-bottom: 0.2rem; display: block; text-transform: uppercase;">FX</label>
+                                        <input type="number" id="calc-exchange" class="form-input"
+                                            style="background: rgba(255,255,255,0.9); color: #000; border: 1px solid rgba(0,0,0,0.1); height: 26px; padding: 2px 6px; font-size: 0.8rem;"
+                                            placeholder="1.00">
+                                    </div>
+                                    <div style="font-size: 1rem; font-weight: 900; padding-bottom: 2px;">=</div>
+                                    <div
+                                        style="background: rgba(255,255,255,0.95); padding: 0.2rem 0.6rem; border-radius: 4px; min-width: 100px; border: 1px solid rgba(0,0,0,0.1); text-align: right;">
+                                        <label
+                                            style="font-size: 0.6rem; color: #444; display: block; text-align: left; font-weight: 700;">COMISIÓN</label>
+                                        <span id="calc-result"
+                                            style="font-size: 0.95rem; font-weight: 900; color: var(--brand-orange);">$
+                                            0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card settings-card" style="height: auto !important;">
+                                <h3 data-i18n="label_team_members">Equipo y Documentación</h3>
+                                <div class="form-group" style="margin-bottom: 2rem; display: flex; gap: 0.5rem;">
+                                    <input type="text" id="new-member-name" class="form-input"
+                                        data-i18n="placeholder_member_name" data-i18n-prop="placeholder">
+                                    <button id="add-member-btn" class="primary-btn small" data-i18n="btn_add_member">+
+                                        Añadir Miembro</button>
+                                </div>
+                                <div id="manager-team-list" class="manager-team-grid"></div>
+                            </div>
+                        </div>
+
                         <!-- Settings View -->
                         <div id="settings-view" class="view">
                             <div class="toolbar">
@@ -326,6 +395,8 @@
                                     Sidebar</button>
                                 <button class="settings-tab-btn" data-tab="settings-api"
                                     data-i18n="settings_tab_api">API / Integración</button>
+                                <button class="settings-tab-btn" data-tab="settings-assessment"
+                                    data-i18n="settings_tab_assessment">Estructura Assessment</button>
                                 <button class="settings-tab-btn" data-tab="settings-structure"
                                     data-i18n="settings_tab_structure">Estructura CSV</button>
                             </div>
@@ -359,14 +430,25 @@
                                             data-i18n="btn_change_dir">Cambiar Carpeta</button>
                                     </div>
                                     <div class="form-group">
-                                        <label for="crm-url-template">Plantilla de URL Oportunidad (CRM)</label>
-                                        <p class="sub-text">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
-                                        <input type="text" id="crm-url-template" placeholder="https://...">
+                                        <label for="local-repo-path">Repositorio Local de Archivos (Anexos)</label>
+                                        <p class="sub-text">Se recomienda usar una carpeta sincronizada con OneDrive.
+                                        </p>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <span id="local-repo-display" class="path-display" style="flex: 1;">No
+                                                seleccionada</span>
+                                            <button id="select-local-repo-btn"
+                                                class="secondary-btn small">Seleccionar</button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="account-url-template">Plantilla de URL Account</label>
-                                        <p class="sub-text">Ejemplo: https://mycrm.com/account/{Account Name}</p>
-                                        <input type="text" id="account-url-template" placeholder="https://...">
+                                    <div class="form-group"
+                                        style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                        <label>Copia de Seguridad / Portabilidad</label>
+                                        <div style="display: flex; gap: 1rem;">
+                                            <button id="export-data-btn" class="secondary-btn small"><i
+                                                    class="fas fa-file-export"></i> Exportar Mis Datos</button>
+                                            <button id="import-data-btn" class="secondary-btn small"><i
+                                                    class="fas fa-file-import"></i> Importar Datos</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -427,9 +509,47 @@
                                             placeholder="ej: root:S:Production//Templates/MyTemplate.jld">
                                     </div>
                                     <div class="form-group">
+                                        <label for="fo-api-assessment-template">Plantilla Assessment (Resource
+                                            Path)</label>
+                                        <p class="sub-text">Ejemplo:
+                                            icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/AssessmentTemplate.jld
+                                        </p>
+                                        <input type="text" id="fo-api-assessment-template"
+                                            placeholder="ej: root:S:Production//Templates/AssessmentTemplate.jld">
+                                    </div>
+                                    <div class="form-group">
                                         <label for="fo-api-holder">Holder por Defecto (User Name)</label>
                                         <p class="sub-text">Nombre de usuario que recibirá el ticket (ej: j.perez)</p>
                                         <input type="text" id="fo-api-holder" placeholder="Usuario de FO...">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 5: Assessment Structure -->
+                            <div id="settings-assessment" class="tab-pane">
+                                <div class="card settings-card">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h3>Estructura del Assessment</h3>
+                                        <button id="add-assessment-question-btn" class="secondary-btn small">+ Nueva
+                                            Pregunta</button>
+                                    </div>
+                                    <p class="sub-text" style="margin-bottom: 1.5rem;">Administra las preguntas, etapas
+                                        y agrupaciones del assessment técnico.</p>
+                                    <div class="table-container small">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 80px;">ID/Stage</th>
+                                                    <th style="width: 150px;">Área / Etapa</th>
+                                                    <th>Pregunta</th>
+                                                    <th style="width: 80px;">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="assessment-structure-list">
+                                                <!-- Questions management rows injected here -->
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -448,6 +568,7 @@
                                                     <th>Muestra</th>
                                                     <th>Tipo</th>
                                                     <th>Vista</th>
+                                                    <th>Agrupar</th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
@@ -497,7 +618,29 @@
                             </div>
 
                             <div class="add-note">
-                                <textarea id="new-note-input" placeholder="Escribe una nueva nota..."></textarea>
+                                <div class="editor-toolbar">
+                                    <button class="toolbar-btn" onmousedown="event.preventDefault(); formatDoc('bold')"
+                                        title="Bold"><i class="fas fa-bold"></i></button>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('italic')" title="Italic"><i
+                                            class="fas fa-italic"></i></button>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('underline')"
+                                        title="Underline"><i class="fas fa-underline"></i></button>
+                                    <div style="width: 1px; background: var(--glass-border); margin: 0 0.5rem;"></div>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('insertUnorderedList')"
+                                        title="Bullet List"><i class="fas fa-list-ul"></i></button>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('insertOrderedList')"
+                                        title="Numbered List"><i class="fas fa-list-ol"></i></button>
+                                    <div style="width: 1px; background: var(--glass-border); margin: 0 0.5rem;"></div>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('formatBlock', 'h3')"
+                                        title="Heading"><i class="fas fa-heading"></i></button>
+                                </div>
+                                <div id="new-note-input" class="rich-text-editor" contenteditable="true"
+                                    placeholder="Escribe una nueva nota..."></div>
                                 <button id="add-note-btn" class="primary-btn">Agregar Nota</button>
                             </div>
                         </div>
@@ -513,13 +656,50 @@
                         <button id="close-activities-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-tabs">
-                        <button class="tab-btn active" data-tab="tab-pocs">🧪 PoCs</button>
-                        <button class="tab-btn" data-tab="tab-rfp">📄 RFPs / RFIs</button>
+                        <button class="tab-btn active" data-tab="tab-assessment">📋 Assessment</button>
                         <button class="tab-btn" data-tab="tab-demo">📽️ Demos</button>
+                        <button class="tab-btn" data-tab="tab-pocs">🧪 PoCs</button>
+                        <button class="tab-btn" data-tab="tab-rfp">📄 RFPs / RFIs</button>
+                        <button class="tab-btn" data-tab="tab-handover">🏁 Handover</button>
                     </div>
                     <div class="modal-body">
+                        <!-- Assessment Tab Content -->
+                        <div id="tab-assessment" class="tab-content active">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-assessment" class="sub-text"></span>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center;">
+                                <input type="text" id="assessment-search-input" placeholder="Filtrar preguntas..."
+                                    class="form-input" style="flex: 1;">
+                            </div>
+                            <div class="assessment-container">
+                                <div class="assessment-item">
+                                    <label class="assessment-question">Observaciones Generales / Notas Previas</label>
+                                    <textarea id="assessment-general-notes" class="assessment-answer"
+                                        placeholder="Anota aquí cualquier detalle general..."></textarea>
+                                </div>
+                            </div>
+                            <div id="assessment-questions-list" class="assessment-container">
+                                <!-- Questions injected here -->
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem; display: flex; gap: 1rem;">
+                                <button id="save-assessment-btn" class="primary-btn">Guardar Assessment</button>
+                                <button id="generate-assessment-doc-btn" class="secondary-btn small"
+                                    style="background: var(--grad-primary); color: white; border: none;"
+                                    data-i18n="btn_generate_doc">
+                                    <i class="fas fa-file-pdf"></i> Generar Documento
+                                </button>
+                                <button id="view-assessment-pdf-btn" class="secondary-btn small hidden">
+                                    <i class="fas fa-eye"></i> Ver PDF
+                                </button>
+                                <button id="download-assessment-docx-btn" class="secondary-btn small hidden">
+                                    <i class="fas fa-file-word"></i> Descargar DOCX
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- PoCs Tab Content -->
-                        <div id="tab-pocs" class="tab-content active">
+                        <div id="tab-pocs" class="tab-content">
                             <div class="toolbar-inline">
                                 <span id="activities-opp-info-poc" class="sub-text"></span>
                                 <button id="add-poc-row-btn" class="primary-btn small">+ Nueva PoC</button>
@@ -641,9 +821,47 @@
                                 <button id="save-demo-btn" class="primary-btn">Guardar Demo</button>
                             </div>
                         </div>
+
+
+                        <!-- Handover Tab Content -->
+                        <div id="tab-handover" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-handover" class="sub-text"></span>
+                            </div>
+                            <div class="card settings-card">
+                                <h3>Resumen de Cierre (Handover)</h3>
+                                <p class="sub-text">Genera un documento consolidado con todo lo trabajado para el equipo
+                                    de
+                                    ventas o implementación.</p>
+                                <div class="form-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                                    <button id="generate-handover-doc-btn" class="primary-btn">
+                                        <i class="fas fa-file-invoice"></i> Generar Resumen Ejecutivo
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card settings-card" style="margin-top: 1.5rem;">
+                                <h3>Referencia y Caso de Uso</h3>
+                                <p class="sub-text">Si este proyecto es un caso de éxito que puede servir de referencia
+                                    para
+                                    otros preventas, márcalo aquí.</p>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="is-reference-case-checkbox">
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span>Marcar como Caso de Referencia</span>
+                                </div>
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label>Keywords / Tecnologías (Separadas por comas)</label>
+                                    <input type="text" id="reference-keywords"
+                                        placeholder="Ej. SAP, Azure, Retail, On-Premise" class="form-input">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
 
             <!-- Modal for PoC Detail (Add/Edit) -->
             <div id="poc-detail-modal" class="modal hidden">
@@ -848,76 +1066,112 @@
 
                             <div class="meddpicc-content">
                                 <div id="sub-tab-m" class="sub-tab-pane active">
-                                    <div class="form-group">
-                                        <label data-i18n="label_metrics">M - Metrics</label>
-                                        <p class="medd-hint" data-i18n="hint_m">Métricas: Resultados de negocio
-                                            cuantificables.</p>
-                                        <textarea id="medd-m" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
-                                    </div>
+                                    <label data-i18n="label_metrics">M - Metrics</label>
+                                    <p class="medd-hint" data-i18n="hint_m"></p>
+                                    <div id="medd-m-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="m">+ <span
+                                            data-i18n="label_metrics">Métrica</span></button>
                                 </div>
                                 <div id="sub-tab-e" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_economic_buyer">E - Economic Buyer</label>
-                                        <p class="medd-hint" data-i18n="hint_e">Comprador Económico: Persona con
-                                            autoridad de firma.</p>
-                                        <textarea id="medd-e" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    <label data-i18n="label_economic_buyer">E - Economic Buyer</label>
+                                    <p class="medd-hint" data-i18n="hint_e"></p>
+                                    <div class="medd-form">
+                                        <div class="form-group">
+                                            <label data-i18n="label_contact">Contacto</label>
+                                            <select id="medd-e-contact" class="form-input">
+                                                <option value="" data-i18n="placeholder_select_contact"></option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="label_role">Rol</label>
+                                            <input type="text" id="medd-e-role" class="form-input">
+                                        </div>
+                                        <div class="two-col-grid">
+                                            <div class="form-group">
+                                                <label data-i18n="label_influence">Influencia</label>
+                                                <select id="medd-e-influence" class="form-input">
+                                                    <option value="Bajo" data-i18n="opt_low"></option>
+                                                    <option value="Medio" data-i18n="opt_med"></option>
+                                                    <option value="Alto" data-i18n="opt_high"></option>
+                                                    <option value="Crítico" data-i18n="opt_critical"></option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label data-i18n="label_support">Apoyo</label>
+                                                <select id="medd-e-support" class="form-input">
+                                                    <option value="Aliado" data-i18n="opt_ally"></option>
+                                                    <option value="Neutral" data-i18n="opt_neutral"></option>
+                                                    <option value="Adversario" data-i18n="opt_adversary"></option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="sub-tab-d1" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_decision_criteria">D - Decision Criteria</label>
-                                        <p class="medd-hint" data-i18n="hint_d1">Criterios de Decisión: Requerimientos
-                                            técnicos y de negocio.</p>
-                                        <textarea id="medd-d1" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
-                                    </div>
+                                    <label data-i18n="label_decision_criteria">D - Decision Criteria</label>
+                                    <p class="medd-hint" data-i18n="hint_d1"></p>
+                                    <div id="medd-d1-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="d1">+ <span
+                                            data-i18n="label_decision_criteria">Criterio</span></button>
                                 </div>
                                 <div id="sub-tab-d2" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_decision_process">D - Decision Process</label>
-                                        <p class="medd-hint" data-i18n="hint_d2">Proceso de Decisión: Pasos para llegar
-                                            a la firma.</p>
-                                        <textarea id="medd-d2" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
-                                    </div>
+                                    <label data-i18n="label_decision_process">D - Decision Process</label>
+                                    <p class="medd-hint" data-i18n="hint_d2"></p>
+                                    <div id="medd-d2-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="d2">+ <span
+                                            data-i18n="label_decision_process">Paso</span></button>
                                 </div>
                                 <div id="sub-tab-p" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_paper_process">P - Paper Process</label>
-                                        <p class="medd-hint" data-i18n="hint_p">Proceso de Papeles: Legal, compras y
-                                            administración.</p>
-                                        <textarea id="medd-p" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
-                                    </div>
+                                    <label data-i18n="label_paper_process">P - Paper Process</label>
+                                    <p class="medd-hint" data-i18n="hint_p"></p>
+                                    <div id="medd-p-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="p">+ <span
+                                            data-i18n="label_paper_process">Hito</span></button>
                                 </div>
                                 <div id="sub-tab-i" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_implicate_pain">I - Implicate Pain</label>
-                                        <p class="medd-hint" data-i18n="hint_i">Implicar el Dolor: Costo de no hacer
-                                            nada.</p>
-                                        <textarea id="medd-i" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
-                                    </div>
+                                    <label data-i18n="label_implicate_pain">I - Implicate Pain</label>
+                                    <p class="medd-hint" data-i18n="hint_i"></p>
+                                    <div id="medd-i-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="i">+ <span
+                                            data-i18n="label_implicate_pain">Dolor</span></button>
                                 </div>
                                 <div id="sub-tab-c" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_champion">C - Champion</label>
-                                        <p class="medd-hint" data-i18n="hint_c">Campeón: Tu aliado interno con
-                                            influencia.</p>
-                                        <textarea id="medd-c" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
+                                    <label data-i18n="label_champion">C - Champion</label>
+                                    <p class="medd-hint" data-i18n="hint_c"></p>
+                                    <div class="medd-form">
+                                        <div class="form-group">
+                                            <label data-i18n="label_contact">Contacto</label>
+                                            <select id="medd-c-contact" class="form-input">
+                                                <option value="" data-i18n="placeholder_select_contact"></option>
+                                            </select>
+                                        </div>
+                                        <div class="two-col-grid">
+                                            <div class="form-group">
+                                                <label data-i18n="label_role">Rol</label>
+                                                <input type="text" id="medd-c-role" class="form-input">
+                                            </div>
+                                            <div class="form-group">
+                                                <label data-i18n="label_influence">Influencia</label>
+                                                <select id="medd-c-influence" class="form-input">
+                                                    <option value="Bajo" data-i18n="opt_low"></option>
+                                                    <option value="Medio" data-i18n="opt_med"></option>
+                                                    <option value="Alto" data-i18n="opt_high"></option>
+                                                    <option value="Crítico" data-i18n="opt_critical"></option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group checkbox-group">
+                                            <input type="checkbox" id="medd-c-validated">
+                                            <label for="medd-c-validated" data-i18n="label_validated">Validado</label>
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="sub-tab-c2" class="sub-tab-pane">
-                                    <div class="form-group">
-                                        <label data-i18n="label_competition">C - Competition</label>
-                                        <p class="medd-hint" data-i18n="hint_c2">Competencia: Alternativas y riesgo de
-                                            status-quo.</p>
-                                        <textarea id="medd-c2" data-i18n="placeholder_meddpicc"
-                                            data-i18n-prop="placeholder" rows="8"></textarea>
-                                    </div>
+                                    <label data-i18n="label_competition">C - Competition</label>
+                                    <p class="medd-hint" data-i18n="hint_c2"></p>
+                                    <div id="medd-c2-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="c2">+ <span
+                                            data-i18n="label_competition">Competidor</span></button>
                                 </div>
                             </div>
 
@@ -995,14 +1249,29 @@
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>3. Estrategia de Ataque</h4>
+                            <h4>3. Estrategia y Responsable</h4>
                             <div class="form-group">
+                                <label for="attack-plan-owner"
+                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Responsable Actual
+                                    de la Cuenta</label>
+                                <input type="text" id="attack-plan-owner" class="form-input"
+                                    placeholder="Nombre del responsable...">
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="attack-plan-strategy"
+                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Estrategia de
+                                    Ataque</label>
                                 <textarea id="attack-plan-strategy"
                                     placeholder="Define aquí la estrategia para esta cuenta..." rows="6"></textarea>
                             </div>
                         </div>
 
-                        <div class="form-actions" style="margin-top: 2rem;">
+                        <div class="form-actions"
+                            style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                            <button id="reset-attack-plan-btn" class="secondary-btn small"
+                                style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;">
+                                <i class="fas fa-undo"></i> Resetear Plan
+                            </button>
                             <button id="save-attack-plan-btn" class="primary-btn">Guardar Plan de Ataque</button>
                         </div>
                     </div>
@@ -1092,6 +1361,39 @@
                     <div id="ticket-preview-container"
                         style="flex: 1; position: relative; background: #fff; overflow: hidden;">
                         <iframe id="ticket-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSV Mapping Modal -->
+            <div id="csv-mapping-modal" class="modal hidden">
+                <div class="modal-content large" style="max-height: 90vh; display: flex; flex-direction: column;">
+                    <div class="modal-header">
+                        <h3>Mapeo de Columnas CSV</h3>
+                        <button id="close-csv-mapping-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body" style="flex: 1; overflow-y: auto;">
+                        <p class="sub-text" style="margin-bottom: 1.5rem;">
+                            Algunos encabezados de tu CSV no coinciden. Por favor, asocia las columnas de tu archivo con
+                            los campos del sistema.
+                            <strong>Los marcados con (*) son obligatorios.</strong>
+                        </p>
+                        <div class="table-container small">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Campo del Sistema</th>
+                                        <th>Columna en tu CSV</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="csv-mapping-body">
+                                    <!-- Mapping rows injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="confirm-csv-mapping-btn" class="primary-btn">Importar con este Mapeo</button>
+                        </div>
                     </div>
                 </div>
             </div>
