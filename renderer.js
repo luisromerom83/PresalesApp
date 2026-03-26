@@ -52,7 +52,8 @@ let currentConfig = {
     resources: [],
     changedStages: {}, // Tracks opps whose stage changed after CSV import
     assessmentStructure: [], // Grouped discovery questions
-    managerSettings: { team: [], docs: [] } // Hidden manager section data
+    managerSettings: { team: [], docs: [] }, // Hidden manager section data
+    currentSort: { column: null, direction: 'asc' } // Sorting state
 };
 
 let activeOppId = null;
@@ -311,7 +312,9 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
-function showView(viewId, isBack = false) {
+function showView(viewId, isBack = false, triggerBtn = null) {
+    if (!viewId) return;
+
     const activeView = document.querySelector('.view.active');
     const currentViewId = activeView ? activeView.id : null;
 
@@ -320,13 +323,20 @@ function showView(viewId, isBack = false) {
     }
 
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+    // Handle active state of navigation buttons
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.submenu-btn').forEach(b => b.classList.remove('active'));
 
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active');
 
-    const navBtn = document.querySelector(`[data-target="${viewId}"]`);
-    if (navBtn) navBtn.classList.add('active');
+    if (triggerBtn) {
+        triggerBtn.classList.add('active');
+    } else {
+        const navBtn = document.querySelector(`[data-target="${viewId}"]`);
+        if (navBtn) navBtn.classList.add('active');
+    }
 
     // Show/Hide back button based on history
     if (currentConfig.viewHistory.length > 0) {
@@ -397,25 +407,23 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Sidebar Oportunidades Group Toggle
-const toggleBtn = document.getElementById('toggle-opp-group');
-const oppSubmenu = document.getElementById('opp-group-submenu');
-if (toggleBtn && oppSubmenu) {
-    toggleBtn.onclick = () => {
-        oppSubmenu.classList.toggle('collapsed');
-        toggleBtn.classList.toggle('collapsed');
-    };
-}
+// Sidebar Groups Toggles
+const setupSidebarToggle = (toggleId, submenuId) => {
+    const toggle = document.getElementById(toggleId);
+    const submenu = document.getElementById(submenuId);
+    if (toggle && submenu) {
+        toggle.onclick = () => {
+            submenu.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        };
+    }
+};
 
-// Sidebar Microsoft Group Toggle
-const toggleMsBtn = document.getElementById('toggle-ms-group');
-const msSubmenu = document.getElementById('ms-group-submenu');
-if (toggleMsBtn && msSubmenu) {
-    toggleMsBtn.onclick = () => {
-        msSubmenu.classList.toggle('collapsed');
-        toggleMsBtn.classList.toggle('collapsed');
-    };
-}
+setupSidebarToggle('toggle-fav-group', 'fav-group-submenu');
+setupSidebarToggle('toggle-opp-group', 'opp-group-submenu');
+setupSidebarToggle('toggle-ms-group', 'ms-group-submenu');
+setupSidebarToggle('toggle-mgmt-group', 'mgmt-group-submenu');
+setupSidebarToggle('toggle-config-group', 'config-group-submenu');
 
 
 // Sidebar Navigation
@@ -424,10 +432,6 @@ document.addEventListener('click', (e) => {
     if (!btn) return;
 
     const target = btn.getAttribute('data-target');
-
-    // UI Visual State
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
 
     if (target === 'opp-list-view') {
         currentConfig.activeFilters = {};
@@ -448,13 +452,17 @@ document.addEventListener('click', (e) => {
         renderAccountsWithPlan();
     }
     if (target === 'settings-view') {
+        const tab = btn.getAttribute('data-tab');
+        if (tab) {
+            switchSettingsTab(tab);
+        }
         renderStructureEditor();
         renderSidebarFilterManager();
     }
     if (target === 'resources-view') {
         renderResources();
     }
-    showView(target);
+    showView(target, false, btn);
 });
 
 // Search Logic
@@ -533,13 +541,13 @@ function renderDynamicFilters() {
     elements.dynamicFiltersContainer.innerHTML = '';
 
     currentConfig.sidebarFilters.forEach(filter => {
-        // Collapsed by default: isExpanded is only true if explicitly in expandedFilters
         const isExpanded = currentConfig.expandedFilters.has(filter.id);
 
         const groupLabel = document.createElement('div');
         groupLabel.className = `nav-group-label ${isExpanded ? '' : 'collapsed'}`;
         groupLabel.id = `toggle-${filter.id}`;
-        groupLabel.innerHTML = `<span>${filter.label}</span><span class="toggle-icon">▾</span>`;
+        // Using common color for dynamic filters (Cyan/Blue)
+        groupLabel.innerHTML = `<span><i class="fas fa-filter" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span>${filter.label}</span></span><span class="toggle-icon">▾</span>`;
 
         const submenu = document.createElement('div');
         submenu.id = `submenu-${filter.id}`;
@@ -547,19 +555,13 @@ function renderDynamicFilters() {
 
         groupLabel.onclick = () => {
             const wasExpanded = isExpanded;
-
-            // Clear all expanded filters for accordion behavior
             currentConfig.expandedFilters.clear();
-
-            // If it wasn't expanded, expand only this one
             if (!wasExpanded) {
                 currentConfig.expandedFilters.add(filter.id);
             }
-
             renderDynamicFilters();
         };
 
-        // Determine options (buttons)
         let options = [];
         if (filter.mode === 'selection') {
             if (filter.field === 'accountCategory') {
@@ -575,24 +577,23 @@ function renderDynamicFilters() {
         options.forEach(opt => {
             const btn = document.createElement('button');
             const isActive = currentConfig.activeFilters[filter.id] === opt.value;
-            btn.className = `submenu-btn ${isActive ? 'active' : ''}`;
-            btn.textContent = opt.label;
-            btn.onclick = () => {
-                // To maintain previous behavior: only ONE group can be active at a time.
-                // If the user wants to keep a filter, it toggles.
+            // Use nav-btn class for consistent styling
+            btn.className = `nav-btn ${isActive ? 'active' : ''}`;
+            btn.setAttribute('data-target', 'opp-list-view');
+            btn.style.paddingLeft = '2.5rem'; // Indent sub-items
+            btn.innerHTML = `<i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.5;"></i> <span>${opt.label}</span>`;
+            
+            btn.onclick = (e) => {
+                e.stopPropagation();
                 const wasActive = isActive;
                 currentConfig.activeFilters = {};
-
                 if (!wasActive) {
                     currentConfig.activeFilters[filter.id] = opt.value;
                 }
-
                 currentConfig.currentFavoritesFilter = false;
                 renderOpportunities();
                 renderDynamicFilters();
-                showView('opp-list-view');
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                elements.allOppsBtn.classList.add('active');
+                showView('opp-list-view', false, btn);
             };
             submenu.appendChild(btn);
         });
@@ -603,18 +604,14 @@ function renderDynamicFilters() {
 }
 
 // Settings Tab Logic
-document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-    btn.onclick = () => {
-        const targetTab = btn.getAttribute('data-tab');
-        document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(targetTab).classList.add('active');
+window.switchSettingsTab = (targetTab) => {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById(targetTab);
+    if (pane) pane.classList.add('active');
 
-        if (targetTab === 'settings-classifications') renderClassificationManager();
-        if (targetTab === 'settings-assessment') renderAssessmentStructureEditor();
-    };
-});
+    if (targetTab === 'settings-classifications') renderClassificationManager();
+    if (targetTab === 'settings-assessment') renderAssessmentStructureEditor();
+};
 
 function renderClassificationManager() {
     elements.classificationManagerList.innerHTML = '';
@@ -717,35 +714,35 @@ function renderSidebarFilterManager() {
         let fieldsHtml = currentConfig.dataStructure.map(s =>
             `<option value="${s.header}" ${filter.field === s.header ? 'selected' : ''}>${s.header}</option>`
         ).join('');
-        fieldsHtml = `<option value="accountCategory" ${filter.field === 'accountCategory' ? 'selected' : ''}>[Categoría de Cuenta]</option>` + fieldsHtml;
+        fieldsHtml = `<option value="accountCategory" ${filter.field === 'accountCategory' ? 'selected' : ''}>${getTranslation('opt_cat_cuenta') || '[Categoría de Cuenta]'}</option>` + fieldsHtml;
 
         card.innerHTML = `
             <div class="filter-manager-header">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span class="toggle-icon" style="transform: rotate(${isExpanded ? '0' : '-90'}deg)">▼</span>
-                    <strong>${filter.label || 'Nuevo Grupo'}</strong>
-                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? 'Lógica' : 'Selección'}: ${filter.field})</span>
+                    <strong>${filter.label || getTranslation('label_new_group') || 'Nuevo Grupo'}</strong>
+                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? getTranslation('label_logic') || 'Lógica' : getTranslation('label_selection') || 'Selección'}: ${filter.field})</span>
                 </div>
-                <button class="delete-cat-btn" onclick="event.stopPropagation(); deleteSidebarFilter(${fIdx})">Eliminar</button>
+                <button class="delete-cat-btn" onclick="event.stopPropagation(); deleteSidebarFilter(${fIdx})">${getTranslation('btn_delete') || 'Eliminar'}</button>
             </div>
             
             <div class="filter-manager-body" style="display: ${isExpanded ? 'block' : 'none'};">
                 <div class="form-group">
-                    <label>Etiqueta en Sidebar</label>
+                    <label>${getTranslation('label_sidebar_tag') || 'Etiqueta en Sidebar'}</label>
                     <input type="text" class="form-input" value="${filter.label}" 
                         onchange="updateFilterProp(${fIdx}, 'label', this.value)">
                 </div>
 
                 <div class="form-group" style="margin-top: 1rem;">
-                    <label>Modo de Filtrado</label>
+                    <label>${getTranslation('label_filter_mode') || 'Modo de Filtrado'}</label>
                     <select class="form-input" onchange="updateFilterProp(${fIdx}, 'mode', this.value); renderSidebarFilterManager();">
-                        <option value="selection" ${filter.mode === 'selection' ? 'selected' : ''}>Selección (Valores Únicos)</option>
-                        <option value="logic" ${filter.mode === 'logic' ? 'selected' : ''}>Lógica (Reglas Manuales)</option>
+                        <option value="selection" ${filter.mode === 'selection' ? 'selected' : ''}>${getTranslation('opt_selection_unique') || 'Selección (Valores Únicos)'}</option>
+                        <option value="logic" ${filter.mode === 'logic' ? 'selected' : ''}>${getTranslation('opt_logic_manual') || 'Lógica (Reglas Manuales)'}</option>
                     </select>
                 </div>
                 
                 <div class="form-group" style="margin-top: 1rem;">
-                    <label>Variable / Columna Base</label>
+                    <label>${getTranslation('label_base_variable') || 'Variable / Columna Base'}</label>
                     <select class="form-input" onchange="updateFilterProp(${fIdx}, 'field', this.value)">
                         ${fieldsHtml}
                     </select>
@@ -753,9 +750,9 @@ function renderSidebarFilterManager() {
 
                 ${filter.mode === 'logic' ? `
                     <div class="logic-rules-container" style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                        <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Botones y Reglas</label>
+                        <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">${getTranslation('label_buttons_rules') || 'Botones y Reglas'}</label>
                         <div id="rules-list-${fIdx}"></div>
-                        <button class="secondary-btn small" style="margin-top: 0.5rem;" onclick="addLogicRule(${fIdx})">+ Añadir Botón</button>
+                        <button class="secondary-btn small" style="margin-top: 0.5rem;" onclick="addLogicRule(${fIdx})">${getTranslation('btn_add_button') || '+ Añadir Botón'}</button>
                     </div>
                 ` : ''}
             </div>
@@ -776,16 +773,16 @@ function renderSidebarFilterManager() {
                 groupDiv.className = 'filter-rule-group-card';
                 groupDiv.innerHTML = `
                     <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                        <input type="text" class="form-input" placeholder="Etiqueta del Botón" value="${rule.label}" 
+                        <input type="text" class="form-input" placeholder="${getTranslation('placeholder_btn_label') || 'Etiqueta del Botón'}" value="${rule.label}" 
                             onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'label', this.value)" style="font-weight: bold;">
                         <select class="form-input" onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'matchType', this.value)" style="width: auto;">
-                            <option value="AND" ${rule.matchType === 'AND' ? 'selected' : ''}>Y (AND)</option>
-                            <option value="OR" ${rule.matchType === 'OR' ? 'selected' : ''}>O (OR)</option>
+                            <option value="AND" ${rule.matchType === 'AND' ? 'selected' : ''}>${getTranslation('opt_and') || 'Y (AND)'}</option>
+                            <option value="OR" ${rule.matchType === 'OR' ? 'selected' : ''}>${getTranslation('opt_or') || 'O (OR)'}</option>
                         </select>
                         <button class="delete-cat-btn" onclick="deleteRuleGroup(${fIdx}, ${rIdx})">×</button>
                     </div>
                     <div class="conditions-container" id="conditions-${fIdx}-${rIdx}"></div>
-                    <button class="secondary-btn small" onclick="addCondition(${fIdx}, ${rIdx})">+ Condición</button>
+                    <button class="secondary-btn small" onclick="addCondition(${fIdx}, ${rIdx})">${getTranslation('btn_add_condition') || '+ Condición'}</button>
                 `;
                 rulesList.appendChild(groupDiv);
 
@@ -804,9 +801,9 @@ function renderSidebarFilterManager() {
                             ${colOptions}
                         </select>
                         <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'type', this.value)">
-                            <option value="text" ${cond.type === 'text' ? 'selected' : ''}>Texto</option>
-                            <option value="numeric" ${cond.type === 'numeric' ? 'selected' : ''}>Numérico</option>
-                            <option value="boolean" ${cond.type === 'boolean' ? 'selected' : ''}>Bool</option>
+                            <option value="text" ${cond.type === 'text' ? 'selected' : ''}>${getTranslation('opt_type_text') || 'Texto'}</option>
+                            <option value="numeric" ${cond.type === 'numeric' ? 'selected' : ''}>${getTranslation('opt_type_numeric') || 'Numérico'}</option>
+                            <option value="boolean" ${cond.type === 'boolean' ? 'selected' : ''}>${getTranslation('opt_type_bool') || 'Bool'}</option>
                         </select>
                         <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'operator', this.value)">
                             <option value="eq" ${cond.operator === 'eq' ? 'selected' : ''}>==</option>
@@ -815,9 +812,9 @@ function renderSidebarFilterManager() {
                             <option value="gte" ${cond.operator === 'gte' ? 'selected' : ''}>>=</option>
                             <option value="lt" ${cond.operator === 'lt' ? 'selected' : ''}><</option>
                             <option value="lte" ${cond.operator === 'lte' ? 'selected' : ''}><=</option>
-                            <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>Contiene</option>
+                            <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>${getTranslation('opt_contains') || 'Contiene'}</option>
                         </select>
-                        <input type="text" class="form-input" placeholder="Valor" value="${cond.value}" 
+                        <input type="text" class="form-input" placeholder="${getTranslation('placeholder_value') || 'Valor'}" value="${cond.value}" 
                             onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'value', this.value)">
                         <button class="delete-cat-btn" onclick="deleteCondition(${fIdx}, ${rIdx}, ${cIdx})">×</button>
                     `;
@@ -933,8 +930,8 @@ async function init() {
 
     if (window.electronAPI.onUpdateProgress) {
         window.electronAPI.onUpdateProgress((progress) => {
-            elements.updateMessage.textContent = `Descargando: ${Math.round(progress.percent)}% (${(progress.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s)`;
-            elements.confirmUpdateBtn.textContent = "Descargando...";
+            elements.updateMessage.textContent = `${getTranslation('msg_downloading') || 'Descargando'}: ${Math.round(progress.percent)}% (${(progress.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s)`;
+            elements.confirmUpdateBtn.textContent = (getTranslation('msg_downloading') || "Descargando") + "...";
             elements.confirmUpdateBtn.disabled = true;
         });
     }
@@ -948,7 +945,7 @@ async function init() {
                 elements.updateMessage.textContent = "La actualización ya se descargó. ¿Deseas reiniciar la aplicación para instalar?";
                 elements.confirmUpdateBtn.classList.remove('hidden');
                 elements.confirmUpdateBtn.disabled = false;
-                elements.confirmUpdateBtn.textContent = "Reiniciar e Instalar";
+                elements.confirmUpdateBtn.textContent = (getTranslation('btn_restart_install') || "Reiniciar e Instalar");
                 elements.confirmUpdateBtn.onclick = () => {
                     window.electronAPI.installUpdate();
                 };
@@ -971,7 +968,7 @@ async function init() {
             showToast(`Error al actualizar: ${err}`);
             elements.updateModal.classList.add('hidden');
             elements.confirmUpdateBtn.disabled = false;
-            elements.confirmUpdateBtn.textContent = "Reintentar";
+            elements.confirmUpdateBtn.textContent = (getTranslation('btn_retry') || "Reintentar");
         });
     }
 
@@ -1491,7 +1488,7 @@ if (elements.calcAmount) {
 window.openDocPath = async (path) => {
     const result = await window.electronAPI.openPath(path);
     if (!result.success) {
-        showToast('Error al abrir la ruta: ' + (result.error || 'No encontrado'));
+        showToast((getTranslation('err_open_path') || 'Error al abrir la ruta') + ': ' + (result.error || 'No encontrado'));
     }
 };
 
@@ -1563,7 +1560,7 @@ function downloadSampleCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Descargando plantilla...');
+    showToast(getTranslation('toast_download_template') || 'Descargando plantilla...');
 }
 
 const downloadSampleBtn = document.getElementById('download-sample-btn');
@@ -1872,7 +1869,7 @@ elements.confirmCsvMappingBtn.onclick = () => {
     });
 
     if (!allMandatoryMapped) {
-        showToast('Error: Debes mapear todos los campos obligatorios (*)');
+        showToast(getTranslation('err_mapping_mandatory') || 'Error: Debes mapear todos los campos obligatorios (*)');
         return;
     }
 
@@ -1948,8 +1945,8 @@ function renderStructureEditor() {
         tr.innerHTML = `
             <td>
                 <div style="display: flex; gap: 0.2rem; align-items: center;">
-                    <button class="order-btn small" onclick="moveStructureItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Subir">↑</button>
-                    <button class="order-btn small" onclick="moveStructureItem(${index}, 1)" ${index === currentConfig.dataStructure.length - 1 ? 'disabled' : ''} title="Bajar">↓</button>
+                    <button class="order-btn small" onclick="moveStructureItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="${getTranslation('btn_up') || 'Subir'}">↑</button>
+                    <button class="order-btn small" onclick="moveStructureItem(${index}, 1)" ${index === currentConfig.dataStructure.length - 1 ? 'disabled' : ''} title="${getTranslation('btn_down') || 'Bajar'}">↓</button>
                     <input type="text" value="${item.header}" class="struct-header" data-index="${index}" style="margin-left: 0.5rem;">
                 </div>
             </td>
@@ -1957,11 +1954,11 @@ function renderStructureEditor() {
             <td>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <select class="struct-type" data-index="${index}" onchange="currentConfig.dataStructure[${index}].type = this.value; renderStructureEditor();" style="width: auto;">
-                        <option value="string" ${item.type === 'string' ? 'selected' : ''}>Texto</option>
-                        <option value="number" ${item.type === 'number' ? 'selected' : ''}>Número</option>
-                        <option value="currency" ${item.type === 'currency' ? 'selected' : ''}>Moneda</option>
-                        <option value="bool" ${item.type === 'bool' ? 'selected' : ''}>Booleano</option>
-                        <option value="formula" ${item.type === 'formula' ? 'selected' : ''}>Fórmula</option>
+                        <option value="string" ${item.type === 'string' ? 'selected' : ''}>${getTranslation('opt_type_text') || 'Texto'}</option>
+                        <option value="number" ${item.type === 'number' ? 'selected' : ''}>${getTranslation('opt_type_number') || 'Número'}</option>
+                        <option value="currency" ${item.type === 'currency' ? 'selected' : ''}>${getTranslation('opt_type_currency') || 'Moneda'}</option>
+                        <option value="bool" ${item.type === 'bool' ? 'selected' : ''}>${getTranslation('opt_type_bool') || 'Booleano'}</option>
+                        <option value="formula" ${item.type === 'formula' ? 'selected' : ''}>${getTranslation('opt_type_formula') || 'Fórmula'}</option>
                     </select>
                     ${item.type === 'formula' ?
                 `<input type="text" value="${item.formula || ''}" class="struct-formula" placeholder="{Var1} {Var2}" data-index="${index}" onchange="currentConfig.dataStructure[${index}].formula = this.value" style="flex: 1;">` :
@@ -2243,6 +2240,16 @@ function renderGlobalNotesHistory() {
     if (!elements.historyYear.children.length) elements.historyYear.innerHTML = '<p class="sub-text" style="padding: 1rem;">No hay actividad este año.</p>';
 }
 
+function toggleSort(header) {
+    if (currentConfig.currentSort.column === header) {
+        currentConfig.currentSort.direction = currentConfig.currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentConfig.currentSort.column = header;
+        currentConfig.currentSort.direction = 'asc';
+    }
+    renderOpportunities();
+}
+
 function renderOpportunities() {
     elements.oppListBody.innerHTML = '';
     elements.oppTableHead.innerHTML = '';
@@ -2253,9 +2260,22 @@ function renderOpportunities() {
     const headTr = document.createElement('tr');
     visibleCols.forEach((col, index) => {
         const th = document.createElement('th');
-        th.textContent = col.header;
+        th.className = 'sortable-header';
+        
+        // Add Sort Icon
+        let sortIcon = '';
+        if (currentConfig.currentSort.column === col.header) {
+            sortIcon = currentConfig.currentSort.direction === 'asc' ? ' <i class="fas fa-sort-up"></i>' : ' <i class="fas fa-sort-down"></i>';
+        } else {
+            sortIcon = ' <i class="fas fa-sort" style="opacity: 0.3;"></i>';
+        }
+        
+        th.innerHTML = `<span>${col.header}${sortIcon}</span>`;
         th.draggable = true;
         th.dataset.index = index;
+
+        // Click event for sorting
+        th.onclick = () => toggleSort(col.header);
 
         // Drag events
         th.ondragstart = (e) => {
@@ -2288,18 +2308,30 @@ function renderOpportunities() {
 
                 await window.electronAPI.saveFile(currentConfig.directory, 'structure.json', currentConfig.dataStructure);
                 renderOpportunities();
-                showToast('Orden de columnas actualizado');
+                showToast(getTranslation('toast_order_updated') || 'Orden de columnas actualizado');
             }
         };
 
         headTr.appendChild(th);
     });
     const actionsTh = document.createElement('th');
-    actionsTh.textContent = 'Acciones';
+    actionsTh.textContent = getTranslation('col_actions') || 'Acciones';
     headTr.appendChild(actionsTh);
     elements.oppTableHead.appendChild(headTr);
 
-    let filteredOpps = currentConfig.opportunities;
+    console.log("Renderer: Rendering Opportunities...", { 
+        total: currentConfig.opportunities?.length, 
+        activeFilters: currentConfig.activeFilters,
+        isFavFilter: currentConfig.currentFavoritesFilter 
+    });
+
+    if (!currentConfig.opportunities || currentConfig.opportunities.length === 0) {
+        console.warn("Renderer: No opportunities to render.");
+        elements.oppListBody.innerHTML = `<tr><td colspan="100" style="text-align:center; padding: 2rem; opacity: 0.5;">No hay oportunidades cargadas. Por favor, importa un archivo CSV o selecciona un directorio válido.</td></tr>`;
+        return;
+    }
+
+    let filteredOpps = [...currentConfig.opportunities];
 
     if (elements.oppViewTitle) {
         elements.oppViewTitle.textContent = currentConfig.currentFavoritesFilter
@@ -2336,6 +2368,8 @@ function renderOpportunities() {
         });
     }
 
+    console.log(`Renderer: filteredOpps after dynamic filters: ${filteredOpps.length}`);
+
     // Phase 2: Search Filter
     if (currentConfig.currentSearchQuery) {
         filteredOpps = filteredOpps.filter(o => {
@@ -2345,6 +2379,43 @@ function renderOpportunities() {
             const accId = (o['Account ID'] || '').toLowerCase();
             const q = currentConfig.currentSearchQuery;
             return name.includes(q) || account.includes(q) || id.includes(q) || accId.includes(q);
+        });
+    }
+
+    console.log(`Renderer: filteredOpps after search filter: ${filteredOpps.length}`);
+
+    // Phase 3: Global Sort
+    if (currentConfig.currentSort && currentConfig.currentSort.column) {
+        const colName = currentConfig.currentSort.column;
+        const dir = currentConfig.currentSort.direction === 'asc' ? 1 : -1;
+        const colConfig = currentConfig.dataStructure.find(s => s.header === colName);
+        const type = colConfig ? colConfig.type : 'string';
+
+        filteredOpps.sort((a, b) => {
+            let valA = a[colName];
+            let valB = b[colName];
+
+            if (type === 'formula' && colConfig.formula) {
+                valA = applyFormula(colConfig.formula, a);
+                valB = applyFormula(colConfig.formula, b);
+            }
+
+            // Numeric/Currency Sort
+            if (type === 'number' || type === 'currency') {
+                const numA = parseFloat(String(valA || 0).replace(/[^-0-9,.]/g, '').replace(',', '.')) || 0;
+                const numB = parseFloat(String(valB || 0).replace(/[^-0-9,.]/g, '').replace(',', '.')) || 0;
+                return (numA - numB) * dir;
+            }
+
+            // Date Sort (Implicit detection or if header includes 'Date')
+            if (colName.toLowerCase().includes('date')) {
+                const dateA = parseCustomDate(valA) || new Date(0);
+                const dateB = parseCustomDate(valB) || new Date(0);
+                return (dateA - dateB) * dir;
+            }
+
+            // Default String Sort
+            return String(valA || '').localeCompare(String(valB || ''), undefined, { numeric: true, sensitivity: 'base' }) * dir;
         });
     }
 
@@ -2537,7 +2608,7 @@ function renderMeddItems(type) {
                 <input type="text" class="medd-row-input" value="${item.impact || ''}" placeholder="Impacto" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('i', ${idx}, 'urgency', this.value)">
                     <option value="Baja" ${item.urgency === 'Baja' ? 'selected' : ''}>Baja</option>
-                    <option value="Media" ${item.urgency === 'Media' ? 'selected' : ''}>Media</option>
+                    <option value="Medio" ${item.urgency === 'Medio' ? 'selected' : ''}>Medio</option>
                     <option value="Alta" ${item.urgency === 'Alta' ? 'selected' : ''}>Alta</option>
                 </select>
             `;
@@ -2716,7 +2787,7 @@ document.addEventListener('click', (e) => {
         else if (type === 'd1') { newItem.req = ''; newItem.priority = 3; newItem.status = 'Parcial'; }
         else if (type === 'd2') { newItem.step = ''; newItem.date = ''; newItem.status = 'Planeado'; }
         else if (type === 'p') { newItem.stage = ''; newItem.owner = ''; newItem.status = 'Pendiente'; }
-        else if (type === 'i') { newItem.pain = ''; newItem.impact = ''; newItem.urgency = 'Media'; }
+        else if (type === 'i') { newItem.pain = ''; newItem.impact = ''; newItem.urgency = 'Medio'; }
         else if (type === 'c2') { newItem.competitor = ''; newItem.advantage = ''; newItem.weakness = ''; }
 
         tempMeddData[type].push(newItem);
@@ -2934,7 +3005,7 @@ elements.generateAssessmentDocBtn.onclick = async () => {
     const templatePath = settings.foApiAssessmentTemplate;
 
     if (!baseUrl || !apiToken || !templatePath) {
-        showToast('Error: Configura la Base URL, API KEY y Plantilla de Assessment en Ajustes', 'error');
+        showToast(getTranslation('err_config_missing_assessment') || 'Error: Configura la Base URL, API KEY y Plantilla de Assessment en Ajustes', 'error');
         return;
     }
 
@@ -3060,7 +3131,7 @@ elements.generateAssessmentDocBtn.onclick = async () => {
                 a.click();
                 URL.revokeObjectURL(url);
             } catch (err) {
-                showToast('Error al descargar DOCX', 'error');
+                showToast(getTranslation('err_download_docx') || 'Error al descargar DOCX', 'error');
             } finally {
                 elements.downloadAssessmentDocxBtn.disabled = false;
             }
@@ -3088,13 +3159,13 @@ function renderAssessmentStructureEditor() {
             <td><textarea class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'question', this.value)">${q.question || ''}</textarea></td>
             <td>
                 <select class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'type', this.value)">
-                    <option value="open" ${q.type === 'open' ? 'selected' : ''}>Abierta</option>
-                    <option value="closed" ${q.type === 'closed' ? 'selected' : ''}>Cerrada (Si/No)</option>
-                    <option value="quantity" ${q.type === 'quantity' ? 'selected' : ''}>Cantidad</option>
+                    <option value="open" ${q.type === 'open' ? 'selected' : ''}>${getTranslation('opt_type_open') || 'Abierta'}</option>
+                    <option value="closed" ${q.type === 'closed' ? 'selected' : ''}>${getTranslation('opt_type_closed') || 'Cerrada (Si/No)'}</option>
+                    <option value="quantity" ${q.type === 'quantity' ? 'selected' : ''}>${getTranslation('opt_type_quantity') || 'Cantidad'}</option>
                 </select>
             </td>
             <td>
-                <button class="remove-item-btn" onclick="removeAssessmentStructItem(${idx})">&times;</button>
+                <button class="remove-item-btn" onclick="removeAssessmentStructItem(${idx})">${getTranslation('btn_delete') || '×'}</button>
             </td>
         `;
         elements.assessmentStructureList.appendChild(tr);
@@ -3124,7 +3195,7 @@ function renderNotes() {
     elements.notesList.innerHTML = '';
     const history = currentConfig.notes[activeOppId] || [];
     if (history.length === 0) {
-        elements.notesList.innerHTML = '<p class="sub-text">No hay notas registradas.</p>';
+        elements.notesList.innerHTML = `<p class="sub-text">${getTranslation('msg_no_notes') || 'No hay notas registradas.'}</p>`;
     } else {
         history.forEach((note, index) => {
             const div = document.createElement('div');
@@ -3139,8 +3210,8 @@ function renderNotes() {
                         ${stageBadge}
                     </div>
                     <div class="note-actions">
-                        <button class="edit-note-btn" onclick="editNote(${index})">Editar</button>
-                        <button class="delete-note-btn" onclick="deleteNote(${index})">Borrar</button>
+                        <button class="edit-note-btn" onclick="editNote(${index})">${getTranslation('btn_edit') || 'Editar'}</button>
+                        <button class="delete-note-btn" onclick="deleteNote(${index})">${getTranslation('btn_delete') || 'Borrar'}</button>
                     </div>
                 </div>
                 <div class="note-content" id="note-content-${index}">${note.text}</div>
@@ -3524,7 +3595,7 @@ elements.generateFoTicketBtn.onclick = async () => {
     const templatePath = settings.foApiTemplate;
 
     if (!baseUrl || !apiToken || !templatePath) {
-        showToast('Error: Configura la Base URL, API KEY y Plantilla en Ajustes', 'error');
+        showToast(getTranslation('err_config_missing') || 'Error: Configura la Base URL, API KEY y Plantilla en Ajustes', 'error');
         return;
     }
 
@@ -3532,7 +3603,7 @@ elements.generateFoTicketBtn.onclick = async () => {
     if (!opp) return;
 
     if (!elements.pocObjective.value) {
-        showToast('Error: El Objetivo de la PoC es obligatorio', 'error');
+        showToast(getTranslation('err_objective_mandatory') || 'Error: El Objetivo de la PoC es obligatorio', 'error');
         return;
     }
 
@@ -3639,12 +3710,12 @@ elements.generateFoTicketBtn.onclick = async () => {
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
-                showToast('Descarga iniciada');
+                showToast(getTranslation('toast_download_started') || 'Descarga iniciada');
             } catch (error) {
-                showToast('Error al generar DOCX: ' + error.message, 'error');
+                showToast((getTranslation('err_generate_docx') || 'Error al generar DOCX') + ': ' + error.message, 'error');
             } finally {
                 elements.downloadDocxBtn.disabled = false;
-                elements.downloadDocxBtn.innerHTML = '<i class="fas fa-file-word"></i> Descargar DOCX';
+                elements.downloadDocxBtn.innerHTML = `<i class="fas fa-file-word"></i> ${getTranslation('btn_download') || 'Descargar'} DOCX`;
             }
         };
 
@@ -3749,7 +3820,7 @@ elements.saveRfpBtn.onclick = async () => {
     };
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast('RFP guardado');
+    showToast(getTranslation('toast_rfp_saved') || 'RFP guardado');
 };
 
 // Demos Logic
@@ -3858,7 +3929,7 @@ elements.saveDemoBtn.onclick = async () => {
     currentConfig.materials[activeOppId].walkthrough = { prep, flow };
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast('Demo guardada');
+    showToast(getTranslation('toast_demo_saved') || 'Demo guardada');
 };
 
 // Helper for generic Activity Inputs
@@ -3890,82 +3961,155 @@ function renderActivityInputs(activities, container, removeFnName) {
 elements.closePocDetailModalBtn.onclick = () => elements.pocDetailModal.classList.add('hidden');
 
 
-// UI Helpers
-function showToast(msg) {
-    elements.successToast.textContent = msg;
-    elements.successToast.classList.remove('hidden');
-    setTimeout(() => elements.successToast.classList.add('hidden'), 3000);
-}
+// Front Office Integration Logic
+elements.generateFoTicketBtn.onclick = async () => {
+    const settings = await window.electronAPI.getSettings();
+    const baseUrl = settings.foApiUrl ? settings.foApiUrl.replace(/\/+$/, '') : '';
+    // New endpoint for On Demand Document
+    const apiUrl = `${baseUrl}/production/v7/onDemandDocument`;
+    const apiToken = settings.foApiToken;
 
-function updateResponsiblesList() {
-    elements.responsiblesList.innerHTML = '';
-    currentConfig.responsibles.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        elements.responsiblesList.appendChild(opt);
-    });
-}
+    const templatePath = settings.foApiTemplate;
 
-function saveResponsible(name) {
-    if (!name) return;
-    const trimmed = name.trim();
-    if (trimmed && !currentConfig.responsibles.includes(trimmed)) {
-        currentConfig.responsibles.push(trimmed);
-        currentConfig.responsibles.sort();
-        updateResponsiblesList();
-        // Save to settings
-        window.electronAPI.saveFile(currentConfig.directory, 'settings.json', {
-            lastDirectory: currentConfig.directory,
-            crmUrlTemplate: currentConfig.crmUrlTemplate,
-            accountUrlTemplate: currentConfig.accountUrlTemplate,
-            theme: elements.themeSelect.value,
-            responsibles: currentConfig.responsibles
-        });
+    if (!baseUrl || !apiToken || !templatePath) {
+        showToast(getTranslation('err_config_missing') || 'Error: Configura la Base URL, API KEY y Plantilla en Ajustes', 'error');
+        return;
     }
-}
 
-function initUrlField(inputId) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(`${inputId}-preview`);
-    if (!input || !preview) return;
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
+    if (!opp) return;
 
-    const link = preview.querySelector('.url-link');
-    const editBtn = preview.querySelector('.edit-url-btn');
+    if (!elements.pocObjective.value) {
+        showToast(getTranslation('err_objective_mandatory') || 'Error: El Objetivo de la PoC es obligatorio', 'error');
+        return;
+    }
 
-    const updatePreview = () => {
-        const val = input.value.trim();
-        if (val) {
-            input.classList.add('hidden');
-            preview.classList.remove('hidden');
-            link.href = val.startsWith('http') ? val : `https://${val}`;
-            link.textContent = val.length > 50 ? val.substring(0, 47) + '...' : val;
-        } else {
-            input.classList.remove('hidden');
-            preview.classList.add('hidden');
+    // Helper for Document Generation
+    const generateDocument = async (outputType) => {
+        const payload = {
+            Steps: [{
+                name: "Print",
+                generate: {
+                    template: templatePath,
+                    channel: "Print",
+                    generateType: "ContentAuthor",
+                    outputType: outputType,
+                    outputPath: "response://",
+                    inputPaths: [{ name: "DataInput", path: "request://" }]
+                }
+            }],
+            data: {
+                PoC: [{
+                    opportunityName: opp['Opportunity Name'] || activeOppId,
+                    objective: elements.pocObjective.value,
+                    useCase: elements.pocUseCase.value,
+                    scope: Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    resources: Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    stakeholders: Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
+                        name: row.querySelector('.name-input').value,
+                        role: row.querySelector('.role-input').value
+                    })).filter(s => s.name),
+                    squad: Array.from(elements.pocSquadContainer.querySelectorAll('.list-item-row')).map(row => ({
+                        name: row.querySelector('.name-input').value,
+                        role: row.querySelector('.role-input').value
+                    })).filter(s => s.name),
+                    timeline: Array.from(elements.pocTimelineBody.querySelectorAll('tr')).map(tr => ({
+                        activity: tr.querySelector('.act').value,
+                        date: tr.querySelector('.date').value,
+                        comments: tr.querySelector('.comm').value
+                    })).filter(t => t.activity),
+                    assumptions: elements.pocAssumptions.value,
+                    financials: elements.pocFinancials.value,
+                    acceptanceUrl: elements.pocUrlAcceptance.value,
+                    contentUrl: elements.pocUrlContent.value
+                }]
+            }
+        };
+
+        console.log(`Payload (${outputType}):`, JSON.stringify(payload, null, 2));
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': apiToken.startsWith('Bearer ') ? apiToken : `Bearer ${apiToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorMsg = response.statusText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMsg = errorJson.title || errorJson.message || errorMsg;
+            } catch (e) { }
+            throw new Error(errorMsg);
         }
+        return await response.blob();
     };
 
-    input.addEventListener('blur', updatePreview);
+    try {
+        elements.generateFoTicketBtn.disabled = true;
+        elements.generateFoTicketBtn.textContent = 'Generando...';
 
-    editBtn.addEventListener('click', () => {
-        preview.classList.add('hidden');
-        input.classList.remove('hidden');
-        input.focus();
-    });
+        // 1. First, generate PDF for preview
+        const pdfBlob = await generateDocument('PDF');
+        showToast('Documento generado exitosamente');
 
-    // Helper to allow programmatic resets
-    input.resetToPreview = updatePreview;
-}
+        const pdfUrl = URL.createObjectURL(pdfBlob);
 
-function formatToDDMMYYYY(date) {
-    if (!date) return getTranslation('label_no_date');
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return date;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-}
+        elements.viewFoTicketBtn.classList.remove('hidden');
+        elements.downloadDocxBtn.classList.remove('hidden');
+
+        elements.viewFoTicketBtn.onclick = () => {
+            elements.ticketIframe.src = pdfUrl;
+            elements.ticketViewTitle.textContent = "Previsualización PDF";
+            elements.ticketViewUrl.textContent = `PoC_${activeOppId}.pdf`;
+            elements.ticketViewModal.classList.remove('hidden');
+            elements.ticketIframe.classList.remove('hidden');
+        };
+
+        // 2. Logic for DOCX Download
+        elements.downloadDocxBtn.onclick = async () => {
+            try {
+                elements.downloadDocxBtn.disabled = true;
+                elements.downloadDocxBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando DOCX...';
+
+                const docxBlob = await generateDocument('DOCX');
+                const fileName = `PoC_${activeOppId}_${new Date().getTime()}.docx`;
+
+                const url = window.URL.createObjectURL(docxBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast(getTranslation('toast_download_started') || 'Descarga iniciada');
+            } catch (error) {
+                showToast((getTranslation('err_generate_docx') || 'Error al generar DOCX') + ': ' + error.message, 'error');
+            } finally {
+                elements.downloadDocxBtn.disabled = false;
+                elements.downloadDocxBtn.innerHTML = `<i class="fas fa-file-word"></i> ${getTranslation('btn_download') || 'Descargar'} DOCX`;
+            }
+        };
+
+        // Automatic PDF Preview
+        elements.viewFoTicketBtn.click();
+
+    } catch (error) {
+        console.error("FO API Error:", error);
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        elements.generateFoTicketBtn.disabled = false;
+        elements.generateFoTicketBtn.textContent = 'Generar Documento';
+    }
+};
+
+
+
 
 async function renderActivityCalendar() {
     const view = currentConfig.calendarView;
@@ -4248,14 +4392,32 @@ function renderAttackPlanLicenses() {
             ? `${(n * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
             : `${n.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
 
+        const c = parseFloat(lic.consumo) || 0;
+        const legendC = (c > 0 && c < 1)
+            ? `${(c * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
+            : `${c.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
+
+
         const div = document.createElement('div');
         div.className = 'list-item-row';
         div.innerHTML = `
             <input type="text" placeholder="Nombre de Licencia" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
-            <input type="number" step="any" placeholder="Volumen" value="${lic.volume || ''}" 
-                oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
-                style="max-width: 100px;">
-            <span id="vol-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--text-primary); min-width: 140px; text-align: left; display: inline-block;">${legend}</span>
+            
+            <div style="display: flex; flex-direction: column; gap: 2px; flex: 1.5;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" step="any" placeholder="Volumen" value="${lic.volume || ''}" 
+                        oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                        style="max-width: 100px; flex: 1;">
+                    <span id="vol-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--text-primary); font-size: 0.75rem; white-space: nowrap;">${legend}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" step="any" placeholder="Consumo" value="${lic.consumo || ''}" 
+                        oninput="updateAttackLicense(${idx}, 'consumo', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('con-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                        style="max-width: 100px; flex: 1;">
+                    <span id="con-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--brand-orange); font-size: 0.75rem; white-space: nowrap;">${legendC}</span>
+                </div>
+            </div>
+
             <button class="remove-item-btn" onclick="removeAttackLicense(${idx})">&times;</button>
         `;
         elements.attackPlanLicensesContainer.appendChild(div);
@@ -4272,7 +4434,7 @@ window.removeAttackLicense = (idx) => {
 };
 
 elements.addAttackLicenseBtn.onclick = () => {
-    currentAttackPlanData.licenses.push({ name: '', volume: '' });
+    currentAttackPlanData.licenses.push({ name: '', volume: '', consumo: '' });
     renderAttackPlanLicenses();
 };
 
@@ -4652,7 +4814,7 @@ function createAccountPlanCard(accountId, account) {
         </div>
         ${lastAct ? `
             <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
-                <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.date})
+                <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.startDate || lastAct.date || 'Sin fecha'})
             </div>
         ` : ''}
     `;
@@ -4743,6 +4905,79 @@ window.formatDoc = (cmd, value = null) => {
     document.execCommand(cmd, false, value);
 };
 
+// --- AUTO-UPDATE LISTENERS ---
+if (window.electronAPI && window.electronAPI.onUpdateAvailable) {
+    window.electronAPI.onUpdateAvailable((info) => {
+        console.log("Renderer: Update available", info);
+        if (elements.updateBadge) elements.updateBadge.classList.remove('hidden');
+        if (elements.updateMessage) {
+            elements.updateMessage.textContent = `Una nueva versión (${info.version}) está disponible. ¿Deseas descargarla ahora?`;
+        }
+        if (elements.confirmUpdateBtn) elements.confirmUpdateBtn.textContent = getTranslation('btn_download') || 'Descargar';
+        if (elements.updateModal) elements.updateModal.classList.remove('hidden');
+    });
+}
+
+if (window.electronAPI && window.electronAPI.onUpdateDownloaded) {
+    window.electronAPI.onUpdateDownloaded((info) => {
+        console.log("Renderer: Update downloaded", info);
+        if (elements.updateBadge) {
+            elements.updateBadge.textContent = 'READY';
+            elements.updateBadge.style.background = 'var(--brand-cyan)';
+            elements.updateBadge.classList.remove('hidden');
+        }
+        if (elements.updateMessage) {
+            elements.updateMessage.textContent = `La versión ${info.version} ha sido descargada. Reinicia para aplicar los cambios.`;
+        }
+        if (elements.confirmUpdateBtn) elements.confirmUpdateBtn.classList.add('hidden');
+        if (elements.installUpdateBtn) elements.installUpdateBtn.classList.remove('hidden');
+        if (elements.updateModal) elements.updateModal.classList.remove('hidden');
+    });
+}
+
+if (window.electronAPI && window.electronAPI.onUpdateProgress) {
+    window.electronAPI.onUpdateProgress((progress) => {
+        if (elements.updateMessage) {
+            elements.updateMessage.textContent = `${getTranslation('msg_downloading') || 'Descargando'}: ${Math.round(progress.percent)}%`;
+        }
+    });
+}
+
+if (window.electronAPI && window.electronAPI.onUpdateError) {
+    window.electronAPI.onUpdateError((err) => {
+        console.error('Update error:', err);
+        showToast(getTranslation('err_update') || 'Error en la actualización');
+    });
+}
+
+// Update Buttons
+if (elements.confirmUpdateBtn) {
+    elements.confirmUpdateBtn.onclick = () => {
+        window.electronAPI.downloadUpdate();
+        showToast('Iniciando descarga...');
+        elements.confirmUpdateBtn.disabled = true;
+    };
+}
+
+if (elements.installUpdateBtn) {
+    elements.installUpdateBtn.onclick = () => {
+        window.electronAPI.installUpdate();
+    };
+}
+
+if (elements.cancelUpdateBtn) {
+    elements.cancelUpdateBtn.onclick = () => {
+        elements.updateModal.classList.add('hidden');
+    };
+}
+
+if (elements.closeUpdateModalBtn) {
+    elements.closeUpdateModalBtn.onclick = () => {
+        elements.updateModal.classList.add('hidden');
+    };
+}
+
+
 init();
 
 // Initialize manager settings
@@ -4753,3 +4988,204 @@ async function initManagerSettings() {
     }
 }
 initManagerSettings();
+
+/**
+ * Initializes a URL field with a dynamic preview.
+ * Hides the input and shows a clickable link when a valid URL is entered.
+ * @param {string|HTMLElement} target - The ID of the input or the input element itself.
+ */
+function initUrlField(target) {
+    const input = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!input) return;
+
+    const wrapper = input.closest('.url-field-wrapper');
+    if (!wrapper) return;
+
+    const previewDiv = wrapper.querySelector('.url-preview');
+    const urlLink = wrapper.querySelector('.url-link');
+    const editBtn = wrapper.querySelector('.edit-url-btn');
+
+    const updatePreview = () => {
+        const val = input.value.trim();
+        if (val && (val.startsWith('http') || val.startsWith('https') || val.startsWith('www'))) {
+            input.classList.add('hidden');
+            if (previewDiv) previewDiv.classList.remove('hidden');
+            if (urlLink) {
+                // Ensure link works even if it starts with www
+                urlLink.href = val.startsWith('www') ? `https://${val}` : val;
+            }
+        } else {
+            input.classList.remove('hidden');
+            if (previewDiv) previewDiv.classList.add('hidden');
+        }
+    };
+
+    // Initial check
+    updatePreview();
+
+    // Listen for changes
+    input.addEventListener('change', updatePreview);
+    input.addEventListener('blur', updatePreview);
+
+    // Edit button logic
+    if (editBtn) {
+        editBtn.onclick = () => {
+            input.classList.remove('hidden');
+            if (previewDiv) previewDiv.classList.add('hidden');
+            input.focus();
+        };
+    }
+}
+
+/**
+ * Saves the current materials data to the directory.
+ */
+async function saveMaterials() {
+    if (!currentConfig.directory) return;
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
+
+// --- Utility Functions ---
+
+function updateResponsiblesList() {
+    if (!elements.responsiblesList) return;
+    elements.responsiblesList.innerHTML = '';
+    (currentConfig.responsibles || []).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        elements.responsiblesList.appendChild(opt);
+    });
+}
+
+window.saveResponsible = async (name) => {
+    if (!name || (currentConfig.responsibles && currentConfig.responsibles.includes(name))) return;
+    if (!currentConfig.responsibles) currentConfig.responsibles = [];
+    currentConfig.responsibles.push(name);
+    await window.electronAPI.saveFile(currentConfig.directory, 'responsibles.json', currentConfig.responsibles);
+    updateResponsiblesList();
+};
+
+function formatToDDMMYYYY(dateInput) {
+    if (!dateInput) return '—';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) {
+        return dateInput;
+    }
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function updateStageSubmenu() {
+    if (typeof renderOpportunities === 'function') {
+        renderOpportunities();
+    }
+}
+
+async function updateNotificationBadge() {
+    // Placeholder for notification logic
+}
+
+async function getAppVersion() {
+    try {
+        const version = await window.electronAPI.getAppVersion();
+        if (elements.appVersion) {
+            elements.appVersion.textContent = `v${version}`;
+        }
+        return version;
+    } catch (e) {
+        return '2.0.0';
+    }
+}
+
+// Update Listeners
+if (window.electronAPI.onUpdateAvailable) {
+    window.electronAPI.onUpdateAvailable((info) => {
+        if (elements.updateBadge) elements.updateBadge.classList.remove('hidden');
+        showToast(getTranslation('update_available') || 'Nueva actualización disponible');
+    });
+}
+
+if (window.electronAPI.onUpdateDownloaded) {
+    window.electronAPI.onUpdateDownloaded((info) => {
+        showToast(getTranslation('update_downloaded') || 'Actualización descargada. Se instalará al reiniciar.', 'success');
+    });
+}
+
+// --- Contacts and Attack Plan Management ---
+
+async function renderGlobalContacts() {
+    if (!elements.globalContactsBody) return;
+    const contacts = currentConfig.contacts || [];
+    elements.globalContactsBody.innerHTML = '';
+    
+    contacts.forEach((contact, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${contact.name || ''}</td>
+            <td>${contact.role || ''}</td>
+            <td>${contact.email || ''}</td>
+            <td>${contact.phone || ''}</td>
+            <td>${contact.influence || ''}</td>
+            <td>${contact.account || ''}</td>
+            <td>${contact.notes || ''}</td>
+            <td>
+                <button class="remove-item-btn" onclick="deleteGlobalContact(${idx})">&times;</button>
+            </td>
+        `;
+        elements.globalContactsBody.appendChild(tr);
+    });
+}
+
+window.deleteGlobalContact = async (idx) => {
+    if (!confirm(getTranslation('confirm_delete') || '¿Estás seguro?')) return;
+    currentConfig.contacts.splice(idx, 1);
+    await window.electronAPI.saveFile(currentConfig.directory, 'contacts.json', currentConfig.contacts);
+    renderGlobalContacts();
+};
+
+async function saveAccountContacts(accountId) {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    const rows = Array.from(elements.accountContactsBody.querySelectorAll('tr'));
+    currentConfig.accounts[accountId].contacts = rows.map(tr => {
+        const inputs = tr.querySelectorAll('input');
+        return {
+            name: inputs[0].value,
+            role: inputs[1].value,
+            email: inputs[2].value
+        };
+    });
+    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+}
+
+window.deleteAccountContact = async (accountId, idx) => {
+    if (!confirm(getTranslation('confirm_delete') || '¿Estás seguro?')) return;
+    currentConfig.accounts[accountId].contacts.splice(idx, 1);
+    renderAccountContacts(accountId);
+};
+
+window.saveAttackPlan = async (accountId) => {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    currentConfig.accounts[accountId].attackPlan = {
+        ...currentConfig.accounts[accountId].attackPlan, // Simplified for now
+        strategy: elements.attackPlanStrategy.value,
+        currentOwner: elements.attackPlanOwner ? elements.attackPlanOwner.value : ''
+    };
+    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+    showToast(getTranslation('toast_attack_plan_saved') || 'Plan de Ataque guardado');
+};
+
+window.addGlobalContact = async () => {
+    if (!currentConfig.contacts) currentConfig.contacts = [];
+    currentConfig.contacts.push({ name: '', role: '', email: '', phone: '', influence: '', account: '', notes: '' });
+    renderGlobalContacts();
+};
+
+window.addAccountContact = (accountId) => {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    if (!currentConfig.accounts[accountId].contacts) currentConfig.accounts[accountId].contacts = [];
+    currentConfig.accounts[accountId].contacts.push({ name: '', role: '', email: '' });
+    renderAccountContacts(accountId);
+};
+
