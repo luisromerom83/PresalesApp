@@ -3406,7 +3406,7 @@ window.editPoc = (index) => {
     initUrlField(elements.pocUrlAcceptance);
     initUrlField(elements.pocUrlContent);
 
-    renderPocSimpleList(elements.pocScopeContainer, poc.scope || [], 'scope');
+    renderPocSimpleList(elements.pocScopeContainer, poc.scopes || poc.scope || [], 'scope');
     renderPocSimpleList(elements.pocResourcesContainer, poc.resources || [], 'resources');
     renderPocObjectList(elements.pocStakeholdersContainer, poc.stakeholders || [], 'stakeholders');
     renderPocObjectList(elements.pocSquadContainer, poc.squad || [], 'squad');
@@ -3448,7 +3448,10 @@ elements.addPocRowBtn.onclick = () => {
 };
 
 elements.savePocDetailBtn.onclick = async () => {
-    const scope = Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v);
+    const scopes = Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
+        title: row.querySelector('.scope-title-input').value,
+        description: row.querySelector('.scope-desc-input').value
+    })).filter(s => s.title);
     const resources = Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v);
 
     const stakeholders = Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
@@ -3474,7 +3477,7 @@ elements.savePocDetailBtn.onclick = async () => {
     const pocData = {
         objective: elements.pocObjective.value,
         useCase: elements.pocUseCase.value,
-        scope,
+        scopes,
         resources,
         stakeholders,
         squad,
@@ -3502,16 +3505,34 @@ elements.savePocDetailBtn.onclick = async () => {
 
 function renderPocSimpleList(container, items, type) {
     container.innerHTML = '';
-    const renderItems = items.length > 0 ? items : [''];
-    renderItems.forEach((item, index) => {
-        const row = document.createElement('div');
-        row.className = 'list-item-row';
-        row.innerHTML = `
-            <input type="text" value="${item}" placeholder="Agregar item...">
-            <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
-        `;
-        container.appendChild(row);
-    });
+    if (type === 'scope') {
+        const renderItems = items.length > 0 ? items : [{ title: '', description: '' }];
+        renderItems.forEach((item, index) => {
+            const scopeItem = typeof item === 'string' ? { title: item, description: '' } : item;
+            const row = document.createElement('div');
+            row.className = 'scope-item-row';
+            row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
+            row.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" class="scope-title-input" value="${scopeItem.title.replace(/"/g, '&quot;')}" placeholder="Título del alcance..." style="flex: 1;">
+                    <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+                </div>
+                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;">${scopeItem.description || ''}</textarea>
+            `;
+            container.appendChild(row);
+        });
+    } else {
+        const renderItems = items.length > 0 ? items : [''];
+        renderItems.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'list-item-row';
+            row.innerHTML = `
+                <input type="text" value="${item}" placeholder="Agregar item...">
+                <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+            `;
+            container.appendChild(row);
+        });
+    }
 }
 
 function renderPocObjectList(container, items, type) {
@@ -3558,7 +3579,19 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
         if (type === 'stakeholders') container = elements.pocStakeholdersContainer;
         if (type === 'squad') container = elements.pocSquadContainer;
 
-        if (type === 'scope' || type === 'resources') {
+        if (type === 'scope') {
+            const row = document.createElement('div');
+            row.className = 'scope-item-row';
+            row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
+            row.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" class="scope-title-input" placeholder="Título del alcance..." style="flex: 1;">
+                    <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+                </div>
+                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;"></textarea>
+            `;
+            container.appendChild(row);
+        } else if (type === 'resources') {
             const row = document.createElement('div');
             row.className = 'list-item-row';
             row.innerHTML = `<input type="text" placeholder="Agregar item..."><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
@@ -3626,7 +3659,10 @@ elements.generateFoTicketBtn.onclick = async () => {
                     opportunityName: opp['Opportunity Name'] || activeOppId,
                     objective: elements.pocObjective.value,
                     useCase: elements.pocUseCase.value,
-                    scope: Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    scopes: Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
+                        title: row.querySelector('.scope-title-input').value,
+                        description: row.querySelector('.scope-desc-input').value
+                    })).filter(s => s.title),
                     resources: Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
                     stakeholders: Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
                         name: row.querySelector('.name-input').value,
@@ -4003,7 +4039,10 @@ elements.generateFoTicketBtn.onclick = async () => {
                     opportunityName: opp['Opportunity Name'] || activeOppId,
                     objective: elements.pocObjective.value,
                     useCase: elements.pocUseCase.value,
-                    scope: Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    scopes: Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
+                        title: row.querySelector('.scope-title-input').value,
+                        description: row.querySelector('.scope-desc-input').value
+                    })).filter(s => s.title),
                     resources: Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
                     stakeholders: Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
                         name: row.querySelector('.name-input').value,

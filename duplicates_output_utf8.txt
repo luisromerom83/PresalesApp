@@ -1,0 +1,7 @@
+﻿Duplicate found: showScreen at lines 309, 5030
+Duplicate found: showView at lines 315, 5036
+Duplicate found: goToOpportunity at lines 374, 5104
+Duplicate found: evaluateRule at lines 641, 5135
+Duplicate found: evaluateRuleGroup at lines 685, 5120
+Duplicate found: updateAccountContact at lines 4618, 5244
+Duplicate found: showToast at lines 4858, 5063

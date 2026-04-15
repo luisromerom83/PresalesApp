@@ -57,7 +57,8 @@ app.whenReady().then(() => {
       'login.live.com',
       'account.microsoft.com',
       'quadientcloud.com',
-      'quadientcloud.eu'
+      'quadientcloud.eu',
+      'spiff.com'
     ];
 
     if (targetDomains.some(domain => url.includes(domain))) {
