@@ -304,7 +304,6 @@ const elements = {
 // Account Plans Grouping Listener
 elements.accountsGroupBySelect.onchange = () => {
     renderAccountsWithPlan();
->>>>>>> origin/feat/experimental
 };
 
 // Navigation
