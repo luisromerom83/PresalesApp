@@ -4220,6 +4220,9 @@ async function renderActivityCalendar() {
     const monthFormatter = new Intl.DateTimeFormat(lang, { month: 'long' });
     const currentMonthName = monthFormatter.format(date);
 
+    const monthNames = Array.from({length: 12}, (_, i) => new Intl.DateTimeFormat(lang, { month: 'long' }).format(new Date(2000, i, 1)));
+    const dayNames = Array.from({length: 7}, (_, i) => new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(new Date(2000, 0, 2 + i)));
+
     elements.calendarGrid.innerHTML = '';
     const headerGrid = document.querySelector('.calendar-header-grid');
     headerGrid.innerHTML = '';
