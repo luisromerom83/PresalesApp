@@ -58,7 +58,8 @@ app.whenReady().then(() => {
       'login.live.com',
       'account.microsoft.com',
       'quadientcloud.com',
-      'quadientcloud.eu'
+      'quadientcloud.eu',
+      'spiff.com'
     ];
 
     if (targetDomains.some(domain => url.includes(domain))) {
@@ -262,3 +263,30 @@ ipcMain.handle('install-update', () => {
   autoUpdater.quitAndInstall();
 });
 
+ipcMain.handle('list-files', async (event, dir) => {
+  try {
+    if (!fs.existsSync(dir)) return [];
+    const files = fs.readdirSync(dir, { withFileTypes: true });
+    return files.map(f => ({
+      name: f.name,
+      isDirectory: f.isDirectory(),
+      size: f.isFile() ? fs.statSync(path.join(dir, f.name)).size : 0,
+      mtime: fs.statSync(path.join(dir, f.name)).mtime
+    }));
+  } catch (error) {
+    return [];
+  }
+});
+
+ipcMain.handle('open-path', async (event, fullPath) => {
+  if (fs.existsSync(fullPath)) {
+    shell.openPath(fullPath);
+    return { success: true };
+  }
+  return { success: false, error: 'Path not found' };
+});
+
+ipcMain.handle('notify', (event, { title, body }) => {
+  const { Notification } = require('electron');
+  new Notification({ title, body }).show();
+});
