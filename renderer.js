@@ -4372,11 +4372,18 @@ function getActivityForDay(year, month, day) {
         const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
         const oppName = opp ? opp['Opportunity Name'] : oppId;
 
-        // PoC Activities
+        // PoC Activities & Timeline Milestones
         if (material.pocs) {
             material.pocs.forEach(poc => {
                 if (poc.activities) {
                     poc.activities.forEach(act => {
+                        if (act.date && act.date.split('T')[0] === targetDateStr) {
+                            dayActs.push({ ...act, type: 'poc', oppName, oppId });
+                        }
+                    });
+                }
+                if (poc.timeline) {
+                    poc.timeline.forEach(act => {
                         if (act.date && act.date.split('T')[0] === targetDateStr) {
                             dayActs.push({ ...act, type: 'poc', oppName, oppId });
                         }
