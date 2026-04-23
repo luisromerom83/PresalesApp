@@ -213,7 +213,8 @@ const elements = {
     closeResourceModalBtn: document.getElementById('close-resource-modal-btn'),
     resourceNameInput: document.getElementById('resource-name-input'),
     resourceContentInput: document.getElementById('resource-content-input'),
-    saveResourceBtn: document.getElementById('save-resource-btn')
+    saveResourceBtn: document.getElementById('save-resource-btn'),
+    browserPathInput: document.getElementById('browser-path')
 };
 
 // Navigation
@@ -582,6 +583,7 @@ function evaluateRule(itemValue, rule) {
         case 'lt': return val < target;
         case 'lte': return val <= target;
         case 'contains': return String(val || '').toLowerCase().includes(String(target || '').toLowerCase());
+        case 'not_contains': return !String(val || '').toLowerCase().includes(String(target || '').toLowerCase());
         default: return false;
     }
 }
@@ -713,6 +715,7 @@ function renderSidebarFilterManager() {
                             <option value="lt" ${cond.operator === 'lt' ? 'selected' : ''}><</option>
                             <option value="lte" ${cond.operator === 'lte' ? 'selected' : ''}><=</option>
                             <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>Contiene</option>
+                            <option value="not_contains" ${cond.operator === 'not_contains' ? 'selected' : ''}>No contiene</option>
                         </select>
                         <input type="text" class="form-input" placeholder="Valor" value="${cond.value}" 
                             onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'value', this.value)">
@@ -887,6 +890,7 @@ async function init() {
             if (elements.foApiTokenInput) elements.foApiTokenInput.value = settings.foApiToken || '';
             if (elements.foApiTemplateInput) elements.foApiTemplateInput.value = settings.foApiTemplate || '';
             if (elements.foApiHolderInput) elements.foApiHolderInput.value = settings.foApiHolder || '';
+            if (elements.browserPathInput) elements.browserPathInput.value = settings.browserPath || '';
             elements.themeSelect.value = theme;
             applyTheme(theme);
             if (settings.language) {
@@ -952,6 +956,12 @@ async function loadAllData(dir) {
             if (userData.accountUrlTemplate) currentConfig.accountUrlTemplate = userData.accountUrlTemplate;
             if (elements.crmUrlInput) elements.crmUrlInput.value = currentConfig.crmUrlTemplate;
             if (elements.accountUrlInput) elements.accountUrlInput.value = currentConfig.accountUrlTemplate;
+
+            // Sync API settings from config.json
+            if (userData.foApiUrl && elements.foApiUrlInput) elements.foApiUrlInput.value = userData.foApiUrl;
+            if (userData.foApiToken && elements.foApiTokenInput) elements.foApiTokenInput.value = userData.foApiToken;
+            if (userData.foApiTemplate && elements.foApiTemplateInput) elements.foApiTemplateInput.value = userData.foApiTemplate;
+            if (userData.foApiHolder && elements.foApiHolderInput) elements.foApiHolderInput.value = userData.foApiHolder;
         }
 
         const opps = await window.electronAPI.loadFile(dir, 'opportunities.json');
@@ -1087,8 +1097,21 @@ elements.saveSettingsBtn.addEventListener('click', async () => {
         foApiUrl: elements.foApiUrlInput.value.trim(),
         foApiToken: elements.foApiTokenInput.value.trim(),
         foApiTemplate: elements.foApiTemplateInput.value.trim(),
-        foApiHolder: elements.foApiHolderInput.value.trim()
+        foApiHolder: elements.foApiHolderInput.value.trim(),
+        browserPath: elements.browserPathInput.value.trim()
     });
+
+    // Also persist API settings in the workspace directory (config.json)
+    if (currentConfig.directory && currentConfig.user) {
+        currentConfig.user.foApiUrl = elements.foApiUrlInput.value.trim();
+        currentConfig.user.foApiToken = elements.foApiTokenInput.value.trim();
+        currentConfig.user.foApiTemplate = elements.foApiTemplateInput.value.trim();
+        currentConfig.user.foApiHolder = elements.foApiHolderInput.value.trim();
+        currentConfig.user.crmUrlTemplate = currentConfig.crmUrlTemplate;
+        currentConfig.user.accountUrlTemplate = currentConfig.accountUrlTemplate;
+        await window.electronAPI.saveFile(currentConfig.directory, 'config.json', currentConfig.user);
+    }
+
     renderOpportunities();
     showToast('Ajustes guardados');
 });
@@ -1271,6 +1294,7 @@ elements.closeDetailsBtn.addEventListener('click', () => {
 elements.userForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userData = {
+        ...currentConfig.user,
         name: document.getElementById('name').value,
         email: document.getElementById('email').value,
         company: document.getElementById('company').value,
@@ -2217,6 +2241,15 @@ window.editPoc = (index) => {
         mat.pocs[index] = poc;
     }
 
+    // Migration logic for scope format (string[] -> {title, description}[])
+    if (poc.scope) {
+        poc.scopes = poc.scope;
+        delete poc.scope;
+    }
+    if (poc.scopes && poc.scopes.length > 0 && typeof poc.scopes[0] === 'string') {
+        poc.scopes = poc.scopes.map(s => ({ title: s, description: '' }));
+    }
+
     elements.pocDetailTitle.textContent = "Editar Prueba de Concepto";
     elements.pocObjective.value = poc.objective || '';
     elements.pocUseCase.value = poc.useCase || '';
@@ -2229,7 +2262,7 @@ window.editPoc = (index) => {
     initUrlField(elements.pocUrlAcceptance);
     initUrlField(elements.pocUrlContent);
 
-    renderPocSimpleList(elements.pocScopeContainer, poc.scope || [], 'scope');
+    renderPocScopeList(elements.pocScopeContainer, poc.scopes || [], 'scope');
     renderPocSimpleList(elements.pocResourcesContainer, poc.resources || [], 'resources');
     renderPocObjectList(elements.pocStakeholdersContainer, poc.stakeholders || [], 'stakeholders');
     renderPocObjectList(elements.pocSquadContainer, poc.squad || [], 'squad');
@@ -2261,7 +2294,7 @@ elements.addPocRowBtn.onclick = () => {
     document.getElementById('poc-url-content').classList.remove('hidden');
     document.getElementById('poc-url-content-preview').classList.add('hidden');
 
-    renderPocSimpleList(elements.pocScopeContainer, [], 'scope');
+    renderPocScopeList(elements.pocScopeContainer, [], 'scope');
     renderPocSimpleList(elements.pocResourcesContainer, [], 'resources');
     renderPocObjectList(elements.pocStakeholdersContainer, [], 'stakeholders');
     renderPocObjectList(elements.pocSquadContainer, [], 'squad');
@@ -2271,7 +2304,10 @@ elements.addPocRowBtn.onclick = () => {
 };
 
 elements.savePocDetailBtn.onclick = async () => {
-    const scope = Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v);
+    const scopes = Array.from(elements.pocScopeContainer.querySelectorAll('.list-item-row')).map(row => ({
+        title: row.querySelector('.title-input').value,
+        description: row.querySelector('.desc-input').value
+    })).filter(s => s.title);
     const resources = Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v);
 
     const stakeholders = Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
@@ -2297,7 +2333,7 @@ elements.savePocDetailBtn.onclick = async () => {
     const pocData = {
         objective: elements.pocObjective.value,
         useCase: elements.pocUseCase.value,
-        scope,
+        scopes,
         resources,
         stakeholders,
         squad,
@@ -2331,6 +2367,23 @@ function renderPocSimpleList(container, items, type) {
         row.className = 'list-item-row';
         row.innerHTML = `
             <input type="text" value="${item}" placeholder="Agregar item...">
+            <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function renderPocScopeList(container, items, type) {
+    container.innerHTML = '';
+    const renderItems = items.length > 0 ? items : [{ title: '', description: '' }];
+    renderItems.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'list-item-row';
+        row.innerHTML = `
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
+                <input type="text" class="title-input" value="${item.title || ''}" placeholder="Título del Alcance">
+                <textarea class="desc-input" placeholder="Descripción detallada...">${item.description || ''}</textarea>
+            </div>
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
         container.appendChild(row);
@@ -2381,10 +2434,21 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
         if (type === 'stakeholders') container = elements.pocStakeholdersContainer;
         if (type === 'squad') container = elements.pocSquadContainer;
 
-        if (type === 'scope' || type === 'resources') {
+        if (type === 'scope') {
             const row = document.createElement('div');
             row.className = 'list-item-row';
-            row.innerHTML = `<input type="text" placeholder="Agregar item..."><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
+            row.innerHTML = `
+                <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
+                    <input type="text" class="title-input" placeholder="Título del Alcance">
+                    <textarea class="desc-input" placeholder="Descripción detallada..."></textarea>
+                </div>
+                <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+            `;
+            container.appendChild(row);
+        } else if (type === 'resources') {
+            const row = document.createElement('div');
+            row.className = 'list-item-row';
+            row.innerHTML = `<input type="text" placeholder="Agregar recurso..."><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
             container.appendChild(row);
         } else {
             const row = document.createElement('div');
@@ -2449,7 +2513,10 @@ elements.generateFoTicketBtn.onclick = async () => {
                     opportunityName: opp['Opportunity Name'] || activeOppId,
                     objective: elements.pocObjective.value,
                     useCase: elements.pocUseCase.value,
-                    scope: Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    scopes: Array.from(elements.pocScopeContainer.querySelectorAll('.list-item-row')).map(row => ({
+                        title: row.querySelector('.title-input').value,
+                        description: row.querySelector('.desc-input').value
+                    })).filter(s => s.title),
                     resources: Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
                     stakeholders: Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
                         name: row.querySelector('.name-input').value,

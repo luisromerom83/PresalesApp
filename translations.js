@@ -3,7 +3,7 @@ const translations = {
         // App Header
         app_title: "Presales LatinTool",
         update_available: "Nueva actualización disponible",
-        help_manual: "Manual de Ayuda",
+        help_manual: "Manual de Ajuda",
         user_name: "Usuario",
         company_name: "Empresa",
 
@@ -118,7 +118,10 @@ const translations = {
         label_walkthrough: "Demo Walkthrough (Pasos)",
         label_prep_steps: "Preparación (Antes)",
         label_flow_steps: "Presentación (Durante)",
-        placeholder_step_desc: "Descripción del paso..."
+        placeholder_step_desc: "Descripción del paso...",
+        label_browser_path: "Comando / Path del Navegador (Opcional)",
+        desc_browser_path: "Si se deja vacío, usará el predeterminado del sistema. Ej: /usr/bin/google-chrome o firefox.",
+        placeholder_browser_path: "Ej: google-chrome"
     },
     pt_BR: {
         // App Header
@@ -239,7 +242,10 @@ const translations = {
         label_walkthrough: "Demo Walkthrough (Passos)",
         label_prep_steps: "Preparação (Antes)",
         label_flow_steps: "Apresentação (Durante)",
-        placeholder_step_desc: "Descrição do passo..."
+        placeholder_step_desc: "Descrição do passo...",
+        label_browser_path: "Comando / Path do Navegador (Opcional)",
+        desc_browser_path: "Se se deixa vazio, usará o navegador padrão do sistema. Ex: /usr/bin/google-chrome ou firefox.",
+        placeholder_browser_path: "Ex: google-chrome"
     },
     en_US: {
         // App Header
@@ -360,7 +366,10 @@ const translations = {
         label_walkthrough: "Demo Walkthrough (Steps)",
         label_prep_steps: "Preparation (Before)",
         label_flow_steps: "Presentation (During)",
-        placeholder_step_desc: "Step description..."
+        placeholder_step_desc: "Step description...",
+        label_browser_path: "Browser Command / Path (Optional)",
+        desc_browser_path: "If left empty, the system default will be used. Eg: /usr/bin/google-chrome or firefox.",
+        placeholder_browser_path: "Eg: google-chrome"
     }
 };
 

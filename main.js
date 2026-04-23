@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
 if (require('electron-squirrel-startup')) return app.quit();
@@ -100,12 +101,19 @@ app.whenReady().then(() => {
   });
 
   autoUpdater.on('error', (err) => {
+    // Ignore 404 errors for latest-linux.yml on Linux
+    if (process.platform === 'linux' && err.message.includes('latest-linux.yml')) {
+      console.log('Update info not found on GitHub for Linux. Skipping update check.');
+      return;
+    }
     console.error('Update error:', err);
     if (mainWindow) mainWindow.webContents.send('update-error', err.message);
   });
 
   // Check for updates
-  autoUpdater.checkForUpdatesAndNotify();
+  if (process.platform !== 'linux') {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -189,6 +197,28 @@ ipcMain.handle('migrate-files', async (event, { sourceDir, destDir }) => {
 
 ipcMain.handle('open-external-url', async (event, url) => {
   if (url) {
+    try {
+      let settings = {};
+      if (fs.existsSync(settingsPath)) {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+
+      if (settings.browserPath) {
+        // Escapar la URL para evitar inyección de comandos
+        // En Linux/macOS, envolver en comillas simples es generalmente seguro si no hay comillas simples en la URL
+        const safeUrl = url.replace(/'/g, "'\\''");
+        exec(`${settings.browserPath} '${safeUrl}'`, (error) => {
+          if (error) {
+            console.error(`Error opening with custom browser: ${error}`);
+            shell.openExternal(url); // Fallback to default
+          }
+        });
+        return { success: true };
+      }
+    } catch (e) {
+      console.error("Error reading settings for browser path:", e);
+    }
+
     await shell.openExternal(url);
     return { success: true };
   }

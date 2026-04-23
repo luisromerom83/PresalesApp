@@ -3,6 +3,7 @@ const path = require('path');
 module.exports = {
     packagerConfig: {
         asar: true,
+        executableName: 'presales',
     },
     rebuildConfig: {},
     makers: [
@@ -11,6 +12,10 @@ module.exports = {
             config: {
                 name: "PresalesConfigManager",
             },
+        },
+        {
+            name: '@electron-forge/maker-rpm',
+            config: {},
         }
     ],
     plugins: [

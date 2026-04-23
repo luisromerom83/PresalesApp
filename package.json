@@ -4,7 +4,7 @@
   "version": "1.2.0",
   "description": "Presales LatinTool - Productivity tool for Presales Engineers",
   "main": "main.js",
-  "author": "Presales Latin America Team",
+  "author": "Presales Latin America Team <presales-latam@example.com>",
   "license": "ISC",
   "repository": {
     "type": "git",
@@ -30,6 +30,56 @@
       ],
       "artifactName": "PresalesApp.${ext}"
     },
+    "linux": {
+      "target": [
+        "rpm",
+        "AppImage"
+      ],
+      "category": "Utility",
+      "executableName": "presales",
+      "publish": [
+        "github"
+      ]
+    },
+    "appImage": {
+      "publish": [
+        "github"
+      ]
+    },
+    "rpm": {
+      "packageName": "presales-latintool",
+      "depends": [
+        "libX11",
+        "libXcomposite",
+        "libXdamage",
+        "libXext",
+        "libXfixes",
+        "libXrandr",
+        "libXScrnSaver",
+        "libXtst",
+        "alsa-lib",
+        "atk",
+        "at-spi2-atk",
+        "at-spi2-core",
+        "cairo",
+        "cups-libs",
+        "dbus-libs",
+        "expat",
+        "fontconfig",
+        "freetype",
+        "gdk-pixbuf2",
+        "glib2",
+        "gtk3",
+        "libdrm",
+        "libX11-xcb",
+        "libxcb",
+        "libxkbcommon",
+        "mesa-libgbm",
+        "nspr",
+        "nss",
+        "pango"
+      ]
+    },
     "files": [
       "**/*",
       "!dist/*",
@@ -51,6 +101,7 @@
   "keywords": [],
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-rpm": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
