@@ -2397,3 +2397,136 @@ body {
  } 
   
  
+/* LuxeEditor Styles */
+.luxe-editor-container {
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.luxe-editor-container:focus-within {
+    border-color: var(--brand-orange);
+    box-shadow: 0 0 0 2px rgba(255, 66, 0, 0.1);
+}
+
+.luxe-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--glass-border);
+    align-items: center;
+}
+
+.luxe-toolbar-group {
+    display: flex;
+    gap: 0.25rem;
+    padding-right: 0.5rem;
+    margin-right: 0.5rem;
+    border-right: 1px solid var(--glass-border);
+}
+
+.luxe-toolbar-group:last-child {
+    border-right: none;
+}
+
+.luxe-tool-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.luxe-tool-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+}
+
+.luxe-tool-btn.active {
+    background: rgba(255, 66, 0, 0.15);
+    color: var(--brand-orange);
+}
+
+.luxe-editor-content {
+    min-height: 120px;
+    padding: 1rem;
+    color: var(--text-primary);
+    outline: none;
+    overflow-y: auto;
+    max-height: 400px;
+    line-height: 1.5;
+}
+
+.luxe-editor-content a {
+    color: var(--brand-cyan);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.luxe-editor-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 1rem 0;
+    transition: outline 0.2s;
+}
+
+.luxe-editor-content img:hover {
+    outline: 2px solid var(--brand-orange);
+}
+
+.luxe-editor-content img.align-left { float: left; margin-right: 1rem; }
+.luxe-editor-content img.align-right { float: right; margin-left: 1rem; }
+.luxe-editor-content img.align-center { margin-left: auto; margin-right: auto; }
+
+.luxe-editor-content ul, .luxe-editor-content ol {
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+}
+
+.tabs-mini {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 1rem;
+}
+
+.tab-mini-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.5rem 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-mini-btn.active {
+    color: var(--brand-orange);
+    border-bottom-color: var(--brand-orange);
+}
+
+.tab-mini-content {
+    display: none;
+}
+
+.tab-mini-content.active {
+    display: block;
+}

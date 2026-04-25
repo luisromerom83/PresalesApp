@@ -2058,12 +2058,13 @@ window.editNote = (index) => {
     noteContent.innerHTML = `
         <div class="note-edit-container">
             <textarea class="note-edit-textarea" id="edit-textarea-${index}">${originalText}</textarea>
-            <div class="note-edit-actions">
+            <div class="note-edit-actions" style="margin-top: 0.5rem;">
                 <button class="secondary-btn small" onclick="renderNotes()">Cancelar</button>
                 <button class="primary-btn small" onclick="saveEditedNote(${index})">Guardar</button>
             </div>
         </div>
     `;
+    new LuxeEditor(`edit-textarea-${index}`);
 
     // Hide actions while editing
     noteItem.querySelector('.note-actions').style.display = 'none';
@@ -3407,3 +3408,250 @@ initUrlField('rfp-url');
 initUrlField('demo-url');
 
 init();
+
+
+// --- LuxeEditor Implementation ---
+
+class LuxeEditor {
+    constructor(targetId, options = {}) {
+        this.target = document.getElementById(targetId);
+        if (!this.target) return;
+
+        this.options = options;
+        this.container = document.createElement('div');
+        this.container.className = 'luxe-editor-container';
+
+        this.toolbar = this.createToolbar();
+        this.editor = this.createEditor();
+
+        this.container.appendChild(this.toolbar);
+        this.container.appendChild(this.editor);
+
+        // Replace textarea if it is one
+        if (this.target.tagName === 'TEXTAREA') {
+            this.editor.innerHTML = this.target.value || '';
+            this.target.style.display = 'none';
+            this.target.parentNode.insertBefore(this.container, this.target.nextSibling);
+            // Sync back to textarea on change
+            this.editor.oninput = () => {
+                this.target.value = this.editor.innerHTML;
+                this.target.dispatchEvent(new Event('input'));
+            };
+        } else {
+            this.target.appendChild(this.container);
+        }
+
+        this.setupEventListeners();
+    }
+
+    createToolbar() {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'luxe-toolbar';
+
+        const groups = [
+            ['bold', 'italic', 'underline'],
+            ['increaseFontSize', 'decreaseFontSize'],
+            ['justifyLeft', 'justifyCenter', 'justifyRight'],
+            ['insertUnorderedList', 'insertOrderedList'],
+            ['createLink', 'insertImage']
+        ];
+
+        const icons = {
+            bold: '<b>B</b>', italic: '<i>I</i>', underline: '<u>U</u>',
+            increaseFontSize: 'A+', decreaseFontSize: 'A-',
+            justifyLeft: '⇐', justifyCenter: '⇔', justifyRight: '⇒',
+            insertUnorderedList: '•', insertOrderedList: '1.',
+            createLink: '🔗', insertImage: '🖼️'
+        };
+
+        groups.forEach(group => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'luxe-toolbar-group';
+            group.forEach(cmd => {
+                const btn = document.createElement('button');
+                btn.className = 'luxe-tool-btn';
+                btn.innerHTML = icons[cmd];
+                btn.type = 'button';
+                btn.title = cmd;
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    this.handleCommand(cmd);
+                };
+                groupDiv.appendChild(btn);
+            });
+            toolbar.appendChild(groupDiv);
+        });
+
+        return toolbar;
+    }
+
+    createEditor() {
+        const editor = document.createElement('div');
+        editor.className = 'luxe-editor-content';
+        editor.contentEditable = true;
+        return editor;
+    }
+
+    setupEventListeners() {
+        this.editor.addEventListener('mouseup', () => this.updateToolbarState());
+        this.editor.addEventListener('keyup', () => this.updateToolbarState());
+        
+        // Image handling: click to show alignment options
+        this.editor.addEventListener('click', (e) => {
+            if (e.target.tagName === 'IMG') {
+                this.showImageOptions(e.target);
+            }
+        });
+    }
+
+    handleCommand(cmd) {
+        if (cmd === 'createLink') {
+            this.openLinkModal();
+        } else if (cmd === 'insertImage') {
+            this.openImageModal();
+        } else if (cmd === 'increaseFontSize' || cmd === 'decreaseFontSize') {
+            let currentSize = parseInt(document.queryCommandValue('fontSize')) || 3;
+            if (cmd === 'increaseFontSize') {
+                currentSize = Math.min(7, currentSize + 1);
+            } else {
+                currentSize = Math.max(1, currentSize - 1);
+            }
+            document.execCommand('fontSize', false, currentSize);
+            this.updateToolbarState();
+        } else {
+            document.execCommand(cmd, false, null);
+            this.updateToolbarState();
+        }
+        this.editor.focus();
+    }
+
+    updateToolbarState() {
+        // Placeholder for future: can toggle 'active' class on buttons based on queryCommandState
+    }
+
+    openLinkModal() {
+        const selection = window.getSelection();
+        let selectedText = selection.toString();
+        let existingUrl = '';
+        let linkNode = null;
+
+        if (selection.rangeCount > 0) {
+            let node = selection.anchorNode;
+            while (node && node !== this.editor) {
+                if (node.tagName === 'A') {
+                    linkNode = node;
+                    existingUrl = node.href;
+                    selectedText = node.innerText;
+                    break;
+                }
+                node = node.parentNode;
+            }
+        }
+
+        window.currentLuxeEditor = this;
+        window.currentLuxeLinkNode = linkNode;
+
+        document.getElementById('luxe-link-text').value = selectedText;
+        document.getElementById('luxe-link-url').value = existingUrl;
+        document.getElementById('luxe-remove-link-btn').classList.toggle('hidden', !linkNode);
+        document.getElementById('luxe-link-modal').classList.remove('hidden');
+    }
+
+    openImageModal() {
+        window.currentLuxeEditor = this;
+        document.getElementById('luxe-image-modal').classList.remove('hidden');
+    }
+
+    showImageOptions(img) {
+        const align = prompt('Alineación (left, center, right):', 'left');
+        if (align) {
+            img.className = 'align-' + align;
+        }
+    }
+}
+
+// --- Global Modal Handlers ---
+
+window.closeLuxeLinkModal = () => document.getElementById('luxe-link-modal').classList.add('hidden');
+window.closeLuxeImageModal = () => document.getElementById('luxe-image-modal').classList.add('hidden');
+
+document.getElementById('luxe-save-link-btn').onclick = () => {
+    const text = document.getElementById('luxe-link-text').value;
+    const url = document.getElementById('luxe-link-url').value;
+    const editor = window.currentLuxeEditor;
+
+    if (editor && url) {
+        editor.editor.focus();
+        if (window.currentLuxeLinkNode) {
+            window.currentLuxeLinkNode.href = url;
+            window.currentLuxeLinkNode.innerText = text;
+        } else {
+            document.execCommand('insertHTML', false, `<a href="${url}" target="_blank">${text || url}</a>`);
+        }
+    }
+    window.closeLuxeLinkModal();
+};
+
+document.getElementById('luxe-remove-link-btn').onclick = () => {
+    if (window.currentLuxeLinkNode) {
+        const text = window.currentLuxeLinkNode.innerText;
+        window.currentLuxeLinkNode.replaceWith(text);
+    }
+    window.closeLuxeLinkModal();
+};
+
+document.querySelectorAll('.tab-mini-btn').forEach(btn => {
+    btn.onclick = () => {
+        const target = btn.getAttribute('data-tab');
+        const modal = btn.closest('.modal');
+        modal.querySelectorAll('.tab-mini-btn').forEach(b => b.classList.remove('active'));
+        modal.querySelectorAll('.tab-mini-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(target).classList.add('active');
+    };
+});
+
+document.getElementById('luxe-select-image-btn').onclick = async () => {
+    const base64 = await window.electronAPI.selectImage();
+    if (base64) {
+        window.pendingLuxeImage = base64;
+        document.getElementById('luxe-image-file-name').textContent = 'Imagen seleccionada';
+    }
+};
+
+document.getElementById('luxe-insert-image-btn').onclick = () => {
+    const urlInput = document.getElementById('luxe-image-url-input').value;
+    const base64 = window.pendingLuxeImage;
+    const editor = window.currentLuxeEditor;
+
+    const src = base64 || urlInput;
+    if (editor && src) {
+        editor.editor.focus();
+        document.execCommand('insertHTML', false, `<img src="${src}" class="align-center">`);
+    }
+    window.pendingLuxeImage = null;
+    document.getElementById('luxe-image-file-name').textContent = '';
+    document.getElementById('luxe-image-url-input').value = '';
+    window.closeLuxeImageModal();
+};
+
+
+
+function initLuxeEditors() {
+    console.log("Renderer: Inicializando LuxeEditors...");
+    new LuxeEditor('new-note-input');
+    new LuxeEditor('opp-description');
+    new LuxeEditor('poc-objective');
+    new LuxeEditor('poc-use-case');
+    new LuxeEditor('poc-assumptions');
+    new LuxeEditor('poc-financials');
+    new LuxeEditor('demo-desc');
+    new LuxeEditor('resource-content-input');
+}
+
+// Ensure initLuxeEditors is called after the DOM is ready or at the end of init()
+// For this app, we can call it right after the class definition we just added.
+initLuxeEditors();
+
+
+

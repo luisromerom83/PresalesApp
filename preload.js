@@ -16,5 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (event, info) => callback(info)),
     onUpdateProgress: (callback) => ipcRenderer.on('update-progress', (event, progress) => callback(progress)),
     onUpdateError: (callback) => ipcRenderer.on('update-error', (event, error) => callback(error)),
-    checkDirectory: (dir) => ipcRenderer.invoke('check-directory', dir)
+    checkDirectory: (dir) => ipcRenderer.invoke('check-directory', dir),
+    selectImage: () => ipcRenderer.invoke('select-image')
 });

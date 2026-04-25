@@ -220,6 +220,26 @@ ipcMain.handle('load-file', async (event, { directory, filename }) => {
   }
 });
 
+ipcMain.handle('select-image', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'png', 'gif', 'webp', 'svg'] }
+    ]
+  });
+  if (result.canceled) {
+    return null;
+  } else {
+    const filePath = result.filePaths[0];
+    const fileName = path.basename(filePath);
+    // Return base64 for simplicity in this version, or path if needed
+    const data = fs.readFileSync(filePath);
+    const base64 = data.toString('base64');
+    const mimeType = `image/${path.extname(filePath).slice(1)}`;
+    return `data:${mimeType};base64,${base64}`;
+  }
+});
+
 ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });

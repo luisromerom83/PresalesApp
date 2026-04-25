@@ -993,6 +993,60 @@
         </main>
     </div>
 
+    <!-- LuxeEditor Modals -->
+    <div id="luxe-link-modal" class="modal hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>Insertar/Editar Enlace</h3>
+                <button class="close-btn" onclick="closeLuxeLinkModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Texto a mostrar</label>
+                    <input type="text" id="luxe-link-text" class="form-input" placeholder="Ej. Mi Enlace">
+                </div>
+                <div class="form-group">
+                    <label>URL (Enlace)</label>
+                    <input type="text" id="luxe-link-url" class="form-input" placeholder="https://...">
+                </div>
+                <div class="form-actions">
+                    <button id="luxe-remove-link-btn" class="secondary-btn small hidden" style="background: rgba(214, 8, 77, 0.1); color: var(--brand-magenta);">Quitar Enlace</button>
+                    <button id="luxe-save-link-btn" class="primary-btn small">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="luxe-image-modal" class="modal hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>Insertar Imagen</h3>
+                <button class="close-btn" onclick="closeLuxeImageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs-mini">
+                    <button class="tab-mini-btn active" data-tab="luxe-img-url">URL</button>
+                    <button class="tab-mini-btn" data-tab="luxe-img-file">Archivo Local</button>
+                </div>
+                <div id="luxe-img-url" class="tab-mini-content active">
+                    <div class="form-group">
+                        <label>URL de la Imagen</label>
+                        <input type="text" id="luxe-image-url-input" class="form-input" placeholder="https://...">
+                    </div>
+                </div>
+                <div id="luxe-img-file" class="tab-mini-content">
+                    <div class="form-group">
+                        <label>Seleccionar archivo</label>
+                        <button id="luxe-select-image-btn" class="secondary-btn small">Elegir Imagen...</button>
+                        <p id="luxe-image-file-name" class="sub-text" style="margin-top: 0.5rem;"></p>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="luxe-insert-image-btn" class="primary-btn small">Insertar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="node_modules/papaparse/papaparse.min.js"></script>
     <script src="translations.js"></script>
     <script src="renderer.js"></script>
