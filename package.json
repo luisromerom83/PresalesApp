@@ -22,7 +22,7 @@
     "appId": "com.presales.manager",
     "productName": "Presales LatinTool",
     "directories": {
-      "output": "dist/v2.0.2"
+      "output": "dist/v2.0.3"
     },
     "win": {
       "target": [
