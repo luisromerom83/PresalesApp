@@ -27,6 +27,12 @@ jobs:
         run: npm install
 
       - name: Build and Publish
-        run: npm run dist -- -p always
+        run: |
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            npx electron-builder --linux -p always
+          else
+            npx electron-builder --win -p always
+          fi
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
