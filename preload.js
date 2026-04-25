@@ -19,5 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkDirectory: (dir) => ipcRenderer.invoke('check-directory', dir),
     listFiles: (dir) => ipcRenderer.invoke('list-files', dir),
     openPath: (path) => ipcRenderer.invoke('open-path', path),
-    notify: (data) => ipcRenderer.invoke('notify', data)
+    notify: (data) => ipcRenderer.invoke('notify', data),
+    selectImage: () => ipcRenderer.invoke('select-image')
 });
