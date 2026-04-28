@@ -80,15 +80,19 @@
     font-family: 'Outfit', sans-serif;
 }
 
+html {
+    height: 100%;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-primary);
     overflow: hidden;
-    height: 100vh;
+    height: 100%;
 }
 
 .app-container {
-    height: 100vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -188,6 +192,7 @@ main {
     position: relative;
     display: flex;
     overflow: hidden;
+    min-height: 0;
     /* Prevent main from growing beyond screen */
 }
 
@@ -212,11 +217,14 @@ main {
     align-items: center;
     opacity: 1;
     transform: translateY(0);
+    min-height: 0;
 }
 
 .screen.main-screen.active {
-    display: block;
-    /* Dashboard layout uses display: grid */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
     align-items: stretch;
 }
 
@@ -238,16 +246,92 @@ main {
     display: grid;
     grid-template-columns: 240px 1fr;
     height: 100%;
+    min-height: 0;
+    transition: grid-template-columns 0.3s ease;
+}
+
+.main-layout.collapsed {
+    grid-template-columns: 0px 1fr;
+}
+
+.main-layout.collapsed .sidebar {
+    pointer-events: none;
+    overflow: visible;
+    padding: 0;
+    border-right: none;
+    background: transparent;
+}
+
+.main-layout.collapsed .sidebar-scrollable {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.main-layout.collapsed .sidebar .sidebar-toggle {
+    pointer-events: all;
+    opacity: 1;
 }
 
 /* Sidebar */
 .sidebar {
     background: var(--bg-color);
     border-right: 1px solid var(--glass-border);
-    padding: 1.5rem;
+    padding: 0;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: visible;
+    height: 100%;
+    min-height: 0;
+    transition: all 0.3s ease;
+}
+
+.sidebar-scrollable {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    padding: 1.5rem;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Sidebar Toggle Button (Redesign) */
+.sidebar-toggle {
+    position: absolute;
+    right: -12px;
+    top: 20px;
+    width: 24px;
+    height: 24px;
+    background: #1e1e2e;
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 0;
+}
+
+.sidebar-toggle:hover {
+    background: var(--brand-orange);
+    transform: scale(1.1);
+    border-color: var(--brand-orange);
+}
+
+.toggle-icon-arrow {
+    font-size: 1.2rem;
+    line-height: 1;
+    margin-top: -2px;
+}
+
+.main-layout.collapsed .sidebar-toggle {
+    right: -24px;
 }
 
 .sidebar-logo {
@@ -330,6 +414,10 @@ main {
 
 .nav-group-label:hover {
     color: var(--text-primary);
+}
+
+.nav-group-label.active {
+    color: var(--brand-orange);
 }
 
 .toggle-icon {
@@ -632,6 +720,9 @@ main {
 .content {
     height: 100%;
     overflow: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .toolbar {

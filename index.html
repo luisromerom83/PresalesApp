@@ -88,54 +88,59 @@
             <section id="main-screen" class="screen main-screen">
                 <div class="main-layout">
                     <aside class="sidebar">
-                        <nav>
-                            <div id="opp-group-container">
-                                <div class="nav-group-label" id="toggle-opp-group">
-                                    <span data-i18n="sidebar_opps">Oportunidades</span><span
-                                        class="toggle-icon">▾</span>
-                                </div>
-                                <div id="opp-group-submenu" class="submenu">
-                                    <button class="nav-btn active" data-target="opp-list-view" id="all-opps-btn"
-                                        data-i18n="sidebar_all">Todas</button>
-                                    <button class="nav-btn" data-target="opp-list-view" id="favorites-nav-btn"
-                                        data-i18n="sidebar_favorites">⭐
-                                        Favoritos</button>
-                                    <div id="dynamic-filters-container">
-                                        <!-- Dynamic groups injected here -->
+                        <button id="toggle-sidebar-btn" class="sidebar-toggle" title="Ocultar Sidebar">
+                            <span class="toggle-icon-arrow">&lsaquo;</span>
+                        </button>
+                        <div class="sidebar-scrollable">
+                            <nav>
+                                <div id="opp-group-container">
+                                    <div class="nav-group-label" id="toggle-opp-group">
+                                        <span data-i18n="sidebar_opps">Oportunidades</span><span
+                                            class="toggle-icon">▾</span>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div
-                                style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                                <button class="nav-btn" data-target="activity-calendar-view" id="calendar-nav-btn"
-                                    data-i18n="sidebar_calendar">Calendario de Actividades</button>
-                                <button class="nav-btn" data-target="global-contacts-view"
-                                    data-i18n="sidebar_contacts">Contactos</button>
-                                <button class="nav-btn" data-target="accounts-with-plan-view"
-                                    data-i18n="sidebar_account_plans">Planes de Cuenta</button>
-                                <button class="nav-btn" data-target="notes-history-view"
-                                    data-i18n="sidebar_history">Historial</button>
-                                <button class="nav-btn" data-target="resources-view"
-                                    data-i18n="sidebar_resources">Recursos</button>
-
-                                <div id="ms-group-container">
-                                    <div class="nav-group-label" id="toggle-ms-group">
-                                        <span>Microsoft</span><span class="toggle-icon">▾</span>
-                                    </div>
-                                    <div id="ms-group-submenu" class="submenu">
-                                        <button class="nav-btn" data-target="todo-view" id="todo-nav-btn">Microsoft
-                                            To-Do</button>
-                                        <button class="nav-btn" data-target="calendar-ms-view"
-                                            id="calendar-ms-nav-btn">Microsoft Calendar</button>
+                                    <div id="opp-group-submenu" class="submenu">
+                                        <button class="nav-btn active" data-target="opp-list-view" id="all-opps-btn"
+                                            data-i18n="sidebar_all">Todas</button>
+                                        <button class="nav-btn" data-target="opp-list-view" id="favorites-nav-btn"
+                                            data-i18n="sidebar_favorites">⭐
+                                            Favoritos</button>
+                                        <div id="dynamic-filters-container">
+                                            <!-- Dynamic groups injected here -->
+                                        </div>
                                     </div>
                                 </div>
 
-                                <button class="nav-btn" data-target="settings-view"
-                                    data-i18n="sidebar_settings">Configuración</button>
-                            </div>
-                        </nav>
-                        <div id="app-version" class="sidebar-version">v1.0.0</div>
+                                <div
+                                    style="margin-top: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                    <button class="nav-btn" data-target="activity-calendar-view" id="calendar-nav-btn"
+                                        data-i18n="sidebar_calendar">Calendario de Actividades</button>
+                                    <button class="nav-btn" data-target="global-contacts-view"
+                                        data-i18n="sidebar_contacts">Contactos</button>
+                                    <button class="nav-btn" data-target="accounts-with-plan-view"
+                                        data-i18n="sidebar_account_plans">Planes de Cuenta</button>
+                                    <button class="nav-btn" data-target="notes-history-view"
+                                        data-i18n="sidebar_history">Historial</button>
+                                    <button class="nav-btn" data-target="resources-view"
+                                        data-i18n="sidebar_resources">Recursos</button>
+
+                                    <div id="ms-group-container">
+                                        <div class="nav-group-label" id="toggle-ms-group">
+                                            <span>Microsoft</span><span class="toggle-icon">▾</span>
+                                        </div>
+                                        <div id="ms-group-submenu" class="submenu">
+                                            <button class="nav-btn" data-target="todo-view" id="todo-nav-btn">Microsoft
+                                                To-Do</button>
+                                            <button class="nav-btn" data-target="calendar-ms-view"
+                                                id="calendar-ms-nav-btn">Microsoft Calendar</button>
+                                        </div>
+                                    </div>
+
+                                    <button class="nav-btn" data-target="settings-view"
+                                        data-i18n="sidebar_settings">Configuración</button>
+                                </div>
+                            </nav>
+                            <div id="app-version" class="sidebar-version">v1.0.0</div>
+                        </div>
                     </aside>
 
                     <div class="content">
@@ -176,10 +181,14 @@
                         <div id="opp-list-view" class="view active">
                             <div class="toolbar">
                                 <h2 id="opp-view-title" data-i18n="view_title_opps">Oportunidades</h2>
-                                <div class="search-container">
+                                <div class="search-container" style="display: flex; align-items: center; gap: 1rem;">
                                     <input type="text" id="opp-search-input"
                                         placeholder="Buscar por nombre, ID o cuenta..."
                                         data-i18n="placeholder_search_opps" data-i18n-prop="placeholder">
+                                    <label class="checkbox-container luxe-checkbox" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; white-space: nowrap; margin-right: 1rem;">
+                                        <input type="checkbox" id="hide-accounts-cb" style="width: 14px; height: 14px;">
+                                        <span data-i18n="hide_accounts" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ocultar Cuentas</span>
+                                    </label>
                                 </div>
                                 <button id="add-general-note-btn" class="secondary-btn small" title="Notas Generales"
                                     data-i18n="btn_general_notes" data-i18n-prop="title">📝</button>
@@ -198,6 +207,11 @@
                                         <!-- Rows injected here -->
                                     </tbody>
                                 </table>
+                                <div id="opp-pagination" class="pagination-container hidden" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--glass-border);">
+                                    <button id="opp-prev-btn" class="secondary-btn small">&larr; Anterior</button>
+                                    <span id="opp-page-info" class="sub-text" style="font-size: 0.85rem; font-weight: 600;">Página 1 de 1</span>
+                                    <button id="opp-next-btn" class="secondary-btn small">Siguiente &rarr;</button>
+                                </div>
                             </div>
                         </div>
 
@@ -255,13 +269,13 @@
                                 <table id="global-contacts-table">
                                     <thead>
                                         <tr>
-                                            <th>Nombre</th>
-                                            <th>Posición</th>
-                                            <th>Email</th>
-                                            <th>Teléfono</th>
-                                            <th>Influencia</th>
-                                            <th>Cuenta</th>
-                                            <th>Notas</th>
+                                            <th data-i18n="label_resource_name">Nombre</th>
+                                            <th data-i18n="label_contact_pos">Posición</th>
+                                            <th data-i18n="sidebar_email">Email</th>
+                                            <th data-i18n="label_contact_phone">Teléfono</th>
+                                            <th data-i18n="label_influence">Influencia</th>
+                                            <th data-i18n="label_contact_account">Cuenta</th>
+                                            <th data-i18n="label_contact_notes">Notas</th>
                                         </tr>
                                     </thead>
                                     <tbody id="global-contacts-body">
@@ -359,14 +373,14 @@
                                             data-i18n="btn_change_dir">Cambiar Carpeta</button>
                                     </div>
                                     <div class="form-group">
-                                        <label for="crm-url-template">Plantilla de URL Oportunidad (CRM)</label>
-                                        <p class="sub-text">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
-                                        <input type="text" id="crm-url-template" placeholder="https://...">
+                                        <label for="crm-url-template" data-i18n="label_crm_url_template">Plantilla de URL Oportunidad (CRM)</label>
+                                        <p class="sub-text" data-i18n="placeholder_crm_url">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
+                                        <input type="text" id="crm-url-template" placeholder="https://..." data-i18n="placeholder_crm_url" data-i18n-prop="placeholder">
                                     </div>
                                     <div class="form-group">
-                                        <label for="account-url-template">Plantilla de URL Account</label>
-                                        <p class="sub-text">Ejemplo: https://mycrm.com/account/{Account Name}</p>
-                                        <input type="text" id="account-url-template" placeholder="https://...">
+                                        <label for="account-url-template" data-i18n="label_account_url_template">Plantilla de URL Account</label>
+                                        <p class="sub-text" data-i18n="placeholder_account_url">Ejemplo: https://mycrm.com/account/{Account Name}</p>
+                                        <input type="text" id="account-url-template" placeholder="https://..." data-i18n="placeholder_account_url" data-i18n-prop="placeholder">
                                     </div>
                                 </div>
                             </div>
@@ -374,16 +388,16 @@
                             <!-- Tab 2: Classifications -->
                             <div id="settings-classifications" class="tab-pane">
                                 <div class="card settings-card">
-                                    <h3>Clasificaciones de Cuenta</h3>
-                                    <p class="sub-text" style="margin-bottom: 1rem;">Administra las categorías
+                                    <h3 data-i18n="settings_class_title">Clasificaciones de Cuenta</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="settings_class_desc">Administra las categorías
                                         disponibles para clasificar cuentas.</p>
                                     <div id="classification-manager-list" style="margin-bottom: 1rem;">
                                         <!-- Categories injected here -->
                                     </div>
                                     <div style="display: flex; gap: 0.5rem;">
                                         <input type="text" id="new-classification-input"
-                                            placeholder="Nueva categoría..." class="form-input">
-                                        <button id="add-classification-btn" class="secondary-btn">Añadir</button>
+                                            placeholder="Nueva categoría..." data-i18n="placeholder_new_cat" data-i18n-prop="placeholder" class="form-input">
+                                        <button id="add-classification-btn" class="secondary-btn" data-i18n="btn_add_classification">Añadir</button>
                                     </div>
                                 </div>
                             </div>
@@ -393,11 +407,11 @@
                                 <div class="card settings-card">
                                     <div
                                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                        <h3>Filtros del Sidebar</h3>
-                                        <button id="add-sidebar-filter-btn" class="secondary-btn small">+ Nuevo
+                                        <h3 data-i18n="settings_sidebar_title">Filtros del Sidebar</h3>
+                                        <button id="add-sidebar-filter-btn" class="secondary-btn small" data-i18n="btn_add_group">+ Nuevo
                                             Grupo</button>
                                     </div>
-                                    <p class="sub-text" style="margin-bottom: 1.5rem;">Crea grupos de filtrado basados
+                                    <p class="sub-text" style="margin-bottom: 1.5rem;" data-i18n="settings_sidebar_desc">Crea grupos de filtrado basados
                                         en columnas del CSV o reglas lógicas.</p>
                                     <div id="sidebar-filters-manager-list">
                                         <!-- Dynamic filters management cards injected here -->
@@ -406,30 +420,30 @@
                             </div>
                             <div id="settings-api" class="tab-pane">
                                 <div class="card settings-card">
-                                    <h3>Integración Front Office (API)</h3>
-                                    <p class="sub-text" style="margin-bottom: 1rem;">Configura el endpoint y Token de
+                                    <h3 data-i18n="settings_api_title">Integración Front Office (API)</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="settings_api_desc">Configura el endpoint y Token de
                                         Autorización para generar tickets.</p>
                                     <div class="form-group">
-                                        <label for="fo-api-url">Base URL (Front Office)</label>
-                                        <p class="sub-text">Ejemplo: https://company.quadientcloud.eu/</p>
-                                        <input type="text" id="fo-api-url" placeholder="https://...">
+                                        <label for="fo-api-url" data-i18n="label_base_url">Base URL (Front Office)</label>
+                                        <p class="sub-text" data-i18n="placeholder_fo_url">Ejemplo: https://company.quadientcloud.eu/</p>
+                                        <input type="text" id="fo-api-url" placeholder="https://..." data-i18n="placeholder_fo_url" data-i18n-prop="placeholder">
                                     </div>
                                     <div class="form-group">
-                                        <label for="fo-api-token">API KEY</label>
-                                        <input type="password" id="fo-api-token" placeholder="Introduce tu API KEY...">
+                                        <label for="fo-api-token" data-i18n="label_api_key">API KEY</label>
+                                        <input type="password" id="fo-api-token" placeholder="Introduce tu API KEY..." data-i18n="placeholder_fo_token" data-i18n-prop="placeholder">
                                     </div>
                                     <div class="form-group">
-                                        <label for="fo-api-template">Plantilla PoC (Resource Path)</label>
-                                        <p class="sub-text">Ejemplo:
+                                        <label for="fo-api-template" data-i18n="label_poc_template">Plantilla PoC (Resource Path)</label>
+                                        <p class="sub-text" data-i18n="placeholder_fo_template">Ejemplo:
                                             icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/MyPoCTemplate.jld
                                         </p>
                                         <input type="text" id="fo-api-template"
-                                            placeholder="ej: root:S:Production//Templates/MyTemplate.jld">
+                                            placeholder="ej: root:S:Production//Templates/MyTemplate.jld" data-i18n="placeholder_fo_template" data-i18n-prop="placeholder">
                                     </div>
                                     <div class="form-group">
-                                        <label for="fo-api-holder">Holder por Defecto (User Name)</label>
-                                        <p class="sub-text">Nombre de usuario que recibirá el ticket (ej: j.perez)</p>
-                                        <input type="text" id="fo-api-holder" placeholder="Usuario de FO...">
+                                        <label for="fo-api-holder" data-i18n="label_default_holder">Holder por Defecto (User Name)</label>
+                                        <p class="sub-text" data-i18n="placeholder_fo_holder">Nombre de usuario que recibirá el ticket (ej: j.perez)</p>
+                                        <input type="text" id="fo-api-holder" placeholder="Usuario de FO..." data-i18n="placeholder_fo_holder" data-i18n-prop="placeholder">
                                     </div>
                                 </div>
                             </div>
@@ -437,17 +451,17 @@
                             <!-- Tab 4: CSV Structure -->
                             <div id="settings-structure" class="tab-pane">
                                 <div class="card settings-card">
-                                    <h3>Estructura de Datos (CSV)</h3>
-                                    <p class="sub-text" style="margin-bottom: 1rem;">Define las columnas que esperas en
+                                    <h3 data-i18n="settings_structure_title">Estructura de Datos (CSV)</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="settings_structure_desc">Define las columnas que esperas en
                                         tu CSV y sus valores de ejemplo.</p>
                                     <div class="table-container small" style="margin-bottom: 1rem;">
                                         <table id="structure-table">
                                             <thead>
                                                 <tr>
-                                                    <th>Campo (Header)</th>
-                                                    <th>Muestra</th>
-                                                    <th>Tipo</th>
-                                                    <th>Vista</th>
+                                                    <th data-i18n="header_field">Campo (Header)</th>
+                                                    <th data-i18n="header_sample">Muestra</th>
+                                                    <th data-i18n="header_type">Tipo</th>
+                                                    <th data-i18n="header_view">Vista</th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
@@ -455,14 +469,14 @@
                                         </table>
                                     </div>
                                     <div class="form-actions" style="margin-top: 1rem; gap: 1rem; display: flex;">
-                                        <button id="add-structure-row-btn" class="secondary-btn small">+ Agregar
+                                        <button id="add-structure-row-btn" class="secondary-btn small" data-i18n="btn_add_field">+ Agregar
                                             Campo</button>
-                                        <button id="download-sample-btn" class="secondary-btn small">Descargar
+                                        <button id="download-sample-btn" class="secondary-btn small" data-i18n="btn_download_sample">Descargar
                                             Muestra</button>
                                         <button id="reset-structure-btn" class="secondary-btn small"
-                                            style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">Restablecer
+                                            style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);" data-i18n="btn_reset_standard">Restablecer
                                             Estándar</button>
-                                        <button id="save-structure-btn" class="primary-btn small">Guardar
+                                        <button id="save-structure-btn" class="primary-btn small" data-i18n="btn_save_structure">Guardar
                                             Estructura</button>
                                     </div>
                                 </div>
@@ -491,7 +505,7 @@
                         </div>
 
                         <div class="notes-section">
-                            <h4>Historial de Notas</h4>
+                            <h4 data-i18n="header_notes_history">Historial de Notas</h4>
                             <div id="notes-list" class="notes-history">
                                 <!-- Notes injected here -->
                             </div>
@@ -513,9 +527,10 @@
                         <button id="close-activities-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-tabs">
-                        <button class="tab-btn active" data-tab="tab-pocs">🧪 PoCs</button>
-                        <button class="tab-btn" data-tab="tab-rfp">📄 RFPs / RFIs</button>
-                        <button class="tab-btn" data-tab="tab-demo">📽️ Demos</button>
+                        <button class="tab-btn active" data-tab="tab-pocs" data-i18n="tab_pocs">🧪 PoCs</button>
+                        <button class="tab-btn" data-tab="tab-rfp" data-i18n="tab_rfp">📄 RFPs / RFIs</button>
+                        <button class="tab-btn" data-tab="tab-demo" data-i18n="tab_demo">📽️ Demos</button>
+                        <button class="tab-btn" data-tab="tab-medpicc" data-i18n="tab_medpicc">🎯 Calificación (MEDDPICC)</button>
                     </div>
                     <div class="modal-body">
                         <!-- PoCs Tab Content -->
@@ -528,10 +543,10 @@
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Descripción</th>
-                                            <th>Inicio</th>
-                                            <th>Responsable</th>
-                                            <th style="text-align: right;">Acciones</th>
+                                            <th data-i18n="header_poc_desc">Descripción</th>
+                                            <th data-i18n="header_poc_start">Inicio</th>
+                                            <th data-i18n="header_poc_resp">Responsable</th>
+                                            <th style="text-align: right;" data-i18n="header_actions">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="pocs-list-body"></tbody>
@@ -545,7 +560,7 @@
                                 <span id="activities-opp-info-rfp" class="sub-text"></span>
                             </div>
                             <div class="form-group">
-                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documentación</label>
+                                <label data-i18n="label_documentation"><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documentación</label>
                                 <div class="url-field-wrapper">
                                     <input type="text" id="rfp-url" placeholder="https://..." class="url-input">
                                     <div id="rfp-url-preview" class="url-preview hidden">
@@ -554,23 +569,25 @@
                                     </div>
                                 </div>
                             </div>
-                            <h4>Actividades y Seguimiento</h4>
-                            <div class="table-container small">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Actividad / Responsable</th>
-                                            <th>Comentarios</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="rfp-activities-body"></tbody>
-                                </table>
+                            <div id="rfp-activities-section">
+                                <h4 data-i18n="label_activities_followup">Actividades y Seguimiento</h4>
+                                <div class="table-container small">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="header_activity_resp">Actividad / Responsable</th>
+                                                <th data-i18n="header_comments">Comentarios</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rfp-activities-body"></tbody>
+                                    </table>
+                                </div>
+                                <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;" data-i18n="btn_add_activity">+
+                                    Agregar Actividad</button>
                             </div>
-                            <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
-                                Agregar Actividad</button>
                             <div class="form-actions" style="margin-top: 2rem;">
-                                <button id="save-rfp-btn" class="primary-btn">Guardar RFP</button>
+                                <button id="save-rfp-btn" class="primary-btn" data-i18n="btn_save_rfp_full">Guardar RFP</button>
                             </div>
                         </div>
 
@@ -580,8 +597,8 @@
                                 <span id="activities-opp-info-demo" class="sub-text"></span>
                             </div>
                             <div class="form-group">
-                                <label>Descripción de la Demo Solicitada</label>
-                                <textarea id="demo-desc" placeholder="..." rows="3"></textarea>
+                                <label data-i18n="label_demo_desc">Descripción de la Demo Solicitada</label>
+                                <textarea id="demo-desc" placeholder="..." rows="3" data-i18n="label_demo_desc" data-i18n-prop="placeholder"></textarea>
                             </div>
                             <div class="form-group">
                                 <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material</label>
@@ -593,21 +610,21 @@
                                     </div>
                                 </div>
                             </div>
-                            <h4>Actividades de Preparación</h4>
+                            <h4 data-i18n="label_activities_prep">Actividades de Preparación</h4>
                             <div class="table-container small">
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Actividad / Responsable</th>
-                                            <th>Comentarios</th>
+                                            <th data-i18n="header_activity_resp">Actividad / Responsable</th>
+                                            <th data-i18n="header_comments">Comentarios</th>
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody id="demo-activities-body"></tbody>
                                 </table>
                             </div>
-                            <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
-                                Agregar Actividad</button>
+                            <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;" data-i18n="btn_add_activity">+
+                                    Agregar Actividad</button>
 
                             <div class="poc-form-section"
                                 style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
@@ -624,7 +641,8 @@
                                         </h5>
                                         <div id="walkthrough-prep-body" class="dynamic-list"></div>
                                         <button id="add-walkthrough-prep-btn" class="text-btn small"
-                                            style="margin-top: 0.5rem; color: var(--brand-teal);">+ Añadir Paso</button>
+                                            style="margin-top: 0.5rem; color: var(--brand-teal);" data-i18n="btn_add_step">+
+                                            Añadir Paso</button>
                                     </div>
                                     <div class="walkthrough-section">
                                         <h5 data-i18n="label_flow_steps"
@@ -632,13 +650,57 @@
                                             (Durante)</h5>
                                         <div id="walkthrough-flow-body" class="dynamic-list"></div>
                                         <button id="add-walkthrough-flow-btn" class="text-btn small"
-                                            style="margin-top: 0.5rem; color: var(--brand-orange);">+ Añadir
+                                            style="margin-top: 0.5rem; color: var(--brand-orange);" data-i18n="btn_add_step">+ Añadir
                                             Paso</button>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-actions" style="margin-top: 2rem;">
-                                <button id="save-demo-btn" class="primary-btn">Guardar Demo</button>
+                                <button id="save-demo-btn" class="primary-btn" data-i18n="btn_save_demo">Guardar Demo</button>
+                            </div>
+                        </div>
+
+                        <!-- MEDDPICC Tab Content -->
+                        <div id="tab-medpicc" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-medpicc" class="sub-text"></span>
+                            </div>
+                            <div class="medpicc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_metrics">Metrics (M)</label>
+                                    <textarea id="med-metrics" placeholder="Impacto cuantificable..." rows="2" data-i18n="med_metrics_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_eb">Economic Buyer (E)</label>
+                                    <textarea id="med-buyer" placeholder="¿Quién firma el cheque?..." rows="2" data-i18n="med_eb_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dc">Decision Criteria (D)</label>
+                                    <textarea id="med-criteria" placeholder="Requerimientos técnicos/negocio..." rows="2" data-i18n="med_dc_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dp">Decision Process (D)</label>
+                                    <textarea id="med-process" placeholder="Pasos para la aprobación..." rows="2" data-i18n="med_dp_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_pp">Paper Process (P)</label>
+                                    <textarea id="med-paper" placeholder="Proceso legal/compras..." rows="2" data-i18n="med_pp_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_ip">Identify Pain (I)</label>
+                                    <textarea id="med-pain" placeholder="Problema crítico del negocio..." rows="2" data-i18n="med_ip_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_champion">Champion (C)</label>
+                                    <textarea id="med-champion" placeholder="Tu aliado interno..." rows="2" data-i18n="med_champion_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_competition">Competition (C)</label>
+                                    <textarea id="med-competition" placeholder="Contra quién competimos..." rows="2" data-i18n="med_competition_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                                <button id="save-medpicc-btn" class="primary-btn" data-i18n="btn_save_medpicc">Guardar Calificación</button>
                             </div>
                         </div>
                     </div>
@@ -649,92 +711,93 @@
             <div id="poc-detail-modal" class="modal hidden">
                 <div class="modal-content large">
                     <div class="modal-header">
-                        <h3 id="poc-detail-title">Detalle de Prueba de Concepto (PoC)</h3>
+                        <h3 id="poc-detail-title" data-i18n="modal_poc_detail_title">Detalle de Prueba de Concepto (PoC)</h3>
                         <button id="close-poc-detail-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div class="poc-form-section">
-                            <h4>1. Resumen Ejecutivo</h4>
+                            <h4 data-i18n="section_executive_summary">1. Resumen Ejecutivo</h4>
                             <div class="form-group">
-                                <label>Proof of Concept Objective</label>
-                                <textarea id="poc-objective" placeholder="Objetivo de la PoC..." rows="2"></textarea>
+                                <label data-i18n="label_poc_objective">Proof of Concept Objective</label>
+                                <textarea id="poc-objective" placeholder="Objetivo de la PoC..." rows="2" data-i18n="placeholder_poc_objective" data-i18n-prop="placeholder"></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Proof of Concept Primary Use Case</label>
-                                <textarea id="poc-use-case" placeholder="Caso de uso principal..." rows="2"></textarea>
+                                <label data-i18n="label_poc_use_case">Proof of Concept Primary Use Case</label>
+                                <textarea id="poc-use-case" placeholder="Caso de uso principal..." rows="2" data-i18n="placeholder_poc_use_case" data-i18n-prop="placeholder"></textarea>
                             </div>
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>2. Alcance y Cronograma</h4>
+                            <h4 data-i18n="section_scope">2. Alcance y Cronograma</h4>
                             <div class="form-group">
-                                <label>Proof of Concept Scope Summary</label>
+                                <label data-i18n="label_poc_scope_summary">Proof of Concept Scope Summary</label>
                                 <div id="poc-scope-container" class="dynamic-list"></div>
-                                <button type="button" class="secondary-btn small add-list-item" data-type="scope">+
+                                <button type="button" class="secondary-btn small add-list-item" data-type="scope" data-i18n="btn_add_scope">+
                                     Agregar Alcance</button>
                             </div>
                             <div class="form-group">
-                                <label>Timeline</label>
+                                <label data-i18n="label_poc_timeline">Timeline</label>
                                 <div class="table-container small">
                                     <table>
                                         <thead>
                                             <tr>
-                                                <th>Actividad</th>
-                                                <th>Fecha Milestone</th>
-                                                <th>Estado / Comentarios</th>
-                                                <th></th>
+                                                <th data-i18n="placeholder_activity">Actividad</th>
+                                                <th style="width: 130px;" data-i18n="header_poc_start">Inicio</th>
+                                                <th style="width: 130px;" data-i18n="label_deadline">Límite</th>
+                                                <th data-i18n="label_poc_status">Estado / Comentarios</th>
+                                                <th style="width: 40px;"></th>
                                             </tr>
                                         </thead>
                                         <tbody id="poc-timeline-body"></tbody>
                                     </table>
                                 </div>
-                                <button type="button" class="secondary-btn small" id="add-poc-timeline-btn">+ Agregar
+                                <button type="button" class="secondary-btn small" id="add-poc-timeline-btn" data-i18n="btn_add_milestone">+ Agregar
                                     Milestone</button>
                             </div>
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>3. Equipo y Recursos</h4>
+                            <h4 data-i18n="section_team">3. Equipo y Recursos</h4>
                             <div class="form-group">
-                                <label>Proof of Concept Resources</label>
+                                <label data-i18n="label_poc_resources_desc">Proof of Concept Resources</label>
                                 <div id="poc-resources-container" class="dynamic-list"></div>
-                                <button type="button" class="secondary-btn small add-list-item" data-type="resources">+
+                                <button type="button" class="secondary-btn small add-list-item" data-type="resources" data-i18n="btn_add_resource">+
                                     Agregar Recurso</button>
                             </div>
                             <div class="two-col-grid">
                                 <div class="form-group">
-                                    <label>Stakeholders (Cliente)</label>
+                                    <label data-i18n="label_poc_stakeholders">Stakeholders (Cliente)</label>
                                     <div id="poc-stakeholders-container" class="dynamic-list"></div>
                                     <button type="button" class="secondary-btn small add-list-item"
-                                        data-type="stakeholders">+ Agregar Stakeholder</button>
+                                        data-type="stakeholders" data-i18n="btn_add_stakeholder">+ Agregar Stakeholder</button>
                                 </div>
                                 <div class="form-group">
-                                    <label>Squad (Interno)</label>
+                                    <label data-i18n="label_poc_squad">Squad (Interno)</label>
                                     <div id="poc-squad-container" class="dynamic-list"></div>
-                                    <button type="button" class="secondary-btn small add-list-item" data-type="squad">+
+                                    <button type="button" class="secondary-btn small add-list-item" data-type="squad" data-i18n="btn_add_squad">+
                                         Agregar Miembro Squad</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>4. Logística y Finanzas</h4>
+                            <h4 data-i18n="section_logistics">4. Logística y Finanzas</h4>
                             <div class="form-group">
-                                <label>Assumptions</label>
+                                <label data-i18n="label_poc_assumptions">Assumptions</label>
                                 <textarea id="poc-assumptions" placeholder="Supuestos y premisas..."
-                                    rows="2"></textarea>
+                                    rows="2" data-i18n="placeholder_poc_assumptions" data-i18n-prop="placeholder"></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Financials</label>
-                                <textarea id="poc-financials" placeholder="Detalles financieros..." rows="2"></textarea>
+                                <label data-i18n="label_poc_financials">Financials</label>
+                                <textarea id="poc-financials" placeholder="Detalles financieros..." rows="2" data-i18n="placeholder_poc_financials" data-i18n-prop="placeholder"></textarea>
                             </div>
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>5. Documentación</h4>
+                            <h4 data-i18n="section_documentation">5. Documentación</h4>
                             <div class="two-col-grid">
                                 <div class="form-group">
-                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documento de
+                                    <label data-i18n="label_acceptance_doc"><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documento de
                                         Aceptación</label>
                                     <div class="url-field-wrapper">
                                         <input type="text" id="poc-url-acceptance" placeholder="https://..."
@@ -746,7 +809,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material de la
+                                    <label data-i18n="label_poc_material"><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material de la
                                         PoC</label>
                                     <div class="url-field-wrapper">
                                         <input type="text" id="poc-url-content" placeholder="https://..."
@@ -768,10 +831,10 @@
                             <button id="view-fo-ticket-btn" class="secondary-btn hidden"
                                 style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">
                                 <i class="fas fa-file-pdf"></i> Previsualizar PDF</button>
-                            <button id="generate-fo-ticket-btn" class="secondary-btn"
-                                style="background: rgba(0, 120, 215, 0.1); color: #0078d7; border-color: #0078d7;">
+                            <button id="generate-poc-doc-btn" class="secondary-btn"
+                                style="background: rgba(138, 43, 226, 0.1); color: var(--brand-purple); border-color: var(--brand-purple);" data-i18n="btn_generate_document">
                                 <i class="fas fa-sync"></i> Generar Documento</button>
-                            <button id="save-poc-detail-btn" class="primary-btn">Guardar Prueba de Concepto</button>
+                            <button id="save-poc-detail-btn" class="primary-btn" data-i18n="btn_save_poc">Guardar Prueba de Concepto</button>
                         </div>
                     </div>
                 </div>

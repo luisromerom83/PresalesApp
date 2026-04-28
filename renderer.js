@@ -31,7 +31,10 @@ let currentConfig = {
     expandedManagerFilterId: null, // Track which filter is expanded in the settings manager
     viewHistory: [], // Stack for navigation history
     resources: [],
-    changedStages: {} // Tracks opps whose stage changed after CSV import
+    changedStages: {}, // Tracks opps whose stage changed after CSV import
+    currentSort: { field: 'Account Name', direction: 'asc' },
+    currentPage: 1,
+    itemsPerPage: 50
 };
 
 let activeOppId = null;
@@ -180,7 +183,7 @@ const elements = {
     foApiTokenInput: document.getElementById('fo-api-token'),
     foApiTemplateInput: document.getElementById('fo-api-template'),
     foApiHolderInput: document.getElementById('fo-api-holder'),
-    generateFoTicketBtn: document.getElementById('generate-fo-ticket-btn'),
+    generateFoTicketBtn: document.getElementById('generate-poc-doc-btn'),
     viewFoTicketBtn: document.getElementById('view-fo-ticket-btn'),
     ticketViewModal: document.getElementById('ticket-view-modal'),
     ticketViewTitle: document.getElementById('ticket-view-title'),
@@ -213,8 +216,76 @@ const elements = {
     closeResourceModalBtn: document.getElementById('close-resource-modal-btn'),
     resourceNameInput: document.getElementById('resource-name-input'),
     resourceContentInput: document.getElementById('resource-content-input'),
-    saveResourceBtn: document.getElementById('save-resource-btn')
+    saveResourceBtn: document.getElementById('save-resource-btn'),
+    hideAccountsCb: document.getElementById('hide-accounts-cb'),
+    oppPagination: document.getElementById('opp-pagination'),
+    oppPrevBtn: document.getElementById('opp-prev-btn'),
+    oppNextBtn: document.getElementById('opp-next-btn'),
+    oppPageInfo: document.getElementById('opp-page-info'),
+    toggleSidebarBtn: document.getElementById('toggle-sidebar-btn'),
+    mainLayout: document.querySelector('.main-layout'),
+
+    // MEDDPICC Elements
+    activitiesOppInfoMedpicc: document.getElementById('activities-opp-info-medpicc'),
+    medMetrics: document.getElementById('med-metrics'),
+    medBuyer: document.getElementById('med-buyer'),
+    medCriteria: document.getElementById('med-criteria'),
+    medProcess: document.getElementById('med-process'),
+    medPaper: document.getElementById('med-paper'),
+    medPain: document.getElementById('med-pain'),
+    medChampion: document.getElementById('med-champion'),
+    medCompetition: document.getElementById('med-competition'),
+    saveMedpiccBtn: document.getElementById('save-medpicc-btn'),
+    appLogo: document.querySelector('.app-logo')
 };
+
+if (elements.toggleSidebarBtn) {
+    elements.toggleSidebarBtn.onclick = () => {
+        elements.mainLayout.classList.toggle('collapsed');
+        const icon = elements.toggleSidebarBtn.querySelector('.toggle-icon-arrow');
+        if (elements.mainLayout.classList.contains('collapsed')) {
+            elements.toggleSidebarBtn.title = "Mostrar Sidebar";
+            if (icon) icon.innerHTML = '&rsaquo;';
+        } else {
+            elements.toggleSidebarBtn.title = "Ocultar Sidebar";
+            if (icon) icon.innerHTML = '&lsaquo;';
+        }
+    };
+}
+
+if (elements.appLogo) {
+    elements.appLogo.onclick = (e) => {
+        if (e.detail === 3) {
+            console.log("Renderer: Triple click detectado en el logo. Accediendo a la sección de Manager.");
+            showView('settings-view');
+            showToast("Modo Manager Activado");
+        }
+    };
+}
+
+if (elements.hideAccountsCb) {
+    elements.hideAccountsCb.onchange = () => {
+        currentConfig.currentPage = 1; // Reset to page 1 when toggling view
+        renderOpportunities();
+        autoSaveSidebarFilters();
+    };
+}
+
+if (elements.oppPrevBtn) {
+    elements.oppPrevBtn.onclick = () => {
+        if (currentConfig.currentPage > 1) {
+            currentConfig.currentPage--;
+            renderOpportunities();
+        }
+    };
+}
+if (elements.oppNextBtn) {
+    elements.oppNextBtn.onclick = () => {
+        const totalItems = currentConfig.opportunities.length; // Approximate check, real check is in render
+        currentConfig.currentPage++;
+        renderOpportunities();
+    };
+}
 
 // Navigation
 function showScreen(screenId) {
@@ -238,7 +309,7 @@ function showView(viewId, isBack = false) {
     if (targetView) targetView.classList.add('active');
 
     const navBtn = document.querySelector(`[data-target="${viewId}"]`);
-    if (navBtn) navBtn.classList.add('active');
+    if (navBtn && viewId !== 'opp-list-view') navBtn.classList.add('active');
 
     // Show/Hide back button based on history
     if (currentConfig.viewHistory.length > 0) {
@@ -328,6 +399,7 @@ document.addEventListener('click', (e) => {
 
     // UI Visual State
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-group-label').forEach(l => l.classList.remove('active'));
     btn.classList.add('active');
 
     if (target === 'opp-list-view') {
@@ -430,12 +502,48 @@ elements.closeActivitiesModalBtn.onclick = () => elements.activitiesModal.classL
 function renderDynamicFilters() {
     elements.dynamicFiltersContainer.innerHTML = '';
 
+    // Update Navigation Highlights
+    const hasActiveFilters = Object.keys(currentConfig.activeFilters).length > 0;
+    const isFavorites = currentConfig.currentFavoritesFilter;
+
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if (isFavorites) {
+        elements.favoritesNavBtn.classList.add('active');
+    } else if (!hasActiveFilters) {
+        elements.allOppsBtn.classList.add('active');
+    }
+
     currentConfig.sidebarFilters.forEach(filter => {
-        // Collapsed by default: isExpanded is only true if explicitly in expandedFilters
+        if (filter.mode === 'selection') {
+            let vals = [];
+            let validOpps = currentConfig.opportunities;
+            
+            if (filter.field === 'accountCategory') {
+                vals = currentConfig.accountCategories;
+            } else {
+                vals = [...new Set(validOpps.map(o => o[filter.field]).filter(Boolean))].sort();
+            }
+
+            if (filter.allowedValues && filter.allowedValues.length > 0) {
+                vals = vals.filter(v => filter.allowedValues.includes(v));
+            }
+            automaticOptions = vals.map(v => ({ label: v, value: v, isLogic: false }));
+        }
+
+        // 2. Manual rules (Logic part) - Only show buttons if NOT in selection mode
+        let manualOptions = [];
+        if (filter.mode !== 'selection') {
+            manualOptions = (filter.rules || []).map(r => ({ label: r.label, value: r.label, isLogic: true }));
+        }
+
+        options = [...manualOptions, ...automaticOptions];
+
+        const activeVals = currentConfig.activeFilters[filter.id] || [];
+        const isFullyActive = options.length > 0 && options.every(opt => activeVals.includes(opt.value));
         const isExpanded = currentConfig.expandedFilters.has(filter.id);
 
         const groupLabel = document.createElement('div');
-        groupLabel.className = `nav-group-label ${isExpanded ? '' : 'collapsed'}`;
+        groupLabel.className = `nav-group-label ${isExpanded ? '' : 'collapsed'} ${isFullyActive ? 'active' : ''}`;
         groupLabel.id = `toggle-${filter.id}`;
         groupLabel.innerHTML = `<span>${filter.label}</span><span class="toggle-icon">▾</span>`;
 
@@ -444,53 +552,48 @@ function renderDynamicFilters() {
         submenu.className = `submenu ${isExpanded ? '' : 'collapsed'}`;
 
         groupLabel.onclick = () => {
-            const wasExpanded = isExpanded;
-
-            // Clear all expanded filters for accordion behavior
-            currentConfig.expandedFilters.clear();
-
-            // If it wasn't expanded, expand only this one
-            if (!wasExpanded) {
+            if (isExpanded) {
+                currentConfig.expandedFilters.delete(filter.id);
+            } else {
                 currentConfig.expandedFilters.add(filter.id);
             }
-
             renderDynamicFilters();
+            autoSaveSidebarFilters();
         };
-
-        // Determine options (buttons)
-        let options = [];
-        if (filter.mode === 'selection') {
-            if (filter.field === 'accountCategory') {
-                options = currentConfig.accountCategories.map(c => ({ label: c, value: c }));
-            } else {
-                const vals = [...new Set(currentConfig.opportunities.map(o => o[filter.field]).filter(Boolean))].sort();
-                options = vals.map(v => ({ label: v, value: v }));
-            }
-        } else {
-            options = filter.rules.map(r => ({ label: r.label, value: r.label }));
-        }
 
         options.forEach(opt => {
             const btn = document.createElement('button');
-            const isActive = currentConfig.activeFilters[filter.id] === opt.value;
+            const isActive = activeVals.includes(opt.value);
+            
             btn.className = `submenu-btn ${isActive ? 'active' : ''}`;
-            btn.textContent = opt.label;
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '0.5rem';
+            
+            btn.innerHTML = `
+                <div style="min-width: 16px; height: 16px; border: 1px solid var(--glass-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; background: ${isActive ? 'var(--brand-orange)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;">
+                    ${isActive ? '<span style="color: white; font-size: 0.7rem;">✓</span>' : ''}
+                </div>
+                <span style="${opt.isLogic ? 'font-weight: 600; font-style: italic;' : ''}">${opt.label}</span>
+            `;
+            
             btn.onclick = () => {
-                // To maintain previous behavior: only ONE group can be active at a time.
-                // If the user wants to keep a filter, it toggles.
-                const wasActive = isActive;
-                currentConfig.activeFilters = {};
-
-                if (!wasActive) {
-                    currentConfig.activeFilters[filter.id] = opt.value;
+                if (!currentConfig.activeFilters[filter.id]) {
+                    currentConfig.activeFilters[filter.id] = [];
+                }
+                const arr = currentConfig.activeFilters[filter.id];
+                const idx = arr.indexOf(opt.value);
+                if (idx > -1) {
+                    arr.splice(idx, 1);
+                    // We keep the empty array to show an empty table as requested
+                } else {
+                    arr.push(opt.value);
                 }
 
                 currentConfig.currentFavoritesFilter = false;
                 renderOpportunities();
                 renderDynamicFilters();
                 showView('opp-list-view');
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                elements.allOppsBtn.classList.add('active');
             };
             submenu.appendChild(btn);
         });
@@ -582,6 +685,7 @@ function evaluateRule(itemValue, rule) {
         case 'lt': return val < target;
         case 'lte': return val <= target;
         case 'contains': return String(val || '').toLowerCase().includes(String(target || '').toLowerCase());
+        case 'not_contains': return !String(val || '').toLowerCase().includes(String(target || '').toLowerCase());
         default: return false;
     }
 }
@@ -614,47 +718,73 @@ function renderSidebarFilterManager() {
         let fieldsHtml = currentConfig.dataStructure.map(s =>
             `<option value="${s.header}" ${filter.field === s.header ? 'selected' : ''}>${s.header}</option>`
         ).join('');
-        fieldsHtml = `<option value="accountCategory" ${filter.field === 'accountCategory' ? 'selected' : ''}>[Categoría de Cuenta]</option>` + fieldsHtml;
+        fieldsHtml = `<option value="accountCategory" ${filter.field === 'accountCategory' ? 'selected' : ''}>${getTranslation('label_account_category')}</option>` + fieldsHtml;
 
         card.innerHTML = `
             <div class="filter-manager-header">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span class="toggle-icon" style="transform: rotate(${isExpanded ? '0' : '-90'}deg)">▼</span>
-                    <strong>${filter.label || 'Nuevo Grupo'}</strong>
-                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? 'Lógica' : 'Selección'}: ${filter.field})</span>
+                    <strong>${filter.label || getTranslation('btn_new_group')}</strong>
+                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? getTranslation('type_formula') : getTranslation('mode_selection')}: ${filter.field})</span>
                 </div>
-                <button class="delete-cat-btn" onclick="event.stopPropagation(); deleteSidebarFilter(${fIdx})">Eliminar</button>
+                <button class="delete-cat-btn" onclick="event.stopPropagation(); deleteSidebarFilter(${fIdx})">${getTranslation('btn_delete')}</button>
             </div>
             
             <div class="filter-manager-body" style="display: ${isExpanded ? 'block' : 'none'};">
                 <div class="form-group">
-                    <label>Etiqueta en Sidebar</label>
+                    <label>${getTranslation('label_sidebar_tag')}</label>
                     <input type="text" class="form-input" value="${filter.label}" 
                         onchange="updateFilterProp(${fIdx}, 'label', this.value)">
                 </div>
 
                 <div class="form-group" style="margin-top: 1rem;">
-                    <label>Modo de Filtrado</label>
+                    <label>${getTranslation('label_filter_mode')}</label>
                     <select class="form-input" onchange="updateFilterProp(${fIdx}, 'mode', this.value); renderSidebarFilterManager();">
-                        <option value="selection" ${filter.mode === 'selection' ? 'selected' : ''}>Selección (Valores Únicos)</option>
-                        <option value="logic" ${filter.mode === 'logic' ? 'selected' : ''}>Lógica (Reglas Manuales)</option>
+                        <option value="selection" ${filter.mode === 'selection' ? 'selected' : ''}>${getTranslation('mode_selection')}</option>
+                        <option value="logic" ${filter.mode === 'logic' ? 'selected' : ''}>${getTranslation('mode_logic')}</option>
                     </select>
                 </div>
                 
                 <div class="form-group" style="margin-top: 1rem;">
-                    <label>Variable / Columna Base</label>
-                    <select class="form-input" onchange="updateFilterProp(${fIdx}, 'field', this.value)">
+                    <label>${getTranslation('label_base_variable')}</label>
+                    <select class="form-input" onchange="updateFilterProp(${fIdx}, 'field', this.value); renderSidebarFilterManager();">
                         ${fieldsHtml}
                     </select>
                 </div>
 
-                ${filter.mode === 'logic' ? `
-                    <div class="logic-rules-container" style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                        <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">Botones y Reglas</label>
-                        <div id="rules-list-${fIdx}"></div>
-                        <button class="secondary-btn small" style="margin-top: 0.5rem;" onclick="addLogicRule(${fIdx})">+ Añadir Botón</button>
+                ${filter.mode === 'selection' ? `
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">${getTranslation('label_limit_values')}</label>
+                        <div class="multi-select-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--glass-border); padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 4px;">
+                            ${(() => {
+                                let availableVals = [];
+                                if (filter.field === 'accountCategory') {
+                                    availableVals = currentConfig.accountCategories;
+                                } else {
+                                    availableVals = [...new Set(currentConfig.opportunities.map(o => o[filter.field]).filter(Boolean))].sort();
+                                }
+                                const currentAllowed = filter.allowedValues || [];
+                                return availableVals.length > 0 ? availableVals.map(v => `
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-secondary);">
+                                        <input type="checkbox" value="${v}" ${currentAllowed.includes(v) ? 'checked' : ''} 
+                                            onchange="updateFilterAllowedValues(${fIdx}, this)" style="width: 14px; height: 14px; accent-color: var(--brand-orange);">
+                                        <span>${v}</span>
+                                    </label>
+                                `).join('') : `<span style="font-size: 0.7rem; opacity: 0.5;">${getTranslation('label_no_values')}</span>`;
+                            })()}
+                        </div>
+                        <p style="font-size: 0.7rem; opacity: 0.5; margin-top: 0.5rem;">${getTranslation('label_logic_filter_desc')}</p>
                     </div>
                 ` : ''}
+
+                ${filter.mode === 'logic' ? `
+                    <div class="logic-rules-container" style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                        <label style="font-weight: bold; margin-bottom: 0.5rem; display: block;">${getTranslation('label_manual_rules')}</label>
+                        <div id="rules-list-${fIdx}"></div>
+                        <button class="secondary-btn small" style="margin-top: 0.5rem;" onclick="addLogicRule(${fIdx})">${getTranslation('btn_add_logic_rule')}</button>
+                    </div>
+                ` : ''}
+            </div>
             </div>
         `;
 
@@ -666,14 +796,15 @@ function renderSidebarFilterManager() {
 
         elements.sidebarFiltersManagerList.appendChild(card);
 
-        if (filter.mode === 'logic') {
+        if (true) { // Now both modes can have rules
             const rulesList = document.getElementById(`rules-list-${fIdx}`);
-            (filter.rules || []).forEach((rule, rIdx) => {
+            if (rulesList) {
+                (filter.rules || []).forEach((rule, rIdx) => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'filter-rule-group-card';
                 groupDiv.innerHTML = `
                     <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                        <input type="text" class="form-input" placeholder="Etiqueta del Botón" value="${rule.label}" 
+                        <input type="text" class="form-input" placeholder="${getTranslation('placeholder_btn_label')}" value="${rule.label}" 
                             onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'label', this.value)" style="font-weight: bold;">
                         <select class="form-input" onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'matchType', this.value)" style="width: auto;">
                             <option value="AND" ${rule.matchType === 'AND' ? 'selected' : ''}>Y (AND)</option>
@@ -696,16 +827,48 @@ function renderSidebarFilterManager() {
                     ).join('');
                     colOptions = `<option value="" ${!cond.field ? 'selected' : ''}>[Default: ${filter.field}]</option>` + colOptions;
 
+                    const isListOperator = cond.operator === 'in' || cond.operator === 'not_in';
+                    const fieldForValues = cond.field || filter.field;
+                    
+                    let valueControlHtml = '';
+                    if (isListOperator) {
+                        let availableValues = [];
+                        if (fieldForValues === 'accountCategory') {
+                            availableValues = currentConfig.accountCategories;
+                        } else {
+                            availableValues = [...new Set(currentConfig.opportunities.map(o => o[fieldForValues]).filter(Boolean))].sort();
+                        }
+                        
+                        const selectedValues = String(cond.value || '').split(',').map(s => s.trim()).filter(Boolean);
+                        
+                        valueControlHtml = `
+                            <div class="multi-select-list" style="flex: 1; min-width: 150px; max-height: 120px; overflow-y: auto; border: 1px solid var(--glass-border); padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 4px;">
+                                ${availableValues.length > 0 ? availableValues.map(v => `
+                                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-secondary); white-space: nowrap;">
+                                        <input type="checkbox" value="${v}" ${selectedValues.includes(v) ? 'checked' : ''} 
+                                            onchange="updateConditionListValue(${fIdx}, ${rIdx}, ${cIdx}, this)" style="width: 14px; height: 14px; accent-color: var(--brand-orange);">
+                                        <span>${v}</span>
+                                    </label>
+                                `).join('') : '<span style="font-size: 0.7rem; opacity: 0.5;">No hay valores disponibles</span>'}
+                            </div>
+                        `;
+                    } else {
+                        valueControlHtml = `
+                            <input type="text" class="form-input" placeholder="Valor" value="${cond.value}" 
+                                onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'value', this.value)" style="flex: 1;">
+                        `;
+                    }
+
                     condDiv.innerHTML = `
-                        <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'field', this.value)">
+                        <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'field', this.value); renderSidebarFilterManager();" style="width: auto; min-width: 120px;">
                             ${colOptions}
                         </select>
-                        <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'type', this.value)">
+                        <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'type', this.value); renderSidebarFilterManager();" style="width: auto;">
                             <option value="text" ${cond.type === 'text' ? 'selected' : ''}>Texto</option>
                             <option value="numeric" ${cond.type === 'numeric' ? 'selected' : ''}>Numérico</option>
                             <option value="boolean" ${cond.type === 'boolean' ? 'selected' : ''}>Bool</option>
                         </select>
-                        <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'operator', this.value)">
+                        <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'operator', this.value); renderSidebarFilterManager();" style="width: auto;">
                             <option value="eq" ${cond.operator === 'eq' ? 'selected' : ''}>==</option>
                             <option value="neq" ${cond.operator === 'neq' ? 'selected' : ''}>!=</option>
                             <option value="gt" ${cond.operator === 'gt' ? 'selected' : ''}>></option>
@@ -713,16 +876,17 @@ function renderSidebarFilterManager() {
                             <option value="lt" ${cond.operator === 'lt' ? 'selected' : ''}><</option>
                             <option value="lte" ${cond.operator === 'lte' ? 'selected' : ''}><=</option>
                             <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>Contiene</option>
+                            <option value="not_contains" ${cond.operator === 'not_contains' ? 'selected' : ''}>No Contiene</option>
                         </select>
-                        <input type="text" class="form-input" placeholder="Valor" value="${cond.value}" 
-                            onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'value', this.value)">
+                        ${valueControlHtml}
                         <button class="delete-cat-btn" onclick="deleteCondition(${fIdx}, ${rIdx}, ${cIdx})">×</button>
                     `;
                     conditionsContainer.appendChild(condDiv);
                 });
             });
         }
-    });
+    }
+});
 }
 
 window.updateFilterProp = (fIdx, prop, val) => {
@@ -733,6 +897,50 @@ window.updateFilterProp = (fIdx, prop, val) => {
     autoSaveSidebarFilters();
 };
 
+window.addSecondaryFilter = (fIdx) => {
+    const filter = currentConfig.sidebarFilters[fIdx];
+    if (!filter.secondaryFilters) filter.secondaryFilters = [];
+    filter.secondaryFilters.push({ field: '', allowedValues: [] });
+    renderSidebarFilterManager();
+    renderDynamicFilters();
+    autoSaveSidebarFilters();
+};
+
+window.deleteSecondaryFilter = (fIdx, sfIdx) => {
+    currentConfig.sidebarFilters[fIdx].secondaryFilters.splice(sfIdx, 1);
+    renderSidebarFilterManager();
+    renderDynamicFilters();
+    renderOpportunities();
+    autoSaveSidebarFilters();
+};
+
+window.updateSecondaryFilterProp = (fIdx, sfIdx, prop, val) => {
+    currentConfig.sidebarFilters[fIdx].secondaryFilters[sfIdx][prop] = val;
+    if (prop === 'field') currentConfig.sidebarFilters[fIdx].secondaryFilters[sfIdx].allowedValues = [];
+    renderDynamicFilters();
+    renderOpportunities();
+    autoSaveSidebarFilters();
+};
+
+window.updateFilterSecondaryAllowedValues = (fIdx, sfIdx, checkbox) => {
+    const filter = currentConfig.sidebarFilters[fIdx];
+    const sf = filter.secondaryFilters[sfIdx];
+    if (!sf.allowedValues) sf.allowedValues = [];
+    
+    const val = String(checkbox.value);
+    if (checkbox.checked) {
+        if (!sf.allowedValues.some(v => String(v) === val)) {
+            sf.allowedValues.push(val);
+        }
+    } else {
+        sf.allowedValues = sf.allowedValues.filter(v => String(v) !== val);
+    }
+    renderSidebarFilterManager();
+    renderDynamicFilters();
+    renderOpportunities();
+    autoSaveSidebarFilters();
+};
+
 window.updateRuleGroupProp = (fIdx, rIdx, prop, val) => {
     currentConfig.sidebarFilters[fIdx].rules[rIdx][prop] = val;
     autoSaveSidebarFilters();
@@ -740,6 +948,32 @@ window.updateRuleGroupProp = (fIdx, rIdx, prop, val) => {
 
 window.updateConditionProp = (fIdx, rIdx, cIdx, prop, val) => {
     currentConfig.sidebarFilters[fIdx].rules[rIdx].conditions[cIdx][prop] = val;
+    autoSaveSidebarFilters();
+};
+
+window.updateConditionListValue = (fIdx, rIdx, cIdx, checkbox) => {
+    const cond = currentConfig.sidebarFilters[fIdx].rules[rIdx].conditions[cIdx];
+    let vals = String(cond.value || '').split(',').map(s => s.trim()).filter(Boolean);
+    
+    if (checkbox.checked) {
+        if (!vals.includes(checkbox.value)) vals.push(checkbox.value);
+    } else {
+        vals = vals.filter(v => v !== checkbox.value);
+    }
+    
+    cond.value = vals.join(', ');
+    autoSaveSidebarFilters();
+};
+
+window.updateFilterAllowedValues = (fIdx, checkbox) => {
+    const filter = currentConfig.sidebarFilters[fIdx];
+    if (!filter.allowedValues) filter.allowedValues = [];
+    
+    if (checkbox.checked) {
+        if (!filter.allowedValues.includes(checkbox.value)) filter.allowedValues.push(checkbox.value);
+    } else {
+        filter.allowedValues = filter.allowedValues.filter(v => v !== checkbox.value);
+    }
     autoSaveSidebarFilters();
 };
 
@@ -788,15 +1022,26 @@ elements.addSidebarFilterBtn.onclick = () => {
 };
 
 async function autoSaveSidebarFilters() {
+    // Save to global settings (as fallback)
     await window.electronAPI.saveSettings({
-        lastDirectory: currentConfig.directory,
-        crmUrlTemplate: currentConfig.crmUrlTemplate,
-        accountUrlTemplate: currentConfig.accountUrlTemplate,
-        theme: elements.themeSelect.value,
-        accountCategories: currentConfig.accountCategories,
         sidebarFilters: currentConfig.sidebarFilters,
-        responsibles: currentConfig.responsibles
+        hideAccountHeaders: elements.hideAccountsCb.checked
     });
+
+    // Save to directory-specific filters.json for persistence within the project
+    if (currentConfig.directory) {
+        try {
+            const filtersData = {
+                sidebarFilters: currentConfig.sidebarFilters,
+                expandedFilters: Array.from(currentConfig.expandedFilters || []),
+                hideAccountHeaders: elements.hideAccountsCb.checked,
+                currentSort: currentConfig.currentSort
+            };
+            await window.electronAPI.saveFile(currentConfig.directory, 'filters.json', filtersData);
+        } catch (e) {
+            console.error("Error saving directory-specific filters:", e);
+        }
+    }
 }
 
 // App Initialization
@@ -897,6 +1142,9 @@ async function init() {
             currentConfig.responsibles = settings.responsibles || [];
             currentConfig.accountCategories = settings.accountCategories || ['Anchor Account', 'Key Account', 'Partner', 'Tactical Account'];
             if (settings.sidebarFilters) currentConfig.sidebarFilters = settings.sidebarFilters;
+            if (settings.hideAccountHeaders && elements.hideAccountsCb) {
+                elements.hideAccountsCb.checked = settings.hideAccountHeaders;
+            }
             updateResponsiblesList();
 
             if (settings.lastDirectory) {
@@ -996,6 +1244,18 @@ async function loadAllData(dir) {
             ];
         }
 
+        const filtersData = await window.electronAPI.loadFile(dir, 'filters.json');
+        if (filtersData) {
+            if (filtersData.sidebarFilters) currentConfig.sidebarFilters = filtersData.sidebarFilters;
+            if (filtersData.expandedFilters) currentConfig.expandedFilters = new Set(filtersData.expandedFilters);
+            if (elements.hideAccountsCb) {
+                elements.hideAccountsCb.checked = !!filtersData.hideAccountHeaders;
+            }
+            if (filtersData.currentSort) currentConfig.currentSort = filtersData.currentSort;
+            
+            migrateSecondaryFilters();
+        }
+
         return true;
     } catch (e) {
         console.warn("Renderer: Error cargando archivos:", e);
@@ -1003,7 +1263,27 @@ async function loadAllData(dir) {
     }
 }
 
-// Directory Selection
+function migrateSecondaryFilters() {
+    let changed = false;
+    currentConfig.sidebarFilters.forEach(filter => {
+        if (filter.mode === 'selection' && filter.secondaryField && filter.secondaryAllowedValues) {
+            if (!filter.secondaryFilters) filter.secondaryFilters = [];
+            const exists = filter.secondaryFilters.some(sf => sf.field === filter.secondaryField);
+            if (!exists) {
+                filter.secondaryFilters.push({
+                    field: filter.secondaryField,
+                    allowedValues: filter.secondaryAllowedValues
+                });
+            }
+            delete filter.secondaryField;
+            delete filter.secondaryAllowedValues;
+            changed = true;
+        }
+    });
+    if (changed) {
+        autoSaveSidebarFilters();
+    }
+}
 elements.selectDirBtn.addEventListener('click', async () => {
     const dir = await window.electronAPI.selectDirectory();
     if (dir) handleNewDirectory(dir);
@@ -1410,19 +1690,19 @@ function renderStructureEditor() {
         tr.innerHTML = `
             <td>
                 <div style="display: flex; gap: 0.2rem; align-items: center;">
-                    <button class="order-btn small" onclick="moveStructureItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Subir">↑</button>
-                    <button class="order-btn small" onclick="moveStructureItem(${index}, 1)" ${index === currentConfig.dataStructure.length - 1 ? 'disabled' : ''} title="Bajar">↓</button>
+                    <button class="order-btn small" onclick="moveStructureItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="${getTranslation('label_move_up')}">↑</button>
+                    <button class="order-btn small" onclick="moveStructureItem(${index}, 1)" ${index === currentConfig.dataStructure.length - 1 ? 'disabled' : ''} title="${getTranslation('label_move_down')}">↓</button>
                     <input type="text" value="${item.header}" class="struct-header" data-index="${index}" style="margin-left: 0.5rem;">
                 </div>
             </td>
             <td><input type="text" value="${item.dummy}" class="struct-dummy" data-index="${index}"></td>
             <td>
                 <select class="struct-type" data-index="${index}" onchange="currentConfig.dataStructure[${index}].type = this.value; renderStructureEditor();">
-                    <option value="string" ${item.type === 'string' ? 'selected' : ''}>Texto</option>
-                    <option value="number" ${item.type === 'number' ? 'selected' : ''}>Número</option>
-                    <option value="currency" ${item.type === 'currency' ? 'selected' : ''}>Moneda</option>
-                    <option value="bool" ${item.type === 'bool' ? 'selected' : ''}>Booleano</option>
-                    <option value="formula" ${item.type === 'formula' ? 'selected' : ''}>Fórmula</option>
+                    <option value="string" ${item.type === 'string' ? 'selected' : ''}>${getTranslation('type_text')}</option>
+                    <option value="number" ${item.type === 'number' ? 'selected' : ''}>${getTranslation('type_number')}</option>
+                    <option value="currency" ${item.type === 'currency' ? 'selected' : ''}>${getTranslation('type_currency')}</option>
+                    <option value="bool" ${item.type === 'bool' ? 'selected' : ''}>${getTranslation('type_boolean')}</option>
+                    <option value="formula" ${item.type === 'formula' ? 'selected' : ''}>${getTranslation('type_formula')}</option>
                 </select>
             </td>
             <td>
@@ -1713,9 +1993,35 @@ function renderOpportunities() {
     const headTr = document.createElement('tr');
     visibleCols.forEach((col, index) => {
         const th = document.createElement('th');
-        th.textContent = col.header;
+        const isSorted = currentConfig.currentSort.field === col.header;
+        th.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                <span>${col.header}</span>
+                <span class="sort-indicator" style="opacity: ${isSorted ? 1 : 0.2}; font-size: 0.7rem;">
+                    ${isSorted ? (currentConfig.currentSort.direction === 'asc' ? '▲' : '▼') : '↕'}
+                </span>
+            </div>
+        `;
         th.draggable = true;
         th.dataset.index = index;
+        th.style.cursor = 'pointer';
+
+        // Sort handler
+        th.onclick = (e) => {
+            // Don't sort if clicking a specific action or dragging
+            if (e.target.closest('.order-btn')) return;
+            
+            if (currentConfig.currentSort.field === col.header) {
+                currentConfig.currentSort.direction = currentConfig.currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentConfig.currentSort.field = col.header;
+                currentConfig.currentSort.direction = 'asc';
+            }
+            renderOpportunities();
+            autoSaveSidebarFilters();
+        };
+
+        // Drag events
 
         // Drag events
         th.ondragstart = (e) => {
@@ -1776,22 +2082,46 @@ function renderOpportunities() {
             const filter = currentConfig.sidebarFilters.find(f => f.id === filterId);
             if (!filter) return;
 
-            const activeVal = currentConfig.activeFilters[filterId];
+            const activeVals = currentConfig.activeFilters[filterId];
+            if (!activeVals) return;
 
             filteredOpps = filteredOpps.filter(o => {
-                if (filter.mode === 'selection') {
+                const manualRuleLabels = (filter.rules || []).map(r => r.label);
+                const selectionActive = activeVals.filter(v => !manualRuleLabels.includes(v));
+                const logicActive = activeVals.filter(v => manualRuleLabels.includes(v));
+
+                // 1. Selection Part (OR within group)
+                let matchSelection = selectionActive.length > 0 ? false : true; 
+                // Wait, if no selection is active, should we show none?
+                // The user requested: "if all the checkboxes are disabled, show the table empty"
+                
+                if (selectionActive.length > 0) {
+                    let itemVal = '';
                     if (filter.field === 'accountCategory') {
                         const accId = o['Account ID'];
-                        return currentConfig.accounts[accId] && currentConfig.accounts[accId].category === activeVal;
+                        itemVal = currentConfig.accounts[accId] ? currentConfig.accounts[accId].category : '';
                     } else {
-                        return o[filter.field] === activeVal;
+                        itemVal = o[filter.field];
                     }
+                    matchSelection = selectionActive.some(v => String(v) === String(itemVal));
                 } else {
-                    // Logic Mode: activeVal is the label of the rule group
-                    const ruleGroup = filter.rules.find(r => r.label === activeVal);
-                    if (!ruleGroup) return true;
-                    return evaluateRuleGroup(o, ruleGroup, filter.field);
+                    // If the group is active (it's in activeFilters) but selection is empty, match nothing
+                    matchSelection = false;
                 }
+
+                // 2. Logic Part / Base Filter
+                let matchLogic = true;
+                if (filter.mode === 'logic' && logicActive.length > 0) {
+                    // Manual rules (OR)
+                    matchLogic = logicActive.some(label => {
+                        const ruleGroup = filter.rules.find(r => r.label === label);
+                        if (!ruleGroup) return false;
+                        return evaluateRuleGroup(o, ruleGroup, filter.field);
+                    });
+                }
+
+                // 3. Combined Logic: AND between Selection and Manual Rules
+                return matchSelection && matchLogic;
             });
         });
     }
@@ -1808,9 +2138,88 @@ function renderOpportunities() {
         });
     }
 
+    // Phase 3: Column Sorting
+    if (currentConfig.currentSort && currentConfig.currentSort.field) {
+        const field = currentConfig.currentSort.field;
+        const dir = currentConfig.currentSort.direction === 'asc' ? 1 : -1;
+        const colDef = currentConfig.dataStructure.find(s => s.header === field);
+        const type = colDef ? colDef.type : 'string';
 
+        filteredOpps.sort((a, b) => {
+            const valA = getSortValue(a, field, type);
+            const valB = getSortValue(b, field, type);
+            if (valA < valB) return -1 * dir;
+            if (valA > valB) return 1 * dir;
+            return 0;
+        });
+    }
+
+    function getSortValue(opp, field, type) {
+        let val = opp[field];
+        // Handle formula fields for sorting
+        if (type === 'formula') {
+            const colDef = currentConfig.dataStructure.find(s => s.header === field);
+            if (colDef && colDef.formula) {
+                val = applyFormula(colDef.formula, opp);
+            }
+        }
+        
+        if (val === null || val === undefined || val === '—') return type === 'number' || type === 'currency' ? -Infinity : '';
+        
+        if (type === 'number' || type === 'currency') {
+            const clean = String(val).replace(/[$,]/g, '');
+            const num = parseFloat(clean);
+            return isNaN(num) ? -Infinity : num;
+        }
+        if (type === 'bool') {
+            const v = String(val).toLowerCase().trim();
+            return (v === 'true' || v === '1' || v === 'sí' || v === 'si' || v === 'yes' || v === 'y') ? 1 : 0;
+        }
+        
+        // Handle dates (DD/MM/YYYY)
+        if (type === 'date' || (typeof val === 'string' && val.includes('/') && val.split('/').length === 3)) {
+            const parts = String(val).split('/');
+            if (parts.length === 3) {
+                const d = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const y = parseInt(parts[2], 10);
+                const dateObj = new Date(y, m, d);
+                return isNaN(dateObj.getTime()) ? -Infinity : dateObj.getTime();
+            }
+        }
+        
+        return String(val).toLowerCase();
+    }
+
+    // Phase 4: Pagination
+    const totalItems = filteredOpps.length;
+    const itemsPerPage = currentConfig.itemsPerPage || 50;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    if (totalItems > itemsPerPage) {
+        elements.oppPagination.classList.remove('hidden');
+        if (currentConfig.currentPage > totalPages) currentConfig.currentPage = Math.max(1, totalPages);
+        
+        const startIdx = (currentConfig.currentPage - 1) * itemsPerPage;
+        const paginatedOpps = filteredOpps.slice(startIdx, startIdx + itemsPerPage);
+        
+        elements.oppPageInfo.textContent = `Página ${currentConfig.currentPage} de ${totalPages} (${totalItems} total)`;
+        elements.oppPrevBtn.disabled = currentConfig.currentPage === 1;
+        elements.oppNextBtn.disabled = currentConfig.currentPage === totalPages;
+
+        renderOpportunityGroups(paginatedOpps, visibleCols);
+    } else {
+        elements.oppPagination.classList.add('hidden');
+        currentConfig.currentPage = 1;
+        renderOpportunityGroups(filteredOpps, visibleCols);
+    }
+}
+
+function renderOpportunityGroups(opps, visibleCols) {
+    elements.oppListBody.innerHTML = '';
+    
     // Group filtered opportunities by Account ID
-    const groups = filteredOpps.reduce((acc, opp) => {
+    const groups = opps.reduce((acc, opp) => {
         const accountId = opp['Account ID'] || 'Sin Account ID';
         if (!acc[accountId]) acc[accountId] = [];
         acc[accountId].push(opp);
@@ -1868,10 +2277,13 @@ function renderOpportunities() {
             renderOpportunities();
         };
 
-        elements.oppListBody.appendChild(headerTr);
+        const showAccountHeaders = !elements.hideAccountsCb.checked;
+        if (showAccountHeaders) {
+            elements.oppListBody.appendChild(headerTr);
+        }
 
-        // Render each opportunity in the group if not collapsed
-        if (!currentConfig.collapsedAccounts.has(accountId)) {
+        // Render each opportunity in the group if not collapsed (or if accounts are hidden)
+        if (!currentConfig.collapsedAccounts.has(accountId) || !showAccountHeaders) {
             group.forEach(opp => {
                 const tr = document.createElement('tr');
                 tr.className = 'clickable';
@@ -2143,6 +2555,7 @@ window.openActivities = (oppId, initialTab = 'tab-pocs') => {
     if (initialTab === 'tab-pocs') openPocs(oppId);
     else if (initialTab === 'tab-rfp') openRfp(oppId);
     else if (initialTab === 'tab-demo') openDemo(oppId);
+    else if (initialTab === 'tab-medpicc') openMedpicc(oppId);
 
     elements.activitiesModal.classList.remove('hidden');
 };
@@ -2291,6 +2704,7 @@ elements.savePocDetailBtn.onclick = async () => {
 
     const timeline = Array.from(elements.pocTimelineBody.querySelectorAll('tr')).map(tr => ({
         activity: tr.querySelector('.act').value,
+        startDate: tr.querySelector('.start-date').value,
         date: tr.querySelector('.date').value,
         comments: tr.querySelector('.comm').value
     })).filter(t => t.activity);
@@ -2331,7 +2745,7 @@ function renderPocSimpleList(container, items, type) {
         const row = document.createElement('div');
         row.className = 'list-item-row';
         row.innerHTML = `
-            <input type="text" value="${item}" placeholder="Agregar item...">
+            <input type="text" value="${item}" placeholder="${getTranslation('placeholder_item')}">
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
         container.appendChild(row);
@@ -2346,8 +2760,8 @@ function renderPocObjectList(container, items, type) {
         row.className = 'list-item-row';
         const datalist = type === 'squad' ? 'list="responsibles-list"' : '';
         row.innerHTML = `
-            <input type="text" class="name-input" value="${item.name || ''}" placeholder="Nombre" ${datalist}>
-            <input type="text" class="role-input" value="${item.role || ''}" placeholder="Responsabilidad">
+            <input type="text" class="name-input" value="${item.name || ''}" placeholder="${getTranslation('placeholder_name')}" ${datalist}>
+            <input type="text" class="role-input" value="${item.role || ''}" placeholder="${getTranslation('placeholder_responsibility')}">
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
         container.appendChild(row);
@@ -2359,9 +2773,13 @@ function renderPocTimeline(timeline) {
     const renderItems = timeline.length > 0 ? timeline : [{ activity: '', date: '', comments: '' }];
     renderItems.forEach((item, index) => {
         const tr = document.createElement('tr');
+        const actDeadline = item.date || '';
+        const actStart = item.startDate || actDeadline;
+        
         tr.innerHTML = `
-            <td><input type="text" class="activity-input act" value="${item.activity || ''}" placeholder="Milestone"></td>
-            <td><input type="date" class="activity-input date" value="${item.date || ''}"></td>
+            <td><input type="text" class="activity-input act" value="${item.activity || ''}" placeholder="${getTranslation('placeholder_milestone')}"></td>
+            <td><input type="date" class="activity-input start-date" value="${actStart}"></td>
+            <td><input type="date" class="activity-input date" value="${actDeadline}"></td>
             <td><input type="text" class="activity-input comm" value="${item.comments || ''}" placeholder="..."></td>
             <td><button type="button" class="remove-item-btn" onclick="this.closest('tr').remove()">&times;</button></td>
         `;
@@ -2401,6 +2819,7 @@ elements.addPocTimelineBtn.onclick = () => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
         <td><input type="text" class="activity-input act" placeholder="Milestone"></td>
+        <td><input type="date" class="activity-input start-date"></td>
         <td><input type="date" class="activity-input date"></td>
         <td><input type="text" class="activity-input comm" placeholder="..."></td>
         <td><button type="button" class="remove-item-btn" onclick="this.closest('tr').remove()">&times;</button></td>
@@ -2498,7 +2917,7 @@ elements.generateFoTicketBtn.onclick = async () => {
 
     try {
         elements.generateFoTicketBtn.disabled = true;
-        elements.generateFoTicketBtn.textContent = 'Generando...';
+        elements.generateFoTicketBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${getTranslation('toast_loading')}`;
 
         // 1. First, generate PDF for preview
         const pdfBlob = await generateDocument('PDF');
@@ -2551,7 +2970,7 @@ elements.generateFoTicketBtn.onclick = async () => {
         showToast(`Error: ${error.message}`, 'error');
     } finally {
         elements.generateFoTicketBtn.disabled = false;
-        elements.generateFoTicketBtn.textContent = 'Generar Documento';
+        elements.generateFoTicketBtn.innerHTML = `<i class="fas fa-sync"></i> ${getTranslation('btn_generate_document')}`;
     }
 };
 
@@ -2730,12 +3149,14 @@ elements.saveDemoBtn.onclick = async () => {
     elements.demoActivitiesBody.querySelectorAll('.activity-row-grid').forEach(grid => {
         const resp = grid.querySelector('.resp').value;
         const manualDate = grid.querySelector('.date-input').value;
+        const startDate = grid.querySelector('.start-date-input').value;
         saveResponsible(resp);
         activities.push({
             activity: grid.querySelector('.act').value,
             responsible: resp,
             comments: grid.querySelector('.comm').value,
-            date: manualDate ? new Date(manualDate).toISOString() : new Date().toISOString()
+            date: manualDate ? new Date(manualDate).toISOString() : new Date().toISOString(),
+            startDate: startDate ? new Date(startDate).toISOString() : (manualDate ? new Date(manualDate).toISOString() : new Date().toISOString())
         });
     });
 
@@ -2756,22 +3177,78 @@ elements.saveDemoBtn.onclick = async () => {
     showToast('Demo guardada');
 };
 
+// MEDDPICC Logic
+window.openMedpicc = (oppId) => {
+    activeOppId = oppId;
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
+    if (!opp) return;
+
+    elements.activitiesOppInfoMedpicc.textContent = `${opp['Opportunity Name']} (${oppId})`;
+
+    const mat = currentConfig.materials[oppId] || {};
+    const med = mat.medpicc || {};
+
+    elements.medMetrics.value = med.metrics || '';
+    elements.medBuyer.value = med.buyer || '';
+    elements.medCriteria.value = med.criteria || '';
+    elements.medProcess.value = med.process || '';
+    elements.medPaper.value = med.paper || '';
+    elements.medPain.value = med.pain || '';
+    elements.medChampion.value = med.champion || '';
+    elements.medCompetition.value = med.competition || '';
+};
+
+if (elements.saveMedpiccBtn) {
+    elements.saveMedpiccBtn.onclick = async () => {
+        if (!activeOppId) return;
+
+        if (!currentConfig.materials[activeOppId]) {
+            currentConfig.materials[activeOppId] = { pocs: [], rfp: { activities: [] }, demo: { activities: [] } };
+        }
+
+        currentConfig.materials[activeOppId].medpicc = {
+            metrics: elements.medMetrics.value.trim(),
+            buyer: elements.medBuyer.value.trim(),
+            criteria: elements.medCriteria.value.trim(),
+            process: elements.medProcess.value.trim(),
+            paper: elements.medPaper.value.trim(),
+            pain: elements.medPain.value.trim(),
+            champion: elements.medChampion.value.trim(),
+            competition: elements.medCompetition.value.trim()
+        };
+
+        await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+        showToast('Calificación (MEDDPICC) guardada');
+    };
+}
+
+
 // Helper for generic Activity Inputs
 function renderActivityInputs(activities, container, removeFnName) {
     container.innerHTML = '';
     activities.forEach((act, index) => {
         const tr = document.createElement('tr');
-        const actDate = act.date ? act.date.split('T')[0] : new Date().toISOString().split('T')[0];
+        const actDeadline = act.date ? act.date.split('T')[0] : new Date().toISOString().split('T')[0];
+        const actStart = act.startDate ? act.startDate.split('T')[0] : actDeadline;
+        
         tr.innerHTML = `
             <td colspan="3">
                 <div class="activity-row-grid">
                     <div class="activity-data-col">
-                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Fecha Límite:</div>
-                        <input type="date" class="activity-input date-input" value="${actDate}" data-index="${index}" title="Fecha Límite" lang="es-MX">
-                        <input type="text" class="activity-input act" placeholder="Actividad" value="${act.activity || ''}" data-index="${index}">
-                        <input type="text" class="activity-input resp" placeholder="Responsable" list="responsibles-list" value="${act.responsible || ''}" data-index="${index}">
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.2rem;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">${getTranslation('label_start_date')}:</div>
+                                <input type="date" class="activity-input start-date-input" value="${actStart}" data-index="${index}" title="${getTranslation('label_start_date')}" style="width: 100%;">
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">${getTranslation('label_deadline')}:</div>
+                                <input type="date" class="activity-input date-input" value="${actDeadline}" data-index="${index}" title="${getTranslation('label_deadline')}" style="width: 100%;">
+                            </div>
+                        </div>
+                        <input type="text" class="activity-input act" placeholder="${getTranslation('placeholder_activity')}" value="${act.activity || ''}" data-index="${index}">
+                        <input type="text" class="activity-input resp" placeholder="${getTranslation('placeholder_resp')}" list="responsibles-list" value="${act.responsible || ''}" data-index="${index}">
                     </div>
-                    <textarea class="activity-input comm" placeholder="Comentarios..." rows="3" data-index="${index}">${act.comments || ''}</textarea>
+                    <textarea class="activity-input comm" placeholder="${getTranslation('placeholder_comments')}" rows="3" data-index="${index}">${act.comments || ''}</textarea>
                     <button class="delete-row-btn" style="margin-top: 0.5rem;" onclick="${removeFnName}(${index})">&times;</button>
                 </div>
             </td>
@@ -2869,15 +3346,23 @@ async function renderActivityCalendar() {
     const month = date.getMonth();
 
     const lang = elements.languageSelect.value.replace('_', '-');
-    const monthFormatter = new Intl.DateTimeFormat(lang, { month: 'long' });
-    const currentMonthName = monthFormatter.format(date);
+    
+    // Generate localized names to avoid ReferenceErrors
+    const monthNames = Array.from({length: 12}, (_, i) => {
+        const name = new Intl.DateTimeFormat(lang, {month: 'long'}).format(new Date(2026, i, 1));
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    });
+    const dayNames = Array.from({length: 7}, (_, i) => {
+        const name = new Intl.DateTimeFormat(lang, {weekday: 'long'}).format(new Date(2026, 3, 26 + i)); // 26 April 2026 is Sunday
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    });
 
     elements.calendarGrid.innerHTML = '';
     const headerGrid = document.querySelector('.calendar-header-grid');
     headerGrid.innerHTML = '';
 
     if (view === 'month') {
-        elements.currentMonthDisplay.textContent = `${currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1)} ${year}`;
+        elements.currentMonthDisplay.textContent = `${monthNames[month]} ${year}`;
         elements.calendarGrid.className = 'calendar-grid month-view';
         headerGrid.className = 'calendar-header-grid month-view';
 
@@ -2958,8 +3443,14 @@ function renderDayAgenda(year, month, day) {
     dayGroup.className = 'agenda-day-group';
 
     const dateObj = new Date(year, month, day);
-    const dayNamesShort = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
-    const monthNamesShort = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+    const dayNamesShort = Array.from({length: 7}, (_, i) => {
+        const name = new Intl.DateTimeFormat(lang, {weekday: 'short'}).format(new Date(2026, 3, 26 + i));
+        return name.toUpperCase();
+    });
+    const monthNamesShort = Array.from({length: 12}, (_, i) => {
+        const name = new Intl.DateTimeFormat(lang, {month: 'short'}).format(new Date(2026, i, 1));
+        return name.toUpperCase();
+    });
 
     const dateHtml = `
         <div class="agenda-date-col">
@@ -3017,40 +3508,48 @@ function renderDayCell(year, month, day) {
 }
 
 function getActivityForDay(year, month, day) {
-    let dayActs = [];
-    const targetDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const activities = [];
+    const targetDate = new Date(year, month, day);
+    targetDate.setHours(0, 0, 0, 0);
 
-    for (const [oppId, material] of Object.entries(currentConfig.materials)) {
+    for (const oppId in currentConfig.materials) {
         const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
-        const oppName = opp ? opp['Opportunity Name'] : oppId;
+        const name = opp ? opp['Opportunity Name'] : 'Oportunidad Desconocida';
+        const mat = currentConfig.materials[oppId];
 
-        // PoC Activities
-        if (material.pocs) {
-            material.pocs.forEach(poc => {
+        const checkMatch = (act, type) => {
+            if (!act.date) return;
+            const deadline = new Date(act.date);
+            deadline.setHours(0, 0, 0, 0);
+            
+            const start = act.startDate ? new Date(act.startDate) : deadline;
+            start.setHours(0, 0, 0, 0);
+
+            if (targetDate >= start && targetDate <= deadline) {
+                activities.push({
+                    ...act,
+                    oppId,
+                    oppName: name,
+                    type
+                });
+            }
+        };
+
+        if (mat.pocs) {
+            mat.pocs.forEach(poc => {
                 if (poc.activities) {
-                    poc.activities.forEach(act => {
-                        if (act.date && act.date.split('T')[0] === targetDateStr) {
-                            dayActs.push({ ...act, type: 'poc', oppName, oppId });
-                        }
-                    });
+                    poc.activities.forEach(act => checkMatch(act, 'poc'));
+                }
+                if (poc.timeline) {
+                    poc.timeline.forEach(m => checkMatch(m, 'poc'));
                 }
             });
         }
-        // RFP Activities
-        if (material.rfp && material.rfp.activities) {
-            material.rfp.activities.forEach(act => {
-                if (act.date && act.date.split('T')[0] === targetDateStr) {
-                    dayActs.push({ ...act, type: 'rfp', oppName, oppId });
-                }
-            });
+        if (mat.rfp && mat.rfp.activities) {
+            mat.rfp.activities.forEach(act => checkMatch(act, 'rfp'));
         }
-        // Demo Activities
-        if (material.demo && material.demo.activities) {
-            material.demo.activities.forEach(act => {
-                if (act.date && act.date.split('T')[0] === targetDateStr) {
-                    dayActs.push({ ...act, type: 'demo', oppName, oppId });
-                }
-            });
+        if (mat.demo && mat.demo.activities) {
+            mat.demo.activities.forEach(act => checkMatch(act, 'demo'));
         }
     }
 
@@ -3059,22 +3558,26 @@ function getActivityForDay(year, month, day) {
         if (account.attackPlan && account.attackPlan.activities) {
             const accName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
             account.attackPlan.activities.forEach(act => {
-                const actDate = act.startDate || act.date;
-                if (actDate && actDate === targetDateStr) {
-                    dayActs.push({
+                const deadline = new Date(act.date);
+                deadline.setHours(0, 0, 0, 0);
+                const start = act.startDate ? new Date(act.startDate) : deadline;
+                start.setHours(0, 0, 0, 0);
+
+                if (targetDate >= start && targetDate <= deadline) {
+                    activities.push({
                         activity: act.name,
                         responsible: 'Account Plan',
                         comments: act.comments,
                         type: 'attack',
                         oppName: accName,
-                        oppId: accountId // Use accountId as oppId for navigation
+                        oppId: accountId
                     });
                 }
             });
         }
     }
 
-    return dayActs;
+    return activities;
 }
 
 // --- Account Attack Plan Management ---
@@ -3356,7 +3859,7 @@ function renderGlobalContacts() {
             <td>${contact.position || ''}</td>
             <td>${contact.email || ''}</td>
             <td>${contact.phone || ''}</td>
-            <td><span class="badge badge-${(contact.influence || 'Medio').toLowerCase()}">${contact.influence || 'Medio'}</span></td>
+            <td><span class="badge badge-${(contact.influence || 'Medio').toLowerCase()}">${getTranslation('label_influence_' + (contact.influence || 'Medium').toLowerCase())}</span></td>
             <td><strong>${contact.accountName}</strong></td>
             <td>${contact.notes || ''}</td>
         `;
