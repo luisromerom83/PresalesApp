@@ -1,7 +1,7 @@
 const translations = {
     es_MX: {
         // App Header
-        app_title: "Presales LatinTool",
+        app_title: "Presales Integrity Ledger",
         update_available: "Nueva actualización disponible",
         help_manual: "Manual de Ayuda",
         user_name: "Usuario",
@@ -281,7 +281,7 @@ const translations = {
     },
     pt_BR: {
         // App Header
-        app_title: "Presales LatinTool",
+        app_title: "Presales Integrity Ledger",
         update_available: "Nova atualização disponível",
         help_manual: "Manual de Ajuda",
         user_name: "Usuário",
@@ -563,7 +563,7 @@ const translations = {
     },
     en_US: {
         // App Header
-        app_title: "Presales LatinTool",
+        app_title: "Presales Integrity Ledger",
         update_available: "New update available",
         help_manual: "Help Manual",
         user_name: "User",

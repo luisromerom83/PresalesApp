@@ -22,7 +22,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: "Presales LatinTool",
+    title: "Presales Integrity Ledger",
     icon: appIcon,
     frame: true, // Standard window frame
     autoHideMenuBar: true,
