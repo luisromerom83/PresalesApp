@@ -53,7 +53,7 @@ let currentConfig = {
     changedStages: {}, // Tracks opps whose stage changed after CSV import
     assessmentStructure: [], // Grouped discovery questions
     managerSettings: { team: [], docs: [] }, // Hidden manager section data
-    currentSort: { column: null, direction: 'asc' } // Sorting state
+    currentSort: { column: null, direction: 'asc' }, // Sorting state
     currentPage: 1,
     itemsPerPage: 50
 };
@@ -300,12 +300,7 @@ const elements = {
     calcAmount: document.getElementById('calc-amount'),
     calcPercent: document.getElementById('calc-percent'),
     calcExchange: document.getElementById('calc-exchange'),
-    calcResult: document.getElementById('calc-result')
-};
-
-// Account Plans Grouping Listener
-elements.accountsGroupBySelect.onchange = () => {
-    renderAccountsWithPlan();
+    calcResult: document.getElementById('calc-result'),
     hideAccountsCb: document.getElementById('hide-accounts-cb'),
     oppPagination: document.getElementById('opp-pagination'),
     oppPrevBtn: document.getElementById('opp-prev-btn'),
@@ -326,6 +321,11 @@ elements.accountsGroupBySelect.onchange = () => {
     medCompetition: document.getElementById('med-competition'),
     saveMedpiccBtn: document.getElementById('save-medpicc-btn'),
     appLogo: document.querySelector('.app-logo')
+};
+
+// Account Plans Grouping Listener
+elements.accountsGroupBySelect.onchange = () => {
+    renderAccountsWithPlan();
 };
 
 if (elements.toggleSidebarBtn) {
@@ -1426,6 +1426,7 @@ async function loadAllData(dir) {
                 { id: "3.26", stage: "3.26", area: "Infraestructura", question: "¿En qué plataforma y/o sistema operativo prefiere que se ejecuten las aplicaciones?", type: "open" }
             ];
             await window.electronAPI.saveFile(dir, 'assessment_structure.json', currentConfig.assessmentStructure);
+        }
         const filtersData = await window.electronAPI.loadFile(dir, 'filters.json');
         if (filtersData) {
             if (filtersData.sidebarFilters) currentConfig.sidebarFilters = filtersData.sidebarFilters;
@@ -2783,14 +2784,7 @@ function renderOpportunities() {
     }
 
 
-        filteredOpps.sort((a, b) => {
-            const valA = getSortValue(a, field, type);
-            const valB = getSortValue(b, field, type);
-            if (valA < valB) return -1 * dir;
-            if (valA > valB) return 1 * dir;
-            return 0;
-        });
-    }
+
 
     function getSortValue(opp, field, type) {
         let val = opp[field];
@@ -4710,8 +4704,6 @@ async function renderActivityCalendar() {
         return name.charAt(0).toUpperCase() + name.slice(1);
     });
 
-    const monthNames = Array.from({length: 12}, (_, i) => new Intl.DateTimeFormat(lang, { month: 'long' }).format(new Date(2000, i, 1)));
-    const dayNames = Array.from({length: 7}, (_, i) => new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(new Date(2000, 0, 2 + i)));
 
     elements.calendarGrid.innerHTML = '';
     const headerGrid = document.querySelector('.calendar-header-grid');
