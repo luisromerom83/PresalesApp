@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } = require('electron');
+app.disableHardwareAcceleration();
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
