@@ -1,0 +1,377 @@
+467-                                    <div class="form-group">
+468:<<<<<<< HEAD
+469-                                        <label for="local-repo-path" data-i18n="label_local_repo">Repositorio Local de
+470-                                            Archivos (Anexos)</label>
+471-                                        <p class="sub-text" data-i18n="desc_local_repo">Se recomienda usar una carpeta
+472-                                            sincronizada con OneDrive.
+473-                                        </p>
+474-                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+475-                                            <span id="local-repo-display" class="path-display" style="flex: 1;"
+476-                                                data-i18n="path_not_selected">No
+477-                                                seleccionada</span>
+478-                                            <button id="select-local-repo-btn" class="secondary-btn small"
+--
+514-                                <div class="card settings-card">
+515:<<<<<<< HEAD
+516-                                    <h3 data-i18n="title_classifications">Clasificaciones de Cuenta</h3>
+517-                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="desc_classifications">
+518-                                        Administra las categorías
+519-=======
+520-                                    <h3 data-i18n="settings_class_title">Clasificaciones de Cuenta</h3>
+521-                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="settings_class_desc">Administra las categorías
+522->>>>>>> origin/main
+523-                                        disponibles para clasificar cuentas.</p>
+524-                                    <div id="classification-manager-list" style="margin-bottom: 1rem;">
+525-                                        <!-- Categories injected here -->
+--
+528-                                        <input type="text" id="new-classification-input"
+529:<<<<<<< HEAD
+530-                                            placeholder="Nueva categoría..." class="form-input"
+531-                                            data-i18n="placeholder_new_category" data-i18n-prop="placeholder">
+532-                                        <button id="add-classification-btn" class="secondary-btn"
+533-                                            data-i18n="btn_add">Añadir</button>
+534-=======
+535-                                            placeholder="Nueva categoría..." data-i18n="placeholder_new_cat" data-i18n-prop="placeholder" class="form-input">
+536-                                        <button id="add-classification-btn" class="secondary-btn" data-i18n="btn_add_classification">Añadir</button>
+537->>>>>>> origin/main
+538-                                    </div>
+539-                                </div>
+--
+546-                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+547:<<<<<<< HEAD
+548-                                        <h3 data-i18n="title_sidebar_filters">Filtros del Sidebar</h3>
+549-                                        <button id="add-sidebar-filter-btn" class="secondary-btn small"
+550-                                            data-i18n="btn_new_group">+ Nuevo Grupo</button>
+551-                                    </div>
+552-                                    <p class="sub-text" style="margin-bottom: 1.5rem;" data-i18n="desc_sidebar_filters">
+553-                                        Crea grupos de filtrado basados
+554-=======
+555-                                        <h3 data-i18n="settings_sidebar_title">Filtros del Sidebar</h3>
+556-                                        <button id="add-sidebar-filter-btn" class="secondary-btn small" data-i18n="btn_add_group">+ Nuevo
+557-                                            Grupo</button>
+--
+568-                                <div class="card settings-card">
+569:<<<<<<< HEAD
+570-                                    <h3 data-i18n="title_fo_api">Integración Front Office (API)</h3>
+571-                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="desc_fo_api">Configura
+572-                                        el endpoint y Token de
+573-                                        Autorización para generar tickets.</p>
+574-                                    <div class="form-group">
+575-                                        <label for="fo-api-url" data-i18n="label_fo_url">Base URL (Front Office)</label>
+576-                                        <p class="sub-text" data-i18n="desc_fo_url">Ejemplo:
+577-                                            https://company.quadientcloud.eu/</p>
+578-                                        <input type="text" id="fo-api-url" placeholder="https://...">
+579-                                    </div>
+--
+611-                                    <div class="form-group">
+612:<<<<<<< HEAD
+613-                                        <label for="fo-api-assessment-template"
+614-                                            data-i18n="label_assessment_template">Plantilla Assessment (Resource
+615-                                            Path)</label>
+616-                                        <p class="sub-text" data-i18n="desc_assessment_template">Ejemplo:
+617-                                            icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/AssessmentTemplate.jld
+618-                                        </p>
+619-                                        <input type="text" id="fo-api-assessment-template"
+620-                                            placeholder="ej: root:S:Production//Templates/AssessmentTemplate.jld">
+621-                                    </div>
+622-                                    <div class="form-group">
+--
+671-                                <div class="card settings-card">
+672:<<<<<<< HEAD
+673-                                    <h3 data-i18n="title_csv_structure">Estructura de Datos (CSV)</h3>
+674-                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="desc_csv_structure">
+675-                                        Define las columnas que esperas en
+676-=======
+677-                                    <h3 data-i18n="settings_structure_title">Estructura de Datos (CSV)</h3>
+678-                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="settings_structure_desc">Define las columnas que esperas en
+679->>>>>>> origin/main
+680-                                        tu CSV y sus valores de ejemplo.</p>
+681-                                    <div class="table-container small" style="margin-bottom: 1rem;">
+682-                                        <table id="structure-table">
+--
+684-                                                <tr>
+685:<<<<<<< HEAD
+686-                                                    <th data-i18n="col_csv_field">Campo (Header)</th>
+687-                                                    <th data-i18n="col_csv_sample">Muestra</th>
+688-                                                    <th data-i18n="col_csv_type">Tipo</th>
+689-                                                    <th data-i18n="col_csv_view">Vista</th>
+690-                                                    <th data-i18n="col_csv_group">Agrupar</th>
+691-=======
+692-                                                    <th data-i18n="header_field">Campo (Header)</th>
+693-                                                    <th data-i18n="header_sample">Muestra</th>
+694-                                                    <th data-i18n="header_type">Tipo</th>
+695-                                                    <th data-i18n="header_view">Vista</th>
+--
+703-                                    <div class="form-actions" style="margin-top: 1rem; gap: 1rem; display: flex;">
+704:<<<<<<< HEAD
+705-                                        <button id="add-structure-row-btn" class="secondary-btn small"
+706-                                            data-i18n="btn_add_field">+ Agregar Campo</button>
+707-                                        <button id="download-sample-btn" class="secondary-btn small"
+708-                                            data-i18n="btn_download_sample">Descargar Muestra</button>
+709-                                        <button id="reset-structure-btn" class="secondary-btn small"
+710-                                            style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);"
+711-                                            data-i18n="btn_reset_standard">Restablecer Estándar</button>
+712-                                        <label class="csv-upload-btn primary-btn small"
+713-                                            style="margin: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+714-                                            <span data-i18n="btn_import_csv">Importar CSV</span>
+--
+800-                    <div class="modal-tabs">
+801:<<<<<<< HEAD
+802-                        <button class="tab-btn active" data-tab="tab-assessment">📋 <span
+803-                                data-i18n="btn_assessment">Assessment</span></button>
+804-                        <button class="tab-btn" data-tab="tab-demo" data-i18n="btn_demos">📽️ Demos</button>
+805-                        <button class="tab-btn" data-tab="tab-pocs" data-i18n="btn_pocs">🧪 PoCs</button>
+806-                        <button class="tab-btn" data-tab="tab-rfp" data-i18n="btn_rfps">📄 RFPs / RFIs</button>
+807-                        <button class="tab-btn" data-tab="tab-handover" data-i18n="btn_handover">🏁 Handover</button>
+808-=======
+809-                        <button class="tab-btn active" data-tab="tab-pocs" data-i18n="tab_pocs">🧪 PoCs</button>
+810-                        <button class="tab-btn" data-tab="tab-rfp" data-i18n="tab_rfp">📄 RFPs / RFIs</button>
+811-                        <button class="tab-btn" data-tab="tab-demo" data-i18n="tab_demo">📽️ Demos</button>
+--
+867-                                        <tr>
+868:<<<<<<< HEAD
+869-                                            <th data-i18n="label_description">Descripción</th>
+870-                                            <th data-i18n="label_start">Inicio</th>
+871-                                            <th data-i18n="label_owner">Responsable</th>
+872-                                            <th style="text-align: right;" data-i18n="label_actions">Acciones</th>
+873-=======
+874-                                            <th data-i18n="header_poc_desc">Descripción</th>
+875-                                            <th data-i18n="header_poc_start">Inicio</th>
+876-                                            <th data-i18n="header_poc_resp">Responsable</th>
+877-                                            <th style="text-align: right;" data-i18n="header_actions">Acciones</th>
+878->>>>>>> origin/main
+--
+891-                            <div class="form-group">
+892:<<<<<<< HEAD
+893-                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+894-                                        data-i18n="label_documentation">Documentación</span></label>
+895-=======
+896-                                <label data-i18n="label_documentation"><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documentación</label>
+897->>>>>>> origin/main
+898-                                <div class="url-field-wrapper">
+899-                                    <input type="text" id="rfp-url" placeholder="https://..." class="url-input">
+900-                                    <div id="rfp-url-preview" class="url-preview hidden">
+901-                                        <a href="#" class="url-link" target="_blank" data-i18n="btn_open_link">Abrir
+902-                                            link</a>
+--
+907-                            </div>
+908:<<<<<<< HEAD
+909-                            <h4 data-i18n="title_activities_tracking">Actividades y Seguimiento</h4>
+910-                            <div class="table-container small">
+911-                                <table>
+912-                                    <thead>
+913-                                        <tr>
+914-                                            <th data-i18n="label_activity_owner">Actividad / Responsable</th>
+915-                                            <th data-i18n="label_comments">Comentarios</th>
+916-                                            <th></th>
+917-                                        </tr>
+918-                                    </thead>
+--
+957-                                <label data-i18n="label_demo_desc">Descripción de la Demo Solicitada</label>
+958:<<<<<<< HEAD
+959-                                <textarea id="demo-desc" placeholder="..." rows="3"></textarea>
+960-=======
+961-                                <textarea id="demo-desc" placeholder="..." rows="3" data-i18n="label_demo_desc" data-i18n-prop="placeholder"></textarea>
+962->>>>>>> origin/main
+963-                            </div>
+964-                            <div class="form-group">
+965-                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+966-                                        data-i18n="label_material">Material</span></label>
+967-                                <div class="url-field-wrapper">
+968-                                    <input type="text" id="demo-url" placeholder="https://..." class="url-input">
+--
+976-                            </div>
+977:<<<<<<< HEAD
+978-                            <h4 data-i18n="title_prep_activities">Actividades de Preparación</h4>
+979-=======
+980-                            <h4 data-i18n="label_activities_prep">Actividades de Preparación</h4>
+981->>>>>>> origin/main
+982-                            <div class="table-container small">
+983-                                <table>
+984-                                    <thead>
+985-                                        <tr>
+986:<<<<<<< HEAD
+987-                                            <th data-i18n="label_activity_owner">Actividad / Responsable</th>
+988-                                            <th data-i18n="label_comments">Comentarios</th>
+989-=======
+990-                                            <th data-i18n="header_activity_resp">Actividad / Responsable</th>
+991-                                            <th data-i18n="header_comments">Comentarios</th>
+992->>>>>>> origin/main
+993-                                            <th></th>
+994-                                        </tr>
+995-                                    </thead>
+996-                                    <tbody id="demo-activities-body"></tbody>
+--
+998-                            </div>
+999:<<<<<<< HEAD
+1000-                            <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;"
+1001-                                data-i18n="btn_add_activity">+ Agregar Actividad</button>
+1002-=======
+1003-                            <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;" data-i18n="btn_add_activity">+
+1004-                                    Agregar Actividad</button>
+1005->>>>>>> origin/main
+1006-
+1007-                            <div class="poc-form-section"
+1008-                                style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+1009-                                <div
+--
+1021-                                        <button id="add-walkthrough-prep-btn" class="text-btn small"
+1022:<<<<<<< HEAD
+1023-                                            style="margin-top: 0.5rem; color: var(--brand-teal);"
+1024-                                            data-i18n="btn_add_step">+ Añadir Paso</button>
+1025-=======
+1026-                                            style="margin-top: 0.5rem; color: var(--brand-teal);" data-i18n="btn_add_step">+
+1027-                                            Añadir Paso</button>
+1028->>>>>>> origin/main
+1029-                                    </div>
+1030-                                    <div class="walkthrough-section">
+1031-                                        <h5 data-i18n="label_flow_steps"
+1032-                                            style="margin-bottom: 0.5rem; color: var(--brand-orange);">Presentación
+--
+1035-                                        <button id="add-walkthrough-flow-btn" class="text-btn small"
+1036:<<<<<<< HEAD
+1037-                                            style="margin-top: 0.5rem; color: var(--brand-orange);"
+1038-                                            data-i18n="btn_add_step">+ Añadir Paso</button>
+1039-=======
+1040-                                            style="margin-top: 0.5rem; color: var(--brand-orange);" data-i18n="btn_add_step">+ Añadir
+1041-                                            Paso</button>
+1042->>>>>>> origin/main
+1043-                                    </div>
+1044-                                </div>
+1045-                            </div>
+1046-                            <div class="form-actions" style="margin-top: 2rem;">
+1047:<<<<<<< HEAD
+1048-                                <button id="save-demo-btn" class="primary-btn" data-i18n="btn_save_demo">Guardar
+1049-                                    Demo</button>
+1050-                            </div>
+1051-                        </div>
+1052-
+1053-
+1054-                        <!-- Handover Tab Content -->
+1055-                        <div id="tab-handover" class="tab-content">
+1056-                            <div class="toolbar-inline">
+1057-                                <span id="activities-opp-info-handover" class="sub-text"></span>
+--
+1148-                    <div class="modal-header">
+1149:<<<<<<< HEAD
+1150-                        <h3 id="poc-detail-title" data-i18n="title_poc_detail">Detalle de Prueba de Concepto (PoC)</h3>
+1151-=======
+1152-                        <h3 id="poc-detail-title" data-i18n="modal_poc_detail_title">Detalle de Prueba de Concepto (PoC)</h3>
+1153->>>>>>> origin/main
+1154-                        <button id="close-poc-detail-modal-btn" class="close-btn">&times;</button>
+1155-                    </div>
+1156-                    <div class="modal-body">
+1157-                        <div class="poc-form-section">
+1158:<<<<<<< HEAD
+1159-                            <h4 data-i18n="title_exec_summary">1. Resumen Ejecutivo</h4>
+1160-                            <div class="form-group">
+1161-                                <label data-i18n="label_poc_objective">Proof of Concept Objective</label>
+1162-                                <textarea id="poc-objective" placeholder="Objetivo de la PoC..." rows="2"
+1163-                                    data-i18n="placeholder_poc_objective" data-i18n-prop="placeholder"></textarea>
+1164-                            </div>
+1165-                            <div class="form-group">
+1166-                                <label data-i18n="label_poc_usecase">Proof of Concept Primary Use Case</label>
+1167-                                <textarea id="poc-use-case" placeholder="Caso de uso principal..." rows="2"
+1168-                                    data-i18n="placeholder_poc_usecase" data-i18n-prop="placeholder"></textarea>
+--
+1182-                        <div class="poc-form-section">
+1183:<<<<<<< HEAD
+1184-                            <h4 data-i18n="title_scope_timeline">2. Alcance y Cronograma</h4>
+1185-                            <div class="form-group">
+1186-                                <label data-i18n="label_poc_scope">Proof of Concept Scope Summary</label>
+1187-                                <div id="poc-scope-container" class="dynamic-list"></div>
+1188-                                <button type="button" class="secondary-btn small add-list-item" data-type="scope"
+1189-                                    data-i18n="btn_add_scope">+ Agregar Alcance</button>
+1190-                            </div>
+1191-                            <div class="form-group">
+1192-                                <label data-i18n="label_timeline">Timeline</label>
+1193-=======
+--
+1207-                                            <tr>
+1208:<<<<<<< HEAD
+1209-                                                <th data-i18n="label_activity">Actividad</th>
+1210-                                                <th data-i18n="label_milestone_date">Fecha Milestone</th>
+1211-                                                <th data-i18n="label_status_comments">Estado / Comentarios</th>
+1212-                                                <th></th>
+1213-=======
+1214-                                                <th data-i18n="placeholder_activity">Actividad</th>
+1215-                                                <th style="width: 130px;" data-i18n="header_poc_start">Inicio</th>
+1216-                                                <th style="width: 130px;" data-i18n="label_deadline">Límite</th>
+1217-                                                <th data-i18n="label_poc_status">Estado / Comentarios</th>
+1218-                                                <th style="width: 40px;"></th>
+--
+1224-                                </div>
+1225:<<<<<<< HEAD
+1226-                                <button type="button" class="secondary-btn small" id="add-poc-timeline-btn"
+1227-                                    data-i18n="btn_add_milestone">+ Agregar Milestone</button>
+1228-=======
+1229-                                <button type="button" class="secondary-btn small" id="add-poc-timeline-btn" data-i18n="btn_add_milestone">+ Agregar
+1230-                                    Milestone</button>
+1231->>>>>>> origin/main
+1232-                            </div>
+1233-                        </div>
+1234-
+1235-                        <div class="poc-form-section">
+1236:<<<<<<< HEAD
+1237-                            <h4 data-i18n="title_team_resources">3. Equipo y Recursos</h4>
+1238-                            <div class="form-group">
+1239-                                <label data-i18n="label_poc_resources">Proof of Concept Resources</label>
+1240-                                <div id="poc-resources-container" class="dynamic-list"></div>
+1241-                                <button type="button" class="secondary-btn small add-list-item" data-type="resources"
+1242-                                    data-i18n="btn_add_resource">+ Agregar Recurso</button>
+1243-                            </div>
+1244-                            <div class="two-col-grid">
+1245-                                <div class="form-group">
+1246-                                    <label data-i18n="label_stakeholders">Stakeholders (Cliente)</label>
+--
+1282-                        <div class="poc-form-section">
+1283:<<<<<<< HEAD
+1284-                            <h4 data-i18n="title_logistics_finance">4. Logística y Finanzas</h4>
+1285-                            <div class="form-group">
+1286-                                <label data-i18n="label_assumptions">Assumptions</label>
+1287-                                <textarea id="poc-assumptions" placeholder="Supuestos y premisas..."
+1288-                                    data-i18n="placeholder_assumptions" data-i18n-prop="placeholder"
+1289-                                    rows="2"></textarea>
+1290-                            </div>
+1291-                            <div class="form-group">
+1292-                                <label data-i18n="label_financials">Financials</label>
+1293-                                <textarea id="poc-financials" placeholder="Detalles financieros..." rows="2"
+--
+1309-                        <div class="poc-form-section">
+1310:<<<<<<< HEAD
+1311-                            <h4 data-i18n="title_documentation">5. Documentación</h4>
+1312-                            <div class="two-col-grid">
+1313-                                <div class="form-group">
+1314-                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+1315-                                            data-i18n="label_doc_acceptance">Documento de Aceptación</span></label>
+1316-=======
+1317-                            <h4 data-i18n="section_documentation">5. Documentación</h4>
+1318-                            <div class="two-col-grid">
+1319-                                <div class="form-group">
+1320-                                    <label data-i18n="label_acceptance_doc"><img src="assets/cloud-icon.svg" class="onedrive-icon"> Documento de
+--
+1334-                                <div class="form-group">
+1335:<<<<<<< HEAD
+1336-                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+1337-                                            data-i18n="label_poc_material">Material de la PoC</span></label>
+1338-=======
+1339-                                    <label data-i18n="label_poc_material"><img src="assets/cloud-icon.svg" class="onedrive-icon"> Material de la
+1340-                                        PoC</label>
+1341->>>>>>> origin/main
+1342-                                    <div class="url-field-wrapper">
+1343-                                        <input type="text" id="poc-url-content" placeholder="https://..."
+1344-                                            class="url-input">
+1345-                                        <div id="poc-url-content-preview" class="url-preview hidden">
+--
+1363-                                style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">
+1364:<<<<<<< HEAD
+1365-                                <i class="fas fa-file-pdf"></i> <span data-i18n="btn_preview_pdf">Previsualizar
+1366-                                    PDF</span></button>
+1367-                            <button id="generate-fo-ticket-btn" class="secondary-btn"
+1368-                                style="background: rgba(0, 120, 215, 0.1); color: #0078d7; border-color: #0078d7;">
+1369-                                <i class="fas fa-sync"></i> <span data-i18n="btn_generate_doc">Generar
+1370-                                    Documento</span></button>
+1371-                            <button id="save-poc-detail-btn" class="primary-btn" data-i18n="btn_save_poc_detail">Guardar
+1372-                                Prueba de Concepto</button>
+1373-=======
+1374-                                <i class="fas fa-file-pdf"></i> Previsualizar PDF</button>

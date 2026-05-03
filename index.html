@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presales LatinTool</title>
+    <title>Presales Integrity Ledger</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="assets/logo_shield.svg">
@@ -19,7 +19,7 @@
                 <button id="back-btn" class="back-btn hidden" title="Volver" data-i18n="btn_back"
                     data-i18n-prop="title">&larr;</button>
                 <img src="assets/logo_shield.svg" alt="Logo" class="app-logo" id="app-logo-trigger">
-                <h1 id="app-title" data-i18n="app_title">Presales LatinTool</h1>
+                <h1 id="app-title" data-i18n="app_title">Presales Integrity Ledger</h1>
             </div>
             <div class="header-right">
                 <div id="update-badge" class="update-badge hidden" title="Nueva actualización disponible"
@@ -93,36 +93,41 @@
             <section id="main-screen" class="screen main-screen">
                 <div class="main-layout">
                     <aside class="sidebar">
-                        <nav>
-                            <!-- Favoritos Group -->
-                            <div id="fav-group-container" class="nav-group">
-                                <div class="nav-group-label" id="toggle-fav-group">
-                                    <span><i class="fas fa-star" style="margin-right: 0.5rem; color: #ffb400;"></i> <span data-i18n="sidebar_favorites">Favoritos</span></span><span
-                                        class="toggle-icon">▾</span>
-                                </div>
-                                <div id="fav-group-submenu" class="submenu">
-                                    <button class="nav-btn active" data-target="opp-list-view" id="favorites-nav-btn"><i class="fas fa-star"></i> <span data-i18n="sidebar_favorites">Favoritos</span></button>
-                                </div>
-                            </div>
-
-                            <!-- Oportunidades Group -->
-                            <div id="opp-group-container" class="nav-group">
-                                <div class="nav-group-label" id="toggle-opp-group">
-                                    <span><i class="fas fa-briefcase" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span data-i18n="sidebar_opps">Oportunidades</span></span><span
-                                        class="toggle-icon">▾</span>
-                                </div>
-                                <div id="opp-group-submenu" class="submenu">
-                                    <button class="nav-btn" data-target="opp-list-view" id="all-opps-btn"><i class="fas fa-list"></i> <span data-i18n="sidebar_all">Todas</span></button>
-                                    <div id="dynamic-filters-container">
-                                        <!-- Dynamic groups injected here -->
+                        <button id="toggle-sidebar-btn" class="sidebar-toggle" title="Ocultar Sidebar">
+                            <span class="toggle-icon-arrow">&lsaquo;</span>
+                        </button>
+                        <div class="sidebar-scrollable">
+                            <nav>
+                                <!-- Favoritos Group -->
+                                <div id="fav-group-container" class="nav-group">
+                                    <div class="nav-group-label" id="toggle-fav-group">
+                                        <span><i class="fas fa-star" style="margin-right: 0.5rem; color: #ffb400;"></i> <span data-i18n="sidebar_favorites">Favoritos</span></span><span
+                                            class="toggle-icon">▾</span>
+                                    </div>
+                                    <div id="fav-group-submenu" class="submenu">
+                                        <button class="nav-btn active" data-target="opp-list-view" id="favorites-nav-btn"><i class="fas fa-star"></i> <span data-i18n="sidebar_favorites">Favoritos</span></button>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Gestión Group -->
-                            <div id="mgmt-group-container" class="nav-group">
-                                <div class="nav-group-label" id="toggle-mgmt-group">
-                                    <span><i class="fas fa-tasks" style="margin-right: 0.5rem; color: #72bf44;"></i> <span data-i18n="sidebar_mgmt">Gestión</span></span><span class="toggle-icon">▾</span>
+                                <!-- Oportunidades Group -->
+                                <div id="opp-group-container" class="nav-group">
+                                    <div class="nav-group-label" id="toggle-opp-group">
+                                        <span><i class="fas fa-briefcase" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span data-i18n="sidebar_opps">Oportunidades</span></span><span
+                                            class="toggle-icon">▾</span>
+                                    </div>
+                                    <div id="opp-group-submenu" class="submenu">
+                                        <button class="nav-btn" data-target="opp-list-view" id="all-opps-btn"><i class="fas fa-list"></i> <span data-i18n="sidebar_all">Todas</span></button>
+                                        <div id="dynamic-filters-container">
+                                            <!-- Dynamic groups injected here -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Gestión Group -->
+                                <div id="mgmt-group-container" class="nav-group">
+                                    <div class="nav-group-label" id="toggle-mgmt-group">
+                                        <span><i class="fas fa-tasks" style="margin-right: 0.5rem; color: #72bf44;"></i> <span data-i18n="sidebar_mgmt">Gestión</span></span><span class="toggle-icon">▾</span>
+                                    </div>
                                 </div>
                                 <div id="mgmt-group-submenu" class="submenu collapsed">
                                     <button class="nav-btn" data-target="activity-calendar-view" id="calendar-nav-btn"><i class="fas fa-calendar-alt"></i> <span data-i18n="sidebar_calendar">Calendario</span></button>
@@ -169,7 +174,8 @@
                                 </div>
                             </div>
                         </nav>
-                        <div id="app-version" class="sidebar-version">v2.0.0</div>
+                        <div id="app-version" class="sidebar-version">v2.2.0</div>
+                        </div>
                     </aside>
 
                     <div class="content">
@@ -217,10 +223,14 @@
                         <div id="opp-list-view" class="view active">
                             <div class="toolbar">
                                 <h2 id="opp-view-title" data-i18n="view_title_opps">Oportunidades</h2>
-                                <div class="search-container">
+                                <div class="search-container" style="display: flex; align-items: center; gap: 1rem;">
                                     <input type="text" id="opp-search-input"
                                         placeholder="Buscar por nombre, ID o cuenta..."
                                         data-i18n="placeholder_search_opps" data-i18n-prop="placeholder">
+                                    <label class="checkbox-container luxe-checkbox" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; white-space: nowrap; margin-right: 1rem;">
+                                        <input type="checkbox" id="hide-accounts-cb" style="width: 14px; height: 14px;">
+                                        <span data-i18n="hide_accounts" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ocultar Cuentas</span>
+                                    </label>
                                 </div>
                             </div>
 
@@ -233,6 +243,11 @@
                                         <!-- Rows injected here -->
                                     </tbody>
                                 </table>
+                                <div id="opp-pagination" class="pagination-container hidden" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--glass-border);">
+                                    <button id="opp-prev-btn" class="secondary-btn small">&larr; Anterior</button>
+                                    <span id="opp-page-info" class="sub-text" style="font-size: 0.85rem; font-weight: 600;">Página 1 de 1</span>
+                                    <button id="opp-next-btn" class="secondary-btn small">Siguiente &rarr;</button>
+                                </div>
                             </div>
                         </div>
 
@@ -290,13 +305,13 @@
                                 <table id="global-contacts-table">
                                     <thead>
                                         <tr>
-                                            <th>Nombre</th>
-                                            <th>Posición</th>
-                                            <th>Email</th>
-                                            <th>Teléfono</th>
-                                            <th>Influencia</th>
-                                            <th>Cuenta</th>
-                                            <th>Notas</th>
+                                            <th data-i18n="label_resource_name">Nombre</th>
+                                            <th data-i18n="label_contact_pos">Posición</th>
+                                            <th data-i18n="sidebar_email">Email</th>
+                                            <th data-i18n="label_contact_phone">Teléfono</th>
+                                            <th data-i18n="label_influence">Influencia</th>
+                                            <th data-i18n="label_contact_account">Cuenta</th>
+                                            <th data-i18n="label_contact_notes">Notas</th>
                                         </tr>
                                     </thead>
                                     <tbody id="global-contacts-body">
@@ -479,6 +494,14 @@
                                         <label for="browser-path" data-i18n="label_browser_path">Comando / Path del Navegador (Opcional)</label>
                                         <p class="sub-text" data-i18n="desc_browser_path">Si se deja vacío, usará el predeterminado del sistema. Ej: /usr/bin/google-chrome o firefox.</p>
                                         <input type="text" id="browser-path" placeholder="Ej: google-chrome" data-i18n="placeholder_browser_path" data-i18n-prop="placeholder">
+                                        <label for="crm-url-template" data-i18n="label_crm_url_template">Plantilla de URL Oportunidad (CRM)</label>
+                                        <p class="sub-text" data-i18n="placeholder_crm_url">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
+                                        <input type="text" id="crm-url-template" placeholder="https://..." data-i18n="placeholder_crm_url" data-i18n-prop="placeholder">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="account-url-template" data-i18n="label_account_url_template">Plantilla de URL Account</label>
+                                        <p class="sub-text" data-i18n="placeholder_account_url">Ejemplo: https://mycrm.com/account/{Account Name}</p>
+                                        <input type="text" id="account-url-template" placeholder="https://..." data-i18n="placeholder_account_url" data-i18n-prop="placeholder">
                                     </div>
                                 </div>
                             </div>
@@ -544,7 +567,7 @@
                                             icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/MyPoCTemplate.jld
                                         </p>
                                         <input type="text" id="fo-api-template"
-                                            placeholder="ej: root:S:Production//Templates/MyTemplate.jld">
+                                            placeholder="ej: root:S:Production//Templates/MyTemplate.jld" data-i18n="placeholder_fo_template" data-i18n-prop="placeholder">
                                     </div>
                                     <div class="form-group">
                                         <label for="fo-api-assessment-template"
@@ -662,7 +685,7 @@
                         </div>
 
                         <div class="notes-section">
-                            <h4>Historial de Notas</h4>
+                            <h4 data-i18n="header_notes_history">Historial de Notas</h4>
                             <div id="notes-list" class="notes-history">
                                 <!-- Notes injected here -->
                             </div>
@@ -712,6 +735,7 @@
                         <button class="tab-btn" data-tab="tab-pocs" data-i18n="btn_pocs">🧪 PoCs</button>
                         <button class="tab-btn" data-tab="tab-rfp" data-i18n="btn_rfps">📄 RFPs / RFIs</button>
                         <button class="tab-btn" data-tab="tab-handover" data-i18n="btn_handover">🏁 Handover</button>
+                        <button class="tab-btn" data-tab="tab-medpicc" data-i18n="tab_medpicc">🎯 Calificación (MEDDPICC)</button>
                     </div>
                     <div class="modal-body">
                         <!-- Assessment Tab Content -->
@@ -927,6 +951,47 @@
                                         data-i18n="placeholder_keywords" data-i18n-prop="placeholder"
                                         class="form-input">
                                 </div>
+
+                        <div id="tab-medpicc" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-medpicc" class="sub-text"></span>
+                            </div>
+                            <div class="medpicc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_metrics">Metrics (M)</label>
+                                    <textarea id="med-metrics" placeholder="Impacto cuantificable..." rows="2" data-i18n="med_metrics_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_eb">Economic Buyer (E)</label>
+                                    <textarea id="med-buyer" placeholder="¿Quién firma el cheque?..." rows="2" data-i18n="med_eb_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dc">Decision Criteria (D)</label>
+                                    <textarea id="med-criteria" placeholder="Requerimientos técnicos/negocio..." rows="2" data-i18n="med_dc_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dp">Decision Process (D)</label>
+                                    <textarea id="med-process" placeholder="Pasos para la aprobación..." rows="2" data-i18n="med_dp_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_pp">Paper Process (P)</label>
+                                    <textarea id="med-paper" placeholder="Proceso legal/compras..." rows="2" data-i18n="med_pp_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_ip">Identify Pain (I)</label>
+                                    <textarea id="med-pain" placeholder="Problema crítico del negocio..." rows="2" data-i18n="med_ip_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_champion">Champion (C)</label>
+                                    <textarea id="med-champion" placeholder="Tu aliado interno..." rows="2" data-i18n="med_champion_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_competition">Competition (C)</label>
+                                    <textarea id="med-competition" placeholder="Contra quién competimos..." rows="2" data-i18n="med_competition_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                                <button id="save-medpicc-btn" class="primary-btn" data-i18n="btn_save_medpicc">Guardar Calificación</button>
                             </div>
                         </div>
                     </div>
@@ -1070,8 +1135,10 @@
                                     PDF</span></button>
                             <button id="generate-fo-ticket-btn" class="secondary-btn"
                                 style="background: rgba(0, 120, 215, 0.1); color: #0078d7; border-color: #0078d7;">
-                                <i class="fas fa-sync"></i> <span data-i18n="btn_generate_doc">Generar
-                                    Documento</span></button>
+                                <i class="fas fa-sync"></i> <span data-i18n="btn_generate_doc">Generar Ticket FO</span></button>
+                            <button id="generate-poc-doc-btn" class="secondary-btn"
+                                style="background: rgba(138, 43, 226, 0.1); color: var(--brand-purple); border-color: var(--brand-purple);" data-i18n="btn_generate_document">
+                                <i class="fas fa-sync"></i> Generar Documento</button>
                             <button id="save-poc-detail-btn" class="primary-btn" data-i18n="btn_save_poc_detail">Guardar
                                 Prueba de Concepto</button>
                         </div>

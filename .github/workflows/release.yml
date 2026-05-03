@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     strategy:
@@ -12,7 +15,6 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -27,6 +29,9 @@ jobs:
         run: npm install
 
       - name: Build and Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             npx electron-builder --linux -p always
@@ -34,5 +39,3 @@ jobs:
             npx electron-builder --win -p always
           fi
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
