@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } = req
 app.disableHardwareAcceleration();
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
 if (require('electron-squirrel-startup')) return app.quit();
@@ -58,7 +59,8 @@ app.whenReady().then(() => {
       'login.live.com',
       'account.microsoft.com',
       'quadientcloud.com',
-      'quadientcloud.eu'
+      'quadientcloud.eu',
+      'spiff.com'
     ];
 
     if (targetDomains.some(domain => url.includes(domain))) {
@@ -101,12 +103,19 @@ app.whenReady().then(() => {
   });
 
   autoUpdater.on('error', (err) => {
+    // Ignore 404 errors for latest-linux.yml on Linux
+    if (process.platform === 'linux' && err.message.includes('latest-linux.yml')) {
+      console.log('Update info not found on GitHub for Linux. Skipping update check.');
+      return;
+    }
     console.error('Update error:', err);
     if (mainWindow) mainWindow.webContents.send('update-error', err.message);
   });
 
   // Check for updates
-  autoUpdater.checkForUpdatesAndNotify();
+  if (process.platform !== 'linux') {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -190,6 +199,37 @@ ipcMain.handle('migrate-files', async (event, { sourceDir, destDir }) => {
 
 ipcMain.handle('open-external-url', async (event, url) => {
   if (url) {
+    try {
+      let settings = {};
+      if (fs.existsSync(settingsPath)) {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+
+      if (settings.browserPath) {
+        // Platform-specific escaping and quoting
+        let command;
+        if (process.platform === 'win32') {
+          // On Windows, use double quotes for the path and the URL
+          // If browserPath contains spaces, it must be quoted
+          command = `"${settings.browserPath}" "${url}"`;
+        } else {
+          // On Linux/macOS, escape single quotes and wrap in single quotes
+          const safeUrl = url.replace(/'/g, "'\\''");
+          command = `${settings.browserPath} '${safeUrl}'`;
+        }
+
+        exec(command, (error) => {
+          if (error) {
+            console.error(`Error opening with custom browser (${process.platform}): ${error}`);
+            shell.openExternal(url); // Fallback to default
+          }
+        });
+        return { success: true };
+      }
+    } catch (e) {
+      console.error("Error reading settings for browser path:", e);
+    }
+
     await shell.openExternal(url);
     return { success: true };
   }
@@ -253,3 +293,30 @@ ipcMain.handle('install-update', () => {
   autoUpdater.quitAndInstall();
 });
 
+ipcMain.handle('list-files', async (event, dir) => {
+  try {
+    if (!fs.existsSync(dir)) return [];
+    const files = fs.readdirSync(dir, { withFileTypes: true });
+    return files.map(f => ({
+      name: f.name,
+      isDirectory: f.isDirectory(),
+      size: f.isFile() ? fs.statSync(path.join(dir, f.name)).size : 0,
+      mtime: fs.statSync(path.join(dir, f.name)).mtime
+    }));
+  } catch (error) {
+    return [];
+  }
+});
+
+ipcMain.handle('open-path', async (event, fullPath) => {
+  if (fs.existsSync(fullPath)) {
+    shell.openPath(fullPath);
+    return { success: true };
+  }
+  return { success: false, error: 'Path not found' };
+});
+
+ipcMain.handle('notify', (event, { title, body }) => {
+  const { Notification } = require('electron');
+  new Notification({ title, body }).show();
+});

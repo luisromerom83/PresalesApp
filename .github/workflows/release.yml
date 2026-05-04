@@ -10,7 +10,11 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -27,4 +31,11 @@ jobs:
       - name: Build and Publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run dist -- --publish always
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+            npx electron-builder --linux -p always
+          else
+            npx electron-builder --win -p always
+          fi
+        shell: bash

@@ -1,3 +1,22 @@
+const parseCustomDate = (dateStr) => {
+    if (!dateStr) return null;
+    dateStr = dateStr.toString().trim();
+    // Try dd/MM/yyyy
+    if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            const d = new Date(year, month, day);
+            if (d.getFullYear() === year && d.getMonth() === month && d.getDate() === day) return d;
+        }
+    }
+    // Try YYYY-MM-DD
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+};
+
 let currentConfig = {
     directory: null,
     user: null,
@@ -32,7 +51,9 @@ let currentConfig = {
     viewHistory: [], // Stack for navigation history
     resources: [],
     changedStages: {}, // Tracks opps whose stage changed after CSV import
-    currentSort: { field: 'Account Name', direction: 'asc' },
+    assessmentStructure: [], // Grouped discovery questions
+    managerSettings: { team: [], docs: [] }, // Hidden manager section data
+    currentSort: { column: null, direction: 'asc' }, // Sorting state
     currentPage: 1,
     itemsPerPage: 50
 };
@@ -136,8 +157,16 @@ const elements = {
     attackPlanActivitiesBody: document.getElementById('attack-plan-activities-body'),
     addAttackActivityBtn: document.getElementById('add-attack-activity-btn'),
     attackPlanStrategy: document.getElementById('attack-plan-strategy'),
+    attackPlanOwner: document.getElementById('attack-plan-owner'),
     saveAttackPlanBtn: document.getElementById('save-attack-plan-btn'),
+    resetAttackPlanBtn: document.getElementById('reset-attack-plan-btn'),
     attackPlanTimelineChart: document.getElementById('attack-plan-timeline-chart'),
+
+    // CSV Mapping Elements
+    csvMappingModal: document.getElementById('csv-mapping-modal'),
+    csvMappingBody: document.getElementById('csv-mapping-body'),
+    closeCsvMappingModalBtn: document.getElementById('close-csv-mapping-modal-btn'),
+    confirmCsvMappingBtn: document.getElementById('confirm-csv-mapping-btn'),
     // Account Contacts Elements
     accountContactsModal: document.getElementById('account-contacts-modal'),
     accountContactsModalTitle: document.getElementById('account-contacts-modal-title'),
@@ -163,9 +192,11 @@ const elements = {
     detailsModalTitle: document.getElementById('details-modal-title'),
     closeDetailsBtn: document.getElementById('close-details-btn'),
     accountUrlInput: document.getElementById('account-url-template'),
+    accountsGroupBySelect: document.getElementById('accounts-groupby-select'),
     appVersion: document.getElementById('app-version'),
     updateBadge: document.getElementById('update-badge'),
     updateModal: document.getElementById('update-modal'),
+    installUpdateBtn: document.getElementById('install-update-btn'),
     confirmUpdateBtn: document.getElementById('confirm-update-btn'),
     cancelUpdateBtn: document.getElementById('cancel-update-btn'),
     closeUpdateModalBtn: document.getElementById('close-update-modal-btn'),
@@ -177,11 +208,27 @@ const elements = {
     responsiblesList: document.getElementById('responsibles-list'),
     oppDescription: document.getElementById('opp-description'),
     saveOppDescriptionBtn: document.getElementById('save-opp-description-btn'),
+    saveMeddpiccBtn: document.getElementById('save-meddpicc-btn'),
+    meddMList: document.getElementById('medd-m-list'),
+    meddEContact: document.getElementById('medd-e-contact'),
+    meddERole: document.getElementById('medd-e-role'),
+    meddEInfluence: document.getElementById('medd-e-influence'),
+    meddESupport: document.getElementById('medd-e-support'),
+    meddD1List: document.getElementById('medd-d1-list'),
+    meddD2List: document.getElementById('medd-d2-list'),
+    meddPList: document.getElementById('medd-p-list'),
+    meddIList: document.getElementById('medd-i-list'),
+    meddCContact: document.getElementById('medd-c-contact'),
+    meddCRole: document.getElementById('medd-c-role'),
+    meddCInfluence: document.getElementById('medd-c-influence'),
+    meddCValidated: document.getElementById('medd-c-validated'),
+    meddC2List: document.getElementById('medd-c2-list'),
 
     // Front Office Settings
     foApiUrlInput: document.getElementById('fo-api-url'),
     foApiTokenInput: document.getElementById('fo-api-token'),
     foApiTemplateInput: document.getElementById('fo-api-template'),
+    foApiAssessmentTemplateInput: document.getElementById('fo-api-assessment-template'),
     foApiHolderInput: document.getElementById('fo-api-holder'),
     generateFoTicketBtn: document.getElementById('generate-poc-doc-btn'),
     viewFoTicketBtn: document.getElementById('view-fo-ticket-btn'),
@@ -217,6 +264,43 @@ const elements = {
     resourceNameInput: document.getElementById('resource-name-input'),
     resourceContentInput: document.getElementById('resource-content-input'),
     saveResourceBtn: document.getElementById('save-resource-btn'),
+    browserPathInput: document.getElementById('browser-path'),
+
+    // Assessment Elements
+    assessmentQuestList: document.getElementById('assessment-questions-list'),
+    assessmentSearchInput: document.getElementById('assessment-search-input'),
+    assessmentGeneralNotes: document.getElementById('assessment-general-notes'),
+    saveAssessmentBtn: document.getElementById('save-assessment-btn'),
+    generateAssessmentDocBtn: document.getElementById('generate-assessment-doc-btn'),
+    viewAssessmentPdfBtn: document.getElementById('view-assessment-pdf-btn'),
+    downloadAssessmentDocxBtn: document.getElementById('download-assessment-docx-btn'),
+    activitiesOppInfoAssessment: document.getElementById('activities-opp-info-assessment'),
+    activitiesOppInfoPoc: document.getElementById('activities-opp-info-poc'),
+    activitiesOppInfoRfp: document.getElementById('activities-opp-info-rfp'),
+    activitiesOppInfoDemo: document.getElementById('activities-opp-info-demo'),
+    activitiesOppInfoHandover: document.getElementById('activities-opp-info-handover'),
+    isReferenceCaseCheckbox: document.getElementById('is-reference-case-checkbox'),
+    referenceKeywords: document.getElementById('reference-keywords'),
+    generateHandoverDocBtn: document.getElementById('generate-handover-doc-btn'),
+    exportDataBtn: document.getElementById('export-data-btn'),
+    importDataBtn: document.getElementById('import-data-btn'),
+
+    // Assessment Structure Management
+    assessmentStructureList: document.getElementById('assessment-structure-list'),
+    addAssessmentQuestionBtn: document.getElementById('add-assessment-question-btn'),
+
+    // Manager Section Elements
+    managerTrigger: document.getElementById('app-logo-trigger'),
+    managerView: document.getElementById('manager-view'),
+    managerTeamList: document.getElementById('manager-team-list'),
+    newMemberName: document.getElementById('new-member-name'),
+    addMemberBtn: document.getElementById('add-member-btn'),
+
+    // Calculator Elements
+    calcAmount: document.getElementById('calc-amount'),
+    calcPercent: document.getElementById('calc-percent'),
+    calcExchange: document.getElementById('calc-exchange'),
+    calcResult: document.getElementById('calc-result'),
     hideAccountsCb: document.getElementById('hide-accounts-cb'),
     oppPagination: document.getElementById('opp-pagination'),
     oppPrevBtn: document.getElementById('opp-prev-btn'),
@@ -237,6 +321,11 @@ const elements = {
     medCompetition: document.getElementById('med-competition'),
     saveMedpiccBtn: document.getElementById('save-medpicc-btn'),
     appLogo: document.querySelector('.app-logo')
+};
+
+// Account Plans Grouping Listener
+elements.accountsGroupBySelect.onchange = () => {
+    renderAccountsWithPlan();
 };
 
 if (elements.toggleSidebarBtn) {
@@ -294,7 +383,9 @@ function showScreen(screenId) {
     document.getElementById(screenId).classList.add('active');
 }
 
-function showView(viewId, isBack = false) {
+function showView(viewId, isBack = false, triggerBtn = null) {
+    if (!viewId) return;
+
     const activeView = document.querySelector('.view.active');
     const currentViewId = activeView ? activeView.id : null;
 
@@ -303,12 +394,20 @@ function showView(viewId, isBack = false) {
     }
 
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+    // Handle active state of navigation buttons
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.submenu-btn').forEach(b => b.classList.remove('active'));
 
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active');
 
-    const navBtn = document.querySelector(`[data-target="${viewId}"]`);
+    if (triggerBtn) {
+        triggerBtn.classList.add('active');
+    } else {
+        const navBtn = document.querySelector(`[data-target="${viewId}"]`);
+        if (navBtn) navBtn.classList.add('active');
+    }
     if (navBtn && viewId !== 'opp-list-view') navBtn.classList.add('active');
 
     // Show/Hide back button based on history
@@ -335,6 +434,17 @@ if (elements.addGeneralNoteBtn) {
 // Window Controls Logic
 
 // Keyboard Shortcuts
+window.goToAccount = (accountId) => {
+    currentConfig.activeFilters = {};
+    currentConfig.currentFavoritesFilter = false;
+    currentConfig.currentSearchQuery = accountId.toLowerCase();
+    elements.oppSearchInput.value = accountId;
+
+    renderOpportunities();
+    renderDynamicFilters();
+    showView('opp-list-view');
+};
+
 window.goToOpportunity = (oppId) => {
     currentConfig.activeFilters = {};
     currentConfig.currentFavoritesFilter = false;
@@ -369,25 +479,23 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Sidebar Oportunidades Group Toggle
-const toggleBtn = document.getElementById('toggle-opp-group');
-const oppSubmenu = document.getElementById('opp-group-submenu');
-if (toggleBtn && oppSubmenu) {
-    toggleBtn.onclick = () => {
-        oppSubmenu.classList.toggle('collapsed');
-        toggleBtn.classList.toggle('collapsed');
-    };
-}
+// Sidebar Groups Toggles
+const setupSidebarToggle = (toggleId, submenuId) => {
+    const toggle = document.getElementById(toggleId);
+    const submenu = document.getElementById(submenuId);
+    if (toggle && submenu) {
+        toggle.onclick = () => {
+            submenu.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        };
+    }
+};
 
-// Sidebar Microsoft Group Toggle
-const toggleMsBtn = document.getElementById('toggle-ms-group');
-const msSubmenu = document.getElementById('ms-group-submenu');
-if (toggleMsBtn && msSubmenu) {
-    toggleMsBtn.onclick = () => {
-        msSubmenu.classList.toggle('collapsed');
-        toggleMsBtn.classList.toggle('collapsed');
-    };
-}
+setupSidebarToggle('toggle-fav-group', 'fav-group-submenu');
+setupSidebarToggle('toggle-opp-group', 'opp-group-submenu');
+setupSidebarToggle('toggle-ms-group', 'ms-group-submenu');
+setupSidebarToggle('toggle-mgmt-group', 'mgmt-group-submenu');
+setupSidebarToggle('toggle-config-group', 'config-group-submenu');
 
 
 // Sidebar Navigation
@@ -421,13 +529,17 @@ document.addEventListener('click', (e) => {
         renderAccountsWithPlan();
     }
     if (target === 'settings-view') {
+        const tab = btn.getAttribute('data-tab');
+        if (tab) {
+            switchSettingsTab(tab);
+        }
         renderStructureEditor();
         renderSidebarFilterManager();
     }
     if (target === 'resources-view') {
         renderResources();
     }
-    showView(target);
+    showView(target, false, btn);
 });
 
 // Search Logic
@@ -476,7 +588,7 @@ elements.helpBtn.onclick = () => {
 
 
 // Tab Switching for Activities Modal
-document.querySelectorAll('.tab-btn').forEach(btn => {
+elements.activitiesModal.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const targetTab = btn.getAttribute('data-tab');
         const modal = elements.activitiesModal;
@@ -487,12 +599,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
         // Update content
         modal.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        modal.querySelector(`#${targetTab}`).classList.add('active');
+        const activeContent = modal.querySelector(`#${targetTab}`);
+        if (activeContent) activeContent.classList.add('active');
 
         // Initial render for the tab
+        if (targetTab === 'tab-assessment') renderAssessmentTab(activeOppId);
         if (targetTab === 'tab-pocs') renderPocsList();
         if (targetTab === 'tab-rfp') renderRfpTab();
         if (targetTab === 'tab-demo') renderDemoTab();
+        if (targetTab === 'tab-handover') renderHandoverTab(activeOppId);
     });
 });
 
@@ -545,7 +660,8 @@ function renderDynamicFilters() {
         const groupLabel = document.createElement('div');
         groupLabel.className = `nav-group-label ${isExpanded ? '' : 'collapsed'} ${isFullyActive ? 'active' : ''}`;
         groupLabel.id = `toggle-${filter.id}`;
-        groupLabel.innerHTML = `<span>${filter.label}</span><span class="toggle-icon">▾</span>`;
+        // Using common color for dynamic filters (Cyan/Blue)
+        groupLabel.innerHTML = `<span><i class="fas fa-filter" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span>${filter.label}</span></span><span class="toggle-icon">▾</span>`;
 
         const submenu = document.createElement('div');
         submenu.id = `submenu-${filter.id}`;
@@ -589,11 +705,10 @@ function renderDynamicFilters() {
                 } else {
                     arr.push(opt.value);
                 }
-
                 currentConfig.currentFavoritesFilter = false;
                 renderOpportunities();
                 renderDynamicFilters();
-                showView('opp-list-view');
+                showView('opp-list-view', false, btn);
             };
             submenu.appendChild(btn);
         });
@@ -604,17 +719,14 @@ function renderDynamicFilters() {
 }
 
 // Settings Tab Logic
-document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-    btn.onclick = () => {
-        const targetTab = btn.getAttribute('data-tab');
-        document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(targetTab).classList.add('active');
+window.switchSettingsTab = (targetTab) => {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById(targetTab);
+    if (pane) pane.classList.add('active');
 
-        if (targetTab === 'settings-classifications') renderClassificationManager();
-    };
-});
+    if (targetTab === 'settings-classifications') renderClassificationManager();
+    if (targetTab === 'settings-assessment') renderAssessmentStructureEditor();
+};
 
 function renderClassificationManager() {
     elements.classificationManagerList.innerHTML = '';
@@ -807,13 +919,13 @@ function renderSidebarFilterManager() {
                         <input type="text" class="form-input" placeholder="${getTranslation('placeholder_btn_label')}" value="${rule.label}" 
                             onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'label', this.value)" style="font-weight: bold;">
                         <select class="form-input" onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'matchType', this.value)" style="width: auto;">
-                            <option value="AND" ${rule.matchType === 'AND' ? 'selected' : ''}>Y (AND)</option>
-                            <option value="OR" ${rule.matchType === 'OR' ? 'selected' : ''}>O (OR)</option>
+                            <option value="AND" ${rule.matchType === 'AND' ? 'selected' : ''}>${getTranslation('opt_and') || 'Y (AND)'}</option>
+                            <option value="OR" ${rule.matchType === 'OR' ? 'selected' : ''}>${getTranslation('opt_or') || 'O (OR)'}</option>
                         </select>
                         <button class="delete-cat-btn" onclick="deleteRuleGroup(${fIdx}, ${rIdx})">×</button>
                     </div>
                     <div class="conditions-container" id="conditions-${fIdx}-${rIdx}"></div>
-                    <button class="secondary-btn small" onclick="addCondition(${fIdx}, ${rIdx})">+ Condición</button>
+                    <button class="secondary-btn small" onclick="addCondition(${fIdx}, ${rIdx})">${getTranslation('btn_add_condition') || '+ Condición'}</button>
                 `;
                 rulesList.appendChild(groupDiv);
 
@@ -1075,8 +1187,8 @@ async function init() {
 
     if (window.electronAPI.onUpdateProgress) {
         window.electronAPI.onUpdateProgress((progress) => {
-            elements.updateMessage.textContent = `Descargando: ${Math.round(progress.percent)}% (${(progress.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s)`;
-            elements.confirmUpdateBtn.textContent = "Descargando...";
+            elements.updateMessage.textContent = `${getTranslation('msg_downloading') || 'Descargando'}: ${Math.round(progress.percent)}% (${(progress.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s)`;
+            elements.confirmUpdateBtn.textContent = (getTranslation('msg_downloading') || "Descargando") + "...";
             elements.confirmUpdateBtn.disabled = true;
         });
     }
@@ -1090,7 +1202,7 @@ async function init() {
                 elements.updateMessage.textContent = "La actualización ya se descargó. ¿Deseas reiniciar la aplicación para instalar?";
                 elements.confirmUpdateBtn.classList.remove('hidden');
                 elements.confirmUpdateBtn.disabled = false;
-                elements.confirmUpdateBtn.textContent = "Reiniciar e Instalar";
+                elements.confirmUpdateBtn.textContent = (getTranslation('btn_restart_install') || "Reiniciar e Instalar");
                 elements.confirmUpdateBtn.onclick = () => {
                     window.electronAPI.installUpdate();
                 };
@@ -1113,7 +1225,7 @@ async function init() {
             showToast(`Error al actualizar: ${err}`);
             elements.updateModal.classList.add('hidden');
             elements.confirmUpdateBtn.disabled = false;
-            elements.confirmUpdateBtn.textContent = "Reintentar";
+            elements.confirmUpdateBtn.textContent = (getTranslation('btn_retry') || "Reintentar");
         });
     }
 
@@ -1123,6 +1235,7 @@ async function init() {
     try {
         const settings = await window.electronAPI.getSettings();
         if (settings) {
+            currentConfig.settings = settings;
             currentConfig.crmUrlTemplate = settings.crmUrlTemplate || '';
             currentConfig.accountUrlTemplate = settings.accountUrlTemplate || '';
             const theme = settings.theme || 'auto';
@@ -1131,7 +1244,9 @@ async function init() {
             if (elements.foApiUrlInput) elements.foApiUrlInput.value = settings.foApiUrl || '';
             if (elements.foApiTokenInput) elements.foApiTokenInput.value = settings.foApiToken || '';
             if (elements.foApiTemplateInput) elements.foApiTemplateInput.value = settings.foApiTemplate || '';
+            if (elements.foApiAssessmentTemplateInput) elements.foApiAssessmentTemplateInput.value = settings.foApiAssessmentTemplate || '';
             if (elements.foApiHolderInput) elements.foApiHolderInput.value = settings.foApiHolder || '';
+            if (elements.browserPathInput) elements.browserPathInput.value = settings.browserPath || '';
             elements.themeSelect.value = theme;
             applyTheme(theme);
             if (settings.language) {
@@ -1200,6 +1315,12 @@ async function loadAllData(dir) {
             if (userData.accountUrlTemplate) currentConfig.accountUrlTemplate = userData.accountUrlTemplate;
             if (elements.crmUrlInput) elements.crmUrlInput.value = currentConfig.crmUrlTemplate;
             if (elements.accountUrlInput) elements.accountUrlInput.value = currentConfig.accountUrlTemplate;
+
+            // Sync API settings from config.json
+            if (userData.foApiUrl && elements.foApiUrlInput) elements.foApiUrlInput.value = userData.foApiUrl;
+            if (userData.foApiToken && elements.foApiTokenInput) elements.foApiTokenInput.value = userData.foApiToken;
+            if (userData.foApiTemplate && elements.foApiTemplateInput) elements.foApiTemplateInput.value = userData.foApiTemplate;
+            if (userData.foApiHolder && elements.foApiHolderInput) elements.foApiHolderInput.value = userData.foApiHolder;
         }
 
         const opps = await window.electronAPI.loadFile(dir, 'opportunities.json');
@@ -1244,6 +1365,68 @@ async function loadAllData(dir) {
             ];
         }
 
+        const assessmentStruct = await window.electronAPI.loadFile(dir, 'assessment_structure.json');
+        if (assessmentStruct) {
+            // Ensure every question has a 'type', default to 'open' if missing (migration)
+            currentConfig.assessmentStructure = assessmentStruct.map(q => ({
+                ...q,
+                type: q.type || 'open'
+            }));
+        } else {
+            // Default Assessment Structure
+            currentConfig.assessmentStructure = [
+                { id: "2.1", stage: "2.1", area: "Diseño", question: "¿Cuenta actualmente con algún sistema de diseño documental?", type: "closed" },
+                { id: "2.2", stage: "2.2", area: "Diseño", question: "¿Qué tipo de producción necesitan? (on demand, batch, ambas)", type: "open" },
+                { id: "2.3", stage: "2.3", area: "Diseño", question: "¿Qué tipo de inputs tienen en su producción?", type: "open" },
+                { id: "2.4", stage: "2.4", area: "Diseño", question: "¿Qué tipos de formatos necesitan generar (PDF, PCL, PS, otro)?", type: "open" },
+                { id: "2.5", stage: "2.5", area: "Diseño", question: "¿Cuántas plantillas de comunicaciones tienen actualmente?", type: "quantity" },
+                { id: "2.6", stage: "2.6", area: "Producción", question: "¿La información para la generación de comunicaciones se entregará a partir de sus core systems o Quadient tiene que ir a recuperarla?", type: "open" },
+                { id: "2.7", stage: "2.7", area: "Producción", question: "Por favor describa el escenario básico de producción de comunicaciones", type: "open" },
+                { id: "2.8", stage: "2.8", area: "Composición de documentos vía web", question: "¿Se necesita que usuarios de negocio creen o modifiquen plantillas desde una interfaz de usuario web?", type: "closed" },
+                { id: "2.9", stage: "2.9", area: "Composición de documentos vía web", question: "¿Se necesita que usuarios de oficina puedan utilizar las plantillas para generación documental bajo demanda? (Por ejemplo, contratos o pólizas a partir de una plantilla)", type: "closed" },
+                { id: "2.10", stage: "2.10", area: "Email", question: "¿Se espera realizar envíos de emails?", type: "closed" },
+                { id: "2.11", stage: "2.11", area: "Email", question: "¿Estos emails llevan archivos adjuntos?", type: "closed" },
+                { id: "2.12", stage: "2.12", area: "SMS", question: "¿Se espera realizar envíos de sms?", type: "closed" },
+                { id: "2.13", stage: "2.13", area: "Whatsapp", question: "¿Se espera realizar push a whatsapp?", type: "closed" },
+                { id: "2.14", stage: "2.14", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Actualmente cuenta con una aplicación web o móvil? ¿Si sí, en qué está desarrollada?", type: "open" },
+                { id: "2.15", stage: "2.15", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Desean entregar contenido a su aplicación web o móvil? (¿por ejemplo, estado de cuenta interactivo, cotizadores, formularios de contratación?", type: "closed" },
+                { id: "2.16", stage: "2.16", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Desean realizar envíos de push notifications?", type: "closed" },
+                { id: "2.17", stage: "2.17", area: "Orquestación", question: "¿Cuenta o tiene planeada la realización de una orquestación de envíos de comunicaciones? (por ejemplo, si un cliente no abre un correo electrónico enviarle un sms)", type: "closed" },
+                { id: "2.18", stage: "2.18", area: "Orquestación", question: "¿Que canales planean manejar dentro de la orquestación de la jornada del cliente? (por ejemplo, email, sms, whatsapp, impreso)", type: "open" },
+                { id: "2.19", stage: "2.19", area: "Customer Experience", question: "¿Existe la necesidad de mapear la experiencia del usuario en una interfaz web?", type: "closed" },
+                { id: "2.20", stage: "2.20", area: "Customer Experience", question: "¿Cuenta con una herramienta de mapeo de la jornada de clientes?", type: "closed" },
+                { id: "2.21", stage: "2.21", area: "Archiving", question: "¿Cuenta con alguna herramienta de archiving?", type: "closed" },
+                { id: "2.22", stage: "2.22", area: "Archiving", question: "¿Necesita almacenar los archivos producidos por Quadient?", type: "closed" },
+                { id: "2.23", stage: "2.23", area: "Archiving", question: "¿En qué formato necesita almacenarlos?", type: "open" },
+                { id: "3.1", stage: "3.1", area: "Diseño", question: "¿Cuántos analistas/programadores trabajan concurrentemente con diseño documental?", type: "quantity" },
+                { id: "3.2", stage: "3.2", area: "Diseño", question: "¿Necesitan manejo de espacios en blanco?", type: "closed" },
+                { id: "3.3", stage: "3.3", area: "Diseño", question: "¿Cuántas plantillas de comunicaciones tienen actualmente?", type: "quantity" },
+                { id: "3.4", stage: "3.4", area: "Diseño", question: "¿Qué cantidad de páginas (lado de una hoja) son producidas o se esperan producir por año?", type: "quantity" },
+                { id: "3.5", stage: "3.5", area: "Diseño", question: "¿Hay que migrar estas viejas plantillas o se espera que convivan los dos sistemas?", type: "closed" },
+                { id: "3.6", stage: "3.6", area: "Producción", question: "¿Cuál es el pico más alto de producción?", type: "quantity" },
+                { id: "3.7", stage: "3.7", area: "Producción", question: "¿Cuáles son los SLA definido para la producción de comunicaciones?", type: "open" },
+                { id: "3.8", stage: "3.8", area: "Composición de documentos vía Web", question: "¿Cuántos usuarios/departamentos van a colaborar (crear o modificar) con el contenido de las plantillas?", type: "quantity" },
+                { id: "3.9", stage: "3.9", area: "Composición de documentos vía Web", question: "¿Se espera que cada departamento/línea de negocio pueda crear o modificar las plantillas y que no sean visibles para los demás departamentos?", type: "closed" },
+                { id: "3.10", stage: "3.10", area: "Composición de documentos vía Web", question: "¿Hay un flujo de aprobación de las plantillas modificadas por los usuarios de negocio?", type: "closed" },
+                { id: "3.11", stage: "3.11", area: "Email", question: "¿Estos archivos adjuntos son documentos genericos de la compañía o documentos generados personalizados para cada cliente?", type: "open" },
+                { id: "3.12", stage: "3.12", area: "Email", question: "¿Qué cantidad de páginas tienen los archivos adjuntos?, si aplica)", type: "quantity" },
+                { id: "3.13", stage: "3.13", area: "Email", question: "¿Qué cantidad de emails se esperan enviar al año?", type: "quantity" },
+                { id: "3.14", stage: "3.14", area: "SMS", question: "¿Qué tipo de mensaje se va a enviar por sms, texto plano, liga a una pagina interactiva HTML5, otro?", type: "open" },
+                { id: "3.15", stage: "3.15", area: "SMS", question: "¿Qué cantidad de SMS se esperan enviar al año?", type: "quantity" },
+                { id: "3.16", stage: "3.16", area: "Whatsapp", question: "¿Qué tipo de mensaje se va a enviar por whatsapp, texto plano, liga a una pagina interactiva HTML5, otro?", type: "open" },
+                { id: "3.17", stage: "3.17", area: "Whatsapp", question: "¿Qué cantidad de mensajes se esperan enviar al año?", type: "quantity" },
+                { id: "3.18", stage: "3.18", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Se espera enviar emails con una Landingpage en formato interactivo (HTML5)?", type: "closed" },
+                { id: "3.19", stage: "3.19", area: "Aplicaciones móviles y Web (HTML5)", question: "¿Con cuántos usuarios activos cuenta la aplicación? ¿O cuántos se esperan tener?", type: "quantity" },
+                { id: "3.20", stage: "3.20", area: "Orquestación", question: "¿Cuántos usuarios realizarían los flujos de orquestación?", type: "quantity" },
+                { id: "3.21", stage: "3.21", area: "Customer Experience", question: "¿Cuántos mapas de jornada de cliente utilizan hoy?", type: "quantity" },
+                { id: "3.22", stage: "3.22", area: "Customer Experience", question: "¿Cuántos usuarios participarían en la revisión y edición del mapa de la experiencia del usuario?", type: "quantity" },
+                { id: "3.23", stage: "3.23", area: "Archiving", question: "¿Cuántos usuarios internos realizarían consultas al sistema de archivado?", type: "quantity" },
+                { id: "3.24", stage: "3.24", area: "Archiving", question: "¿Cuántos usuarios externos realizarían consultas al sistema de archivado?", type: "quantity" },
+                { id: "3.25", stage: "3.25", area: "Infraestructura", question: "¿Qué ambientes deberian ser partes de la solución? (QA, Testing, Development, HA, Disaster Recovery)", type: "open" },
+                { id: "3.26", stage: "3.26", area: "Infraestructura", question: "¿En qué plataforma y/o sistema operativo prefiere que se ejecuten las aplicaciones?", type: "open" }
+            ];
+            await window.electronAPI.saveFile(dir, 'assessment_structure.json', currentConfig.assessmentStructure);
+        }
         const filtersData = await window.electronAPI.loadFile(dir, 'filters.json');
         if (filtersData) {
             if (filtersData.sidebarFilters) currentConfig.sidebarFilters = filtersData.sidebarFilters;
@@ -1263,6 +1446,12 @@ async function loadAllData(dir) {
     }
 }
 
+async function saveMaterials() {
+    if (!currentConfig.directory) return;
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
+
+// Directory Selection
 function migrateSecondaryFilters() {
     let changed = false;
     currentConfig.sidebarFilters.forEach(filter => {
@@ -1347,15 +1536,272 @@ async function finalizeDirChange() {
     }
 }
 
+
+// --- HIDDEN MANAGER LOGIC ---
+let managerClickCount = 0;
+let managerClickTimer = null;
+
+if (elements.managerTrigger) {
+    elements.managerTrigger.addEventListener('click', () => {
+        managerClickCount++;
+        clearTimeout(managerClickTimer);
+        managerClickTimer = setTimeout(() => { managerClickCount = 0; }, 500);
+
+        if (managerClickCount === 3) {
+            managerClickCount = 0;
+            console.log("Manager: Entrando a vista de gestión");
+            showView('manager-view');
+            renderManagerView();
+        }
+    });
+}
+
+function renderManagerView() {
+    elements.managerTeamList.innerHTML = '';
+
+    (currentConfig.managerSettings.team || []).forEach((member, memberIdx) => {
+        if (typeof member === 'string') {
+            currentConfig.managerSettings.team[memberIdx] = { name: member, docs: [], isCollapsed: true };
+            member = currentConfig.managerSettings.team[memberIdx];
+        }
+
+        const isCollapsed = member.isCollapsed !== false;
+
+        const memberCard = document.createElement('div');
+        memberCard.className = 'card settings-card';
+        memberCard.style.padding = isCollapsed ? '0.6rem 1rem' : '1.25rem 1.5rem';
+        memberCard.style.marginBottom = isCollapsed ? '0.5rem' : '1.5rem';
+        memberCard.style.background = 'rgba(255,255,255,0.03)';
+        memberCard.style.transition = 'all 0.2s ease';
+        memberCard.style.height = 'auto';
+        memberCard.style.minHeight = '0';
+
+        let docsHtml = (member.docs || []).map((doc, docIdx) => `
+            <div class="member-doc-item" style="margin-bottom: 0.8rem;">
+                <div class="category-item" style="display: grid; grid-template-columns: 120px 1fr auto auto auto auto; gap: 0.5rem; align-items: center; margin-bottom: 0.2rem; background: rgba(255,255,255,0.05); padding: 4px 8px;">
+                    <input type="text" class="form-input" value="${doc.label}" 
+                        onchange="updateMemberDoc(${memberIdx}, ${docIdx}, 'label', this.value)" 
+                        style="height: 28px; padding: 2px 6px; font-size: 0.8rem; font-weight: 700; background: transparent; border: 1px solid transparent;"
+                        onfocus="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='var(--glass-border)'"
+                        onblur="this.style.background='transparent'; this.style.borderColor='transparent'">
+                    
+                    <span class="sub-text" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8;" title="${doc.path}">${doc.path}</span>
+                    
+                    <button class="secondary-btn small" onclick="changeMemberDocPath(${memberIdx}, ${docIdx})" title="Cambiar ruta">...</button>
+                    <button class="secondary-btn small" onclick="exploreDir('${doc.path.replace(/\\/g, '\\\\')}', 'sub-list-${memberIdx}-${docIdx}')" title="Listar contenido">📂</button>
+                    <button class="secondary-btn small" onclick="openDocPath('${doc.path.replace(/\\/g, '\\\\')}')">Abrir</button>
+                    <button class="delete-cat-btn" style="padding: 2px 8px;" onclick="removeMemberDoc(${memberIdx}, ${docIdx})">×</button>
+                </div>
+                <div id="sub-list-${memberIdx}-${docIdx}" class="sub-list-container" style="display: none; margin-left: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 4px; border-left: 2px solid var(--brand-orange);">
+                    <div class="loading-text" style="font-size: 0.8rem; color: var(--text-secondary);">Cargando contenido...</div>
+                </div>
+            </div>
+        `).join('');
+
+        memberCard.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleMemberCollapse(${memberIdx})">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                    <span style="display: inline-block; transform: ${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; transition: transform 0.2s; font-size: 0.8rem; opacity: 0.6;">▼</span>
+                    <input type="text" value="${member.name}" 
+                        onclick="event.stopPropagation()" 
+                        onchange="updateMemberName(${memberIdx}, this.value)"
+                        title="Haz clic para editar el nombre"
+                        style="background: transparent; border: none; border-bottom: 1px solid transparent; color: var(--brand-orange); font-size: ${isCollapsed ? '1rem' : '1.15rem'}; font-weight: 700; padding: 2px 4px; width: 100%; transition: all 0.2s; outline: none;"
+                        onfocus="this.style.borderBottomColor='var(--brand-orange)'; this.style.background='rgba(255,255,255,0.05)'"
+                        onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
+                </div>
+                <button class="delete-cat-btn" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 1rem;" onclick="event.stopPropagation(); removeTeamMember(${memberIdx})">Eliminar</button>
+            </div>
+            
+            <div id="member-content-${memberIdx}" style="display: ${isCollapsed ? 'none' : 'block'}; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                <div id="member-docs-${memberIdx}" style="margin-bottom: 1.5rem;">
+                    ${docsHtml || '<p class="sub-text" style="text-align: center;">Sin documentos asignados</p>'}
+                </div>
+
+                <div class="form-group" style="border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <label style="font-size: 0.8rem; margin-bottom: 0.5rem; display: block;">Asignar nuevo documento ó directorio:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr auto auto; gap: 0.5rem;">
+                        <input type="text" id="new-doc-label-${memberIdx}" class="form-input" placeholder="Etiqueta (ej. Guías)">
+                        <input type="text" id="new-doc-path-${memberIdx}" class="form-input" placeholder="Ruta de carpeta o archivo..." readonly>
+                        <button class="secondary-btn small" onclick="selectMemberDocPath(${memberIdx})">...</button>
+                        <button class="primary-btn small" onclick="addMemberDoc(${memberIdx})">Añadir</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        elements.managerTeamList.appendChild(memberCard);
+    });
+}
+
+window.toggleMemberCollapse = (idx) => {
+    const member = currentConfig.managerSettings.team[idx];
+    member.isCollapsed = !member.isCollapsed;
+    renderManagerView();
+};
+
+window.updateMemberName = async (idx, newName) => {
+    if (newName.trim()) {
+        currentConfig.managerSettings.team[idx].name = newName.trim();
+        await autoSaveManager();
+        showToast('Nombre actualizado');
+    }
+};
+
+window.updateMemberDoc = async (mIdx, dIdx, field, value) => {
+    if (value.trim()) {
+        currentConfig.managerSettings.team[mIdx].docs[dIdx][field] = value.trim();
+        await autoSaveManager();
+        if (field === 'label') showToast('Etiqueta actualizada');
+    }
+};
+
+window.changeMemberDocPath = async (mIdx, dIdx) => {
+    const result = await window.electronAPI.selectDirectory();
+    if (result) {
+        currentConfig.managerSettings.team[mIdx].docs[dIdx].path = result;
+        renderManagerView();
+        await autoSaveManager();
+        showToast('Ruta actualizada');
+    }
+};
+
+async function autoSaveManager() {
+    await window.electronAPI.saveSettings({
+        ...currentConfig,
+        lastDirectory: currentConfig.directory,
+        managerSettings: currentConfig.managerSettings,
+        theme: elements.themeSelect.value,
+        language: elements.languageSelect.value
+    });
+}
+
+if (elements.addMemberBtn) {
+    elements.addMemberBtn.onclick = async () => {
+        const name = elements.newMemberName.value.trim();
+        if (name) {
+            if (!currentConfig.managerSettings.team) currentConfig.managerSettings.team = [];
+            currentConfig.managerSettings.team.push({ name: name, docs: [], isCollapsed: false });
+            elements.newMemberName.value = '';
+            renderManagerView();
+            await autoSaveManager();
+            showToast(getTranslation('toast_member_added'));
+        }
+    };
+}
+
+window.removeTeamMember = async (idx) => {
+    if (confirm('¿Estás seguro de eliminar a este miembro y sus documentos?')) {
+        currentConfig.managerSettings.team.splice(idx, 1);
+        renderManagerView();
+        await autoSaveManager();
+        showToast(getTranslation('toast_member_deleted'));
+    }
+};
+
+window.selectMemberDocPath = async (memberIdx) => {
+    const result = await window.electronAPI.selectDirectory();
+    if (result) {
+        document.getElementById(`new-doc-path-${memberIdx}`).value = result;
+    }
+};
+
+window.addMemberDoc = async (memberIdx) => {
+    const labelInput = document.getElementById(`new-doc-label-${memberIdx}`);
+    const pathInput = document.getElementById(`new-doc-path-${memberIdx}`);
+    const label = labelInput.value.trim();
+    const path = pathInput.value.trim();
+
+    if (label && path) {
+        const member = currentConfig.managerSettings.team[memberIdx];
+        if (!member.docs) member.docs = [];
+        member.docs.push({ label, path });
+        renderManagerView();
+        await autoSaveManager();
+        showToast(getTranslation('toast_doc_added'));
+    } else {
+        showToast('Completa etiqueta y ruta');
+    }
+};
+
+window.removeMemberDoc = async (memberIdx, docIdx) => {
+    currentConfig.managerSettings.team[memberIdx].docs.splice(docIdx, 1);
+    renderManagerView();
+    await autoSaveManager();
+    showToast(getTranslation('toast_doc_deleted'));
+};
+
+window.exploreDir = async (basePath, containerId) => {
+    const container = document.getElementById(containerId);
+    if (container.style.display === 'block') {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    const files = await window.electronAPI.listFiles(basePath);
+
+    if (files.length === 0) {
+        container.innerHTML = '<p class="sub-text" style="font-size: 0.8rem; margin: 0;">Directorio vacío o ilegible</p>';
+        return;
+    }
+
+    // Sort: Directories first, then files
+    files.sort((a, b) => {
+        if (a.isDirectory === b.isDirectory) return a.name.localeCompare(b.name);
+        return a.isDirectory ? -1 : 1;
+    });
+
+    container.innerHTML = files.map(f => {
+        const fullPath = `${basePath}/${f.name}`.replace(/\\/g, '\\\\');
+        const icon = f.isDirectory ? '📁' : '📄';
+        const color = f.isDirectory ? 'var(--brand-cyan)' : 'var(--text-secondary)';
+
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span style="font-size: 0.85rem; color: ${color}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;">
+                    ${icon} ${f.name}
+                </span>
+                <button class="text-btn" style="font-size: 0.75rem; color: var(--brand-orange); padding: 2px 8px;" 
+                        onclick="openDocPath('${fullPath}')">Abrir</button>
+            </div>
+        `;
+    }).join('');
+};
+
+// Calculator Logic
+function updateCommission() {
+    const amount = parseFloat(elements.calcAmount.value) || 0;
+    const percent = parseFloat(elements.calcPercent.value) || 0;
+    const exchange = parseFloat(elements.calcExchange.value) || 1;
+
+    const result = (amount * (percent / 100)) * exchange;
+    elements.calcResult.textContent = `$ ${result.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+if (elements.calcAmount) {
+    elements.calcAmount.addEventListener('input', updateCommission);
+    elements.calcPercent.addEventListener('input', updateCommission);
+    elements.calcExchange.addEventListener('input', updateCommission);
+}
+
+window.openDocPath = async (path) => {
+    const result = await window.electronAPI.openPath(path);
+    if (!result.success) {
+        showToast((getTranslation('err_open_path') || 'Error al abrir la ruta') + ': ' + (result.error || 'No encontrado'));
+    }
+};
+
 // Settings Saving
 elements.saveSettingsBtn.addEventListener('click', async () => {
-    currentConfig.crmUrlTemplate = elements.crmUrlInput.value.trim();
-    currentConfig.accountUrlTemplate = elements.accountUrlInput.value.trim();
+    if (elements.crmUrlInput) currentConfig.crmUrlTemplate = elements.crmUrlInput.value.trim();
+    if (elements.accountUrlInput) currentConfig.accountUrlTemplate = elements.accountUrlInput.value.trim();
+
     const theme = elements.themeSelect.value;
     const language = elements.languageSelect.value;
     applyTheme(theme);
     applyLanguage(language);
-    await window.electronAPI.saveSettings({
+
+    const settingsData = {
         lastDirectory: currentConfig.directory,
         crmUrlTemplate: currentConfig.crmUrlTemplate,
         accountUrlTemplate: currentConfig.accountUrlTemplate,
@@ -1364,11 +1810,29 @@ elements.saveSettingsBtn.addEventListener('click', async () => {
         accountCategories: currentConfig.accountCategories,
         sidebarFilters: currentConfig.sidebarFilters,
         responsibles: currentConfig.responsibles,
-        foApiUrl: elements.foApiUrlInput.value.trim(),
-        foApiToken: elements.foApiTokenInput.value.trim(),
-        foApiTemplate: elements.foApiTemplateInput.value.trim(),
-        foApiHolder: elements.foApiHolderInput.value.trim()
-    });
+        foApiUrl: elements.foApiUrlInput?.value?.trim() || '',
+        foApiToken: elements.foApiTokenInput?.value?.trim() || '',
+        foApiTemplate: elements.foApiTemplateInput?.value?.trim() || '',
+        foApiAssessmentTemplate: elements.foApiAssessmentTemplateInput?.value?.trim() || '',
+        foApiHolder: elements.foApiHolderInput?.value?.trim() || '',
+        browserPath: elements.browserPathInput?.value?.trim() || '',
+        managerSettings: currentConfig.managerSettings
+    };
+
+    await window.electronAPI.saveSettings(settingsData);
+    await window.electronAPI.saveFile(currentConfig.directory, 'assessment_structure.json', currentConfig.assessmentStructure);
+
+    // Also persist API settings in the workspace directory (config.json)
+    if (currentConfig.directory && currentConfig.user) {
+        currentConfig.user.foApiUrl = settingsData.foApiUrl;
+        currentConfig.user.foApiToken = settingsData.foApiToken;
+        currentConfig.user.foApiTemplate = settingsData.foApiTemplate;
+        currentConfig.user.foApiHolder = settingsData.foApiHolder;
+        currentConfig.user.crmUrlTemplate = currentConfig.crmUrlTemplate;
+        currentConfig.user.accountUrlTemplate = currentConfig.accountUrlTemplate;
+        await window.electronAPI.saveFile(currentConfig.directory, 'config.json', currentConfig.user);
+    }
+
     renderOpportunities();
     showToast('Ajustes guardados');
 });
@@ -1407,7 +1871,7 @@ function downloadSampleCSV() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Descargando plantilla...');
+    showToast(getTranslation('toast_download_template') || 'Descargando plantilla...');
 }
 
 const downloadSampleBtn = document.getElementById('download-sample-btn');
@@ -1551,6 +2015,7 @@ elements.closeDetailsBtn.addEventListener('click', () => {
 elements.userForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userData = {
+        ...currentConfig.user,
         name: document.getElementById('name').value,
         email: document.getElementById('email').value,
         company: document.getElementById('company').value,
@@ -1631,10 +2096,16 @@ window.handleExternalLink = (e, url) => {
 };
 
 // CSV Logic
+// --- Mapeo y Validación de CSV ---
+let pendingCsvResults = null;
+
 elements.csvInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Copy for record keeping
     await window.electronAPI.copyFileToDir(file.path, currentConfig.directory);
+
     const reader = new FileReader();
     reader.onload = async (e) => {
         const text = e.target.result;
@@ -1642,42 +2113,138 @@ elements.csvInput.addEventListener('change', async (e) => {
             header: true,
             skipEmptyLines: true,
             complete: async (results) => {
-                const newData = results.data;
-                currentConfig.changedStages = {}; // Reset changes on new import
+                pendingCsvResults = results;
+                const csvHeaders = results.meta.fields;
+                const coreMandatoryFields = ['Account ID', 'Account Name', 'Amount', 'Close Date', 'Opportunity Owner', 'Opportunity ID', 'Stage'];
+                const mandatoryFields = currentConfig.dataStructure.filter(s => coreMandatoryFields.includes(s.header));
 
-                newData.forEach(newItem => {
-                    const oppId = newItem['Opportunity ID'];
-                    if (!oppId) return;
+                // Check if all mandatory fields match exactly
+                const missingMandatory = mandatoryFields.filter(f => !csvHeaders.includes(f.header));
 
-                    const existingIndex = currentConfig.opportunities.findIndex(o => o['Opportunity ID'] === oppId);
-                    if (existingIndex > -1) {
-                        const existing = currentConfig.opportunities[existingIndex];
-                        // Detect stage change
-                        if (existing['Stage'] && newItem['Stage'] && existing['Stage'] !== newItem['Stage']) {
-                            currentConfig.changedStages[oppId] = {
-                                from: existing['Stage'],
-                                to: newItem['Stage']
-                            };
-                        }
-
-                        currentConfig.opportunities[existingIndex] = {
-                            ...currentConfig.opportunities[existingIndex],
-                            ...newItem
-                        };
-                    } else {
-                        currentConfig.opportunities.push(newItem);
-                    }
-                });
-
-                await window.electronAPI.saveFile(currentConfig.directory, 'opportunities.json', currentConfig.opportunities);
-                updateStageSubmenu();
-                renderOpportunities();
-                showToast('CSV importado (ISO-8859-1)');
+                if (missingMandatory.length > 0) {
+                    showCsvMappingModal(csvHeaders, mandatoryFields);
+                } else {
+                    processCsvImport(results.data, null); // No mapping needed
+                }
             }
         });
     };
-    reader.readAsText(file, "ISO-8859-1");
+    reader.readAsText(file, 'ISO-8859-1');
 });
+
+function showCsvMappingModal(csvHeaders, mandatoryFields) {
+    elements.csvMappingBody.innerHTML = '';
+    const coreMandatoryFields = ['Account ID', 'Account Name', 'Amount', 'Close Date', 'Opportunity Owner', 'Opportunity ID', 'Stage'];
+
+    // Combine mandatory and other visible fields for mapping
+    const fieldsToMap = currentConfig.dataStructure.filter(s => s.visible || coreMandatoryFields.includes(s.header));
+
+    fieldsToMap.forEach(field => {
+        const tr = document.createElement('tr');
+        const isMandatory = coreMandatoryFields.includes(field.header);
+
+        // Try to find a best match for default selection
+        const bestMatch = csvHeaders.find(h => h.toLowerCase() === field.header.toLowerCase()) || '';
+
+        tr.innerHTML = `
+            <td style="font-weight: 500;">
+                ${field.header}${isMandatory ? ' <span style="color: var(--brand-orange)">*</span>' : ''}
+            </td>
+            <td>
+                <select class="form-input mapping-select" data-internal="${field.header}" data-mandatory="${isMandatory}">
+                    <option value="">-- Ignorar este campo --</option>
+                    ${csvHeaders.map(h => `<option value="${h}" ${h === bestMatch ? 'selected' : ''}>${h}</option>`).join('')}
+                </select>
+            </td>
+        `;
+        elements.csvMappingBody.appendChild(tr);
+    });
+
+    elements.csvMappingModal.classList.remove('hidden');
+}
+
+elements.confirmCsvMappingBtn.onclick = () => {
+    const mappings = {};
+    let allMandatoryMapped = true;
+
+    const selects = elements.csvMappingBody.querySelectorAll('.mapping-select');
+    selects.forEach(sel => {
+        const internal = sel.dataset.internal;
+        const csvCol = sel.value;
+        const isMandatory = sel.dataset.mandatory === 'true';
+
+        if (csvCol) {
+            mappings[internal] = csvCol;
+        } else if (isMandatory) {
+            allMandatoryMapped = false;
+        }
+    });
+
+    if (!allMandatoryMapped) {
+        showToast(getTranslation('err_mapping_mandatory') || 'Error: Debes mapear todos los campos obligatorios (*)');
+        return;
+    }
+
+    elements.csvMappingModal.classList.add('hidden');
+    processCsvImport(pendingCsvResults.data, mappings);
+};
+
+elements.closeCsvMappingModalBtn.onclick = () => {
+    elements.csvMappingModal.classList.add('hidden');
+    pendingCsvResults = null;
+    elements.csvInput.value = '';
+};
+
+async function processCsvImport(data, mappings) {
+    currentConfig.changedStages = {};
+
+    // Ensure we have a way to identify the key field
+    const keyField = 'Opportunity ID'; // This is hardcoded as core
+
+    data.forEach(row => {
+        // Apply mapping if exists
+        const mappedItem = {};
+        if (mappings) {
+            Object.keys(mappings).forEach(internalKey => {
+                const val = row[mappings[internalKey]];
+                // Date validation for "Close Date"
+                if (internalKey === 'Close Date' && val) {
+                    if (!parseCustomDate(val)) {
+                        console.warn(`Invalid date format for Close Date: ${val}. Expected dd/MM/yyyy or YYYY-MM-DD.`);
+                        // We keep the value but warn, or we could reject.
+                        // Let's at least ensure sorting works by assigning a null if totally invalid.
+                    }
+                }
+                mappedItem[internalKey] = val;
+            });
+        } else {
+            Object.assign(mappedItem, row);
+        }
+
+        const oppId = mappedItem[keyField];
+        if (!oppId) return;
+
+        const existingIndex = currentConfig.opportunities.findIndex(o => o[keyField] === oppId);
+        if (existingIndex > -1) {
+            const existing = currentConfig.opportunities[existingIndex];
+            if (existing['Stage'] && mappedItem['Stage'] && existing['Stage'] !== mappedItem['Stage']) {
+                currentConfig.changedStages[oppId] = {
+                    from: existing['Stage'],
+                    to: mappedItem['Stage']
+                };
+            }
+            currentConfig.opportunities[existingIndex] = { ...existing, ...mappedItem };
+        } else {
+            currentConfig.opportunities.push(mappedItem);
+        }
+    });
+
+    await window.electronAPI.saveFile(currentConfig.directory, 'opportunities.json', currentConfig.opportunities);
+    updateStageSubmenu();
+    renderOpportunities();
+    showToast('CSV importado correctamente');
+    elements.csvInput.value = '';
+}
 
 
 
@@ -1709,8 +2276,10 @@ function renderStructureEditor() {
                 ${item.type === 'formula' ?
                 `<input type="text" value="${item.formula || ''}" class="struct-formula" placeholder="{Var1} {Var2}" data-index="${index}" onchange="currentConfig.dataStructure[${index}].formula = this.value">` :
                 ''}
+                </div>
             </td>
             <td style="text-align: center;"><input type="checkbox" class="struct-visible" ${item.visible ? 'checked' : ''} data-index="${index}" onchange="currentConfig.dataStructure[${index}].visible = this.checked"></td>
+            <td style="text-align: center;"><input type="checkbox" class="struct-groupby" ${item.groupBy ? 'checked' : ''} data-index="${index}" onchange="currentConfig.dataStructure[${index}].groupBy = this.checked"></td>
             <td style="text-align: right;"><button class="delete-row-btn" data-index="${index}">&times;</button></td>
         `;
         elements.structureBody.appendChild(tr);
@@ -1767,7 +2336,8 @@ elements.saveStructureBtn.addEventListener('click', async () => {
                 dummy: dummies[i].value.trim(),
                 type: types[i].value,
                 formula: formulaInput ? formulaInput.value.trim() : '',
-                visible: visibilities[i].checked
+                visible: visibilities[i].checked,
+                groupBy: document.querySelectorAll('.struct-groupby')[i].checked
             });
         }
     });
@@ -1960,7 +2530,7 @@ function renderGlobalNotesHistory() {
             </div>
             <div class="history-card-body">
                 <span class="note-type-badge ${typeInfo.class}">${typeInfo.label}</span>
-                <p style="margin-top: 0.5rem;">${item.text || item.activity || ''}</p>
+                <div style="margin-top: 0.5rem; word-break: break-all;">${item.text || item.activity || ''}</div>
                 <p class="sub-text" style="font-size: 0.8rem;">${item.comments || ''}</p>
             </div>
             <div class="history-card-footer">
@@ -1983,6 +2553,16 @@ function renderGlobalNotesHistory() {
     if (!elements.historyYear.children.length) elements.historyYear.innerHTML = '<p class="sub-text" style="padding: 1rem;">No hay actividad este año.</p>';
 }
 
+function toggleSort(header) {
+    if (currentConfig.currentSort.column === header) {
+        currentConfig.currentSort.direction = currentConfig.currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentConfig.currentSort.column = header;
+        currentConfig.currentSort.direction = 'asc';
+    }
+    renderOpportunities();
+}
+
 function renderOpportunities() {
     elements.oppListBody.innerHTML = '';
     elements.oppTableHead.innerHTML = '';
@@ -1993,6 +2573,17 @@ function renderOpportunities() {
     const headTr = document.createElement('tr');
     visibleCols.forEach((col, index) => {
         const th = document.createElement('th');
+        th.className = 'sortable-header';
+        
+        // Add Sort Icon
+        let sortIcon = '';
+        if (currentConfig.currentSort.column === col.header) {
+            sortIcon = currentConfig.currentSort.direction === 'asc' ? ' <i class="fas fa-sort-up"></i>' : ' <i class="fas fa-sort-down"></i>';
+        } else {
+            sortIcon = ' <i class="fas fa-sort" style="opacity: 0.3;"></i>';
+        }
+        
+        th.innerHTML = `<span>${col.header}${sortIcon}</span>`;
         const isSorted = currentConfig.currentSort.field === col.header;
         th.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
@@ -2022,6 +2613,9 @@ function renderOpportunities() {
         };
 
         // Drag events
+
+        // Click event for sorting
+        th.onclick = () => toggleSort(col.header);
 
         // Drag events
         th.ondragstart = (e) => {
@@ -2054,18 +2648,30 @@ function renderOpportunities() {
 
                 await window.electronAPI.saveFile(currentConfig.directory, 'structure.json', currentConfig.dataStructure);
                 renderOpportunities();
-                showToast('Orden de columnas actualizado');
+                showToast(getTranslation('toast_order_updated') || 'Orden de columnas actualizado');
             }
         };
 
         headTr.appendChild(th);
     });
     const actionsTh = document.createElement('th');
-    actionsTh.textContent = 'Acciones';
+    actionsTh.textContent = getTranslation('col_actions') || 'Acciones';
     headTr.appendChild(actionsTh);
     elements.oppTableHead.appendChild(headTr);
 
-    let filteredOpps = currentConfig.opportunities;
+    console.log("Renderer: Rendering Opportunities...", { 
+        total: currentConfig.opportunities?.length, 
+        activeFilters: currentConfig.activeFilters,
+        isFavFilter: currentConfig.currentFavoritesFilter 
+    });
+
+    if (!currentConfig.opportunities || currentConfig.opportunities.length === 0) {
+        console.warn("Renderer: No opportunities to render.");
+        elements.oppListBody.innerHTML = `<tr><td colspan="100" style="text-align:center; padding: 2rem; opacity: 0.5;">No hay oportunidades cargadas. Por favor, importa un archivo CSV o selecciona un directorio válido.</td></tr>`;
+        return;
+    }
+
+    let filteredOpps = [...currentConfig.opportunities];
 
     if (elements.oppViewTitle) {
         elements.oppViewTitle.textContent = currentConfig.currentFavoritesFilter
@@ -2126,6 +2732,8 @@ function renderOpportunities() {
         });
     }
 
+    console.log(`Renderer: filteredOpps after dynamic filters: ${filteredOpps.length}`);
+
     // Phase 2: Search Filter
     if (currentConfig.currentSearchQuery) {
         filteredOpps = filteredOpps.filter(o => {
@@ -2138,21 +2746,45 @@ function renderOpportunities() {
         });
     }
 
-    // Phase 3: Column Sorting
-    if (currentConfig.currentSort && currentConfig.currentSort.field) {
-        const field = currentConfig.currentSort.field;
+    console.log(`Renderer: filteredOpps after search filter: ${filteredOpps.length}`);
+
+    // Phase 3: Global Sort
+    if (currentConfig.currentSort && currentConfig.currentSort.column) {
+        const colName = currentConfig.currentSort.column;
         const dir = currentConfig.currentSort.direction === 'asc' ? 1 : -1;
-        const colDef = currentConfig.dataStructure.find(s => s.header === field);
-        const type = colDef ? colDef.type : 'string';
+        const colConfig = currentConfig.dataStructure.find(s => s.header === colName);
+        const type = colConfig ? colConfig.type : 'string';
 
         filteredOpps.sort((a, b) => {
-            const valA = getSortValue(a, field, type);
-            const valB = getSortValue(b, field, type);
-            if (valA < valB) return -1 * dir;
-            if (valA > valB) return 1 * dir;
-            return 0;
+            let valA = a[colName];
+            let valB = b[colName];
+
+            if (type === 'formula' && colConfig.formula) {
+                valA = applyFormula(colConfig.formula, a);
+                valB = applyFormula(colConfig.formula, b);
+            }
+
+            // Numeric/Currency Sort
+            if (type === 'number' || type === 'currency') {
+                const numA = parseFloat(String(valA || 0).replace(/[^-0-9,.]/g, '').replace(',', '.')) || 0;
+                const numB = parseFloat(String(valB || 0).replace(/[^-0-9,.]/g, '').replace(',', '.')) || 0;
+                return (numA - numB) * dir;
+            }
+
+            // Date Sort (Implicit detection or if header includes 'Date')
+            if (colName.toLowerCase().includes('date')) {
+                const dateA = parseCustomDate(valA) || new Date(0);
+                const dateB = parseCustomDate(valB) || new Date(0);
+                return (dateA - dateB) * dir;
+            }
+
+            // Default String Sort
+            return String(valA || '').localeCompare(String(valB || ''), undefined, { numeric: true, sensitivity: 'base' }) * dir;
         });
     }
+
+
+
 
     function getSortValue(opp, field, type) {
         let val = opp[field];
@@ -2327,8 +2959,8 @@ function renderOpportunityGroups(opps, visibleCols) {
                         <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite('${oppId}')" title="Marcar como favorito">
                             ${currentConfig.favorites.includes(oppId) ? '★' : '☆'}
                         </button>
-                        <button class="primary-btn small" onclick="openNotes('${oppId}')">Notas</button>
-                        <button class="secondary-btn small" onclick="openActivities('${oppId}')">Actividades</button>
+                        <button class="primary-btn small" onclick="openNotes('${oppId}')" data-i18n="btn_notes">${getTranslation('btn_notes') || 'Notas'}</button>
+                        <button class="secondary-btn small" onclick="openActivities('${oppId}')" data-i18n="btn_activities">${getTranslation('btn_activities') || 'Actividades'}</button>
                     </div>
                 </td>
             `;
@@ -2336,6 +2968,135 @@ function renderOpportunityGroups(opps, visibleCols) {
             });
         }
     });
+}
+
+// Opportunity Details
+let tempMeddData = {};
+
+function populateMeddContacts(accountId) {
+    const account = currentConfig.accounts[accountId] || {};
+    const contacts = account.contacts || [];
+
+    const selects = [elements.meddEContact, elements.meddCContact];
+    selects.forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = `<option value="" data-i18n="placeholder_select_contact">${getTranslation('placeholder_select_contact')}</option>`;
+        contacts.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.name;
+            opt.textContent = `${c.name} (${c.position || ''})`;
+            sel.appendChild(opt);
+        });
+        sel.value = currentVal;
+    });
+}
+
+function renderMeddItems(type) {
+    const container = elements[`medd${type.toUpperCase()}List`];
+    if (!container) return;
+    container.innerHTML = '';
+
+    const items = tempMeddData[type] || [];
+    items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'medd-item-row';
+
+        if (type === 'm') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.desc || ''}" placeholder="Descripción" onchange="updateMeddItem('m', ${idx}, 'desc', this.value)">
+                <input type="text" class="medd-row-input" value="${item.value || ''}" placeholder="Valor/Objetivo" onchange="updateMeddItem('m', ${idx}, 'value', this.value)">
+            `;
+        } else if (type === 'd1') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.req || ''}" placeholder="Requerimiento" onchange="updateMeddItem('d1', ${idx}, 'req', this.value)">
+                <input type="number" min="1" max="5" class="medd-row-input" style="flex: 0 0 60px" value="${item.priority || 1}" onchange="updateMeddItem('d1', ${idx}, 'priority', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('d1', ${idx}, 'status', this.value)">
+                    <option value="Cumple" ${item.status === 'Cumple' ? 'selected' : ''}>Cumple</option>
+                    <option value="Parcial" ${item.status === 'Parcial' ? 'selected' : ''}>Parcial</option>
+                    <option value="No Cumple" ${item.status === 'No Cumple' ? 'selected' : ''}>No Cumple</option>
+                </select>
+            `;
+        } else if (type === 'd2') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.step || ''}" placeholder="Paso" onchange="updateMeddItem('d2', ${idx}, 'step', this.value)">
+                <input type="date" class="medd-row-input" value="${item.date || ''}" onchange="updateMeddItem('d2', ${idx}, 'date', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('d2', ${idx}, 'status', this.value)">
+                    <option value="Planeado" ${item.status === 'Planeado' ? 'selected' : ''}>Planeado</option>
+                    <option value="Completado" ${item.status === 'Completado' ? 'selected' : ''}>Completado</option>
+                </select>
+            `;
+        } else if (type === 'p') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.stage || ''}" placeholder="Hito/Etapa" onchange="updateMeddItem('p', ${idx}, 'stage', this.value)">
+                <input type="text" class="medd-row-input" value="${item.owner || ''}" placeholder="Dueño" onchange="updateMeddItem('p', ${idx}, 'owner', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('p', ${idx}, 'status', this.value)">
+                    <option value="Pendiente" ${item.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                    <option value="En Proceso" ${item.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+                    <option value="Firmado" ${item.status === 'Firmado' ? 'selected' : ''}>Firmado</option>
+                </select>
+            `;
+        } else if (type === 'i') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.pain || ''}" placeholder="Dolor" onchange="updateMeddItem('i', ${idx}, 'pain', this.value)">
+                <input type="text" class="medd-row-input" value="${item.impact || ''}" placeholder="Impacto" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
+                <select class="medd-row-select" onchange="updateMeddItem('i', ${idx}, 'urgency', this.value)">
+                    <option value="Baja" ${item.urgency === 'Baja' ? 'selected' : ''}>Baja</option>
+                    <option value="Medio" ${item.urgency === 'Medio' ? 'selected' : ''}>Medio</option>
+                    <option value="Alta" ${item.urgency === 'Alta' ? 'selected' : ''}>Alta</option>
+                </select>
+            `;
+        } else if (type === 'c2') {
+            row.innerHTML = `
+                <input type="text" class="medd-row-input" value="${item.competitor || ''}" placeholder="Competidor" onchange="updateMeddItem('c2', ${idx}, 'competitor', this.value)">
+                <input type="text" class="medd-row-input" value="${item.advantage || ''}" placeholder="Nuestra Ventaja" onchange="updateMeddItem('c2', ${idx}, 'advantage', this.value)">
+                <input type="text" class="medd-row-input" value="${item.weakness || ''}" placeholder="Su Debilidad" onchange="updateMeddItem('c2', ${idx}, 'weakness', this.value)">
+            `;
+        }
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'remove-item-btn';
+        delBtn.innerHTML = '&times;';
+        delBtn.onclick = () => removeMeddItem(type, idx);
+        row.appendChild(delBtn);
+
+        container.appendChild(row);
+    });
+}
+
+window.updateMeddItem = (type, idx, field, val) => {
+    tempMeddData[type][idx][field] = val;
+};
+
+window.removeMeddItem = (type, idx) => {
+    tempMeddData[type].splice(idx, 1);
+    renderMeddItems(type);
+};
+
+function loadMeddpicc(medd, accountId) {
+    tempMeddData = JSON.parse(JSON.stringify(medd || {}));
+    // Ensure all arrays exist
+    ['m', 'd1', 'd2', 'p', 'i', 'c2'].forEach(t => {
+        if (!tempMeddData[t]) tempMeddData[t] = [];
+    });
+
+    // Handle fixed forms (E and C)
+    const e = tempMeddData.e || { contact: '', role: '', influence: 'Medio', support: 'Neutral' };
+    const c = tempMeddData.c || { contact: '', role: '', influence: 'Medio', validated: false };
+
+    populateMeddContacts(accountId);
+
+    elements.meddEContact.value = e.contact || '';
+    elements.meddERole.value = e.role || '';
+    elements.meddEInfluence.value = e.influence || 'Medio';
+    elements.meddESupport.value = e.support || 'Neutral';
+
+    elements.meddCContact.value = c.contact || '';
+    elements.meddCRole.value = c.role || '';
+    elements.meddCInfluence.value = c.influence || 'Medio';
+    elements.meddCValidated.checked = !!c.validated;
+
+    // Render lists
+    ['m', 'd1', 'd2', 'p', 'i', 'c2'].forEach(renderMeddItems);
 }
 
 // Opportunity Details
@@ -2382,12 +3143,90 @@ window.openDetails = (oppId) => {
         elements.detailsContent.appendChild(item);
     });
 
-    // Load opportunity description from materials
+    // Load opportunity description and MEDDPICC from materials
     const materials = currentConfig.materials[oppId] || {};
     elements.oppDescription.value = materials.description || '';
 
+    // Load MEDDPICC
+    loadMeddpicc(materials.meddpicc, opp['Account ID']);
+
+    // Initialize tabs (reset to General)
+    const tabs = elements.detailsModal.querySelectorAll('.tab-btn');
+    const contents = elements.detailsModal.querySelectorAll('.tab-content');
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    elements.detailsModal.querySelector('[data-tab="general"]').classList.add('active');
+    elements.detailsModal.querySelector('#tab-general').classList.add('active');
+
+    // Initialize MEDDPICC sub-tabs (reset to M)
+    const subTabs = elements.detailsModal.querySelectorAll('.sub-tab-btn');
+    const subPanes = elements.detailsModal.querySelectorAll('.sub-tab-pane');
+    subTabs.forEach(t => t.classList.remove('active'));
+    subPanes.forEach(p => p.classList.remove('active'));
+    const defaultSubTab = elements.detailsModal.querySelector('[data-sub-tab="m"]');
+    if (defaultSubTab) defaultSubTab.classList.add('active');
+    const defaultSubPane = elements.detailsModal.querySelector('#sub-tab-m');
+    if (defaultSubPane) defaultSubPane.classList.add('active');
+
     elements.detailsModal.classList.remove('hidden');
 };
+
+// Handle Tab and Sub-Tab Switching globally and MEDDPICC Add Buttons
+document.addEventListener('click', (e) => {
+    // Main Tabs
+    const tabBtn = e.target.closest('.tab-btn');
+    if (tabBtn) {
+        const tabContainer = tabBtn.closest('.modal-body');
+        if (!tabContainer) return;
+
+        const tabId = tabBtn.getAttribute('data-tab');
+        const tabs = tabContainer.querySelectorAll('.tab-btn');
+        const contents = tabContainer.querySelectorAll('.tab-content');
+
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+
+        tabBtn.classList.add('active');
+        const activeContent = tabContainer.querySelector(`#tab-${tabId}`);
+        if (activeContent) activeContent.classList.add('active');
+    }
+
+    // MEDDPICC Sub-Tabs
+    const subTabBtn = e.target.closest('.sub-tab-btn');
+    if (subTabBtn) {
+        const subTabContainer = subTabBtn.closest('#tab-meddpicc');
+        if (!subTabContainer) return;
+
+        const subTabId = subTabBtn.getAttribute('data-sub-tab');
+        const subTabs = subTabContainer.querySelectorAll('.sub-tab-btn');
+        const subPanes = subTabContainer.querySelectorAll('.sub-tab-pane');
+
+        subTabs.forEach(t => t.classList.remove('active'));
+        subPanes.forEach(p => p.classList.remove('active'));
+
+        subTabBtn.classList.add('active');
+        const activePane = subTabContainer.querySelector(`#sub-tab-${subTabId}`);
+        if (activePane) activePane.classList.add('active');
+    }
+
+    // MEDDPICC Add Buttons
+    const addBtn = e.target.closest('.add-medd-item-btn');
+    if (addBtn) {
+        const type = addBtn.getAttribute('data-type');
+        if (!tempMeddData[type]) tempMeddData[type] = [];
+
+        const newItem = {};
+        if (type === 'm') { newItem.desc = ''; newItem.value = ''; }
+        else if (type === 'd1') { newItem.req = ''; newItem.priority = 3; newItem.status = 'Parcial'; }
+        else if (type === 'd2') { newItem.step = ''; newItem.date = ''; newItem.status = 'Planeado'; }
+        else if (type === 'p') { newItem.stage = ''; newItem.owner = ''; newItem.status = 'Pendiente'; }
+        else if (type === 'i') { newItem.pain = ''; newItem.impact = ''; newItem.urgency = 'Medio'; }
+        else if (type === 'c2') { newItem.competitor = ''; newItem.advantage = ''; newItem.weakness = ''; }
+
+        tempMeddData[type].push(newItem);
+        renderMeddItems(type);
+    }
+});
 
 // Save Opportunity Description
 elements.saveOppDescriptionBtn.onclick = async () => {
@@ -2405,6 +3244,38 @@ elements.saveOppDescriptionBtn.onclick = async () => {
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
     showToast('Explicación guardada correctamente');
+};
+
+// Save MEDDPICC
+elements.saveMeddpiccBtn.onclick = async () => {
+    if (!activeOppId) return;
+
+    if (!currentConfig.materials[activeOppId]) {
+        currentConfig.materials[activeOppId] = {
+            pocs: [],
+            rfp: { url: '', activities: [] },
+            demo: { desc: '', url: '', activities: [] }
+        };
+    }
+
+    // Collect fixed forms
+    tempMeddData.e = {
+        contact: elements.meddEContact.value,
+        role: elements.meddERole.value,
+        influence: elements.meddEInfluence.value,
+        support: elements.meddESupport.value
+    };
+    tempMeddData.c = {
+        contact: elements.meddCContact.value,
+        role: elements.meddCRole.value,
+        influence: elements.meddCInfluence.value,
+        validated: elements.meddCValidated.checked
+    };
+
+    currentConfig.materials[activeOppId].meddpicc = tempMeddData;
+
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+    showToast(getTranslation('toast_saved_success') || 'Guardado correctamente');
 };
 
 // Notes
@@ -2428,11 +3299,336 @@ window.openNotes = (oppId) => {
     elements.notesModal.classList.remove('hidden');
 };
 
+window.renderAssessmentTab = (oppId) => {
+    activeOppId = oppId;
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
+    if (!opp) return;
+
+    if (elements.activitiesOppInfoAssessment) {
+        elements.activitiesOppInfoAssessment.textContent = `${opp['Opportunity Name']} (${oppId})`;
+    }
+
+    // Load existing assessment data
+    const materials = currentConfig.materials[oppId] || {};
+    const assessmentData = materials.assessment || {};
+    const generalNotes = materials.assessmentGeneralNotes || '';
+
+    if (elements.assessmentGeneralNotes) {
+        elements.assessmentGeneralNotes.value = generalNotes;
+    }
+
+    if (elements.assessmentSearchInput) {
+        elements.assessmentSearchInput.value = '';
+        elements.assessmentSearchInput.oninput = () => renderAssessmentQuestions(assessmentData);
+    }
+
+    renderAssessmentQuestions(assessmentData);
+};
+
+function renderAssessmentQuestions(data) {
+    const query = elements.assessmentSearchInput ? elements.assessmentSearchInput.value.toLowerCase().trim() : '';
+    elements.assessmentQuestList.innerHTML = '';
+
+    // Group questions by area
+    const grouped = currentConfig.assessmentStructure.reduce((acc, q) => {
+        const area = q.area || 'General';
+        if (!acc[area]) acc[area] = [];
+        acc[area].push(q);
+        return acc;
+    }, {});
+
+    Object.keys(grouped).forEach(area => {
+        const filteredQuests = grouped[area].filter(q =>
+            q.question.toLowerCase().includes(query) || area.toLowerCase().includes(query)
+        );
+
+        if (filteredQuests.length > 0) {
+            const areaTitle = document.createElement('h4');
+            areaTitle.className = 'assessment-area-title';
+            areaTitle.textContent = area;
+            elements.assessmentQuestList.appendChild(areaTitle);
+
+            filteredQuests.forEach(q => {
+                const item = document.createElement('div');
+                item.className = 'assessment-item';
+
+                let inputHtml = '';
+                const savedValue = data[q.id] || {};
+
+                if (q.type === 'closed') {
+                    inputHtml = `
+                        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                            <label class="switch-container" style="flex-shrink: 0; margin-top: 5px;">
+                                <input type="checkbox" class="assessment-val-cb" data-id="${q.id}" ${savedValue.val === true ? 'checked' : ''}>
+                                <span class="slider"></span>
+                            </label>
+                            <textarea class="assessment-answer" data-id="${q.id}" placeholder="Notas adicionales...">${savedValue.notes || ''}</textarea>
+                        </div>
+                    `;
+                } else if (q.type === 'quantity') {
+                    inputHtml = `
+                        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                            <input type="number" class="assessment-val-num form-input" data-id="${q.id}" style="width: 120px;" placeholder="Cantidad" value="${savedValue.val || ''}">
+                            <textarea class="assessment-answer" data-id="${q.id}" placeholder="Detalles...">${savedValue.notes || ''}</textarea>
+                        </div>
+                    `;
+                } else {
+                    // Default open
+                    inputHtml = `
+                        <textarea class="assessment-answer" data-id="${q.id}" placeholder="Respuesta...">${typeof savedValue === 'string' ? savedValue : (savedValue.notes || '')}</textarea>
+                    `;
+                }
+
+                item.innerHTML = `
+                    <label class="assessment-question">${q.stage ? q.stage + ' - ' : ''}${q.question}</label>
+                    ${inputHtml}
+                `;
+                elements.assessmentQuestList.appendChild(item);
+            });
+        }
+    });
+}
+
+
+function updateAssessmentMaterialsFromUI() {
+    if (!activeOppId) return;
+
+    if (!currentConfig.materials[activeOppId]) {
+        currentConfig.materials[activeOppId] = {
+            pocs: [],
+            rfp: { url: '', activities: [] },
+            demo: { desc: '', url: '', activities: [] }
+        };
+    }
+
+    const answers = {};
+    elements.assessmentQuestList.querySelectorAll('.assessment-item').forEach(item => {
+        const ta = item.querySelector('.assessment-answer');
+        if (!ta) return;
+        const id = ta.getAttribute('data-id');
+
+        const cb = item.querySelector('.assessment-val-cb');
+        const num = item.querySelector('.assessment-val-num');
+
+        if (cb) {
+            answers[id] = { val: cb.checked, notes: ta.value.trim() };
+        } else if (num) {
+            answers[id] = { val: num.value, notes: ta.value.trim() };
+        } else {
+            answers[id] = { notes: ta.value.trim() };
+        }
+    });
+
+    currentConfig.materials[activeOppId].assessment = answers;
+    currentConfig.materials[activeOppId].assessmentGeneralNotes = elements.assessmentGeneralNotes ? elements.assessmentGeneralNotes.value : '';
+}
+
+elements.saveAssessmentBtn.onclick = async () => {
+    updateAssessmentMaterialsFromUI();
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+    showToast(getTranslation('toast_assessment_saved') || 'Assessment guardado correctamente');
+};
+
+// Assessment Document Generation
+elements.generateAssessmentDocBtn.onclick = async () => {
+    const settings = await window.electronAPI.getSettings();
+    const baseUrl = settings.foApiUrl ? settings.foApiUrl.replace(/\/+$/, '') : '';
+    const apiUrl = `${baseUrl}/production/v7/onDemandDocument`;
+    const apiToken = settings.foApiToken;
+    const templatePath = settings.foApiAssessmentTemplate;
+
+    if (!baseUrl || !apiToken || !templatePath) {
+        showToast(getTranslation('err_config_missing_assessment') || 'Error: Configura la Base URL, API KEY y Plantilla de Assessment en Ajustes', 'error');
+        return;
+    }
+
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
+    if (!opp) return;
+
+    // IMPORTANT: Update local data from UI before generating
+    updateAssessmentMaterialsFromUI();
+
+    // Auto-save the updated data
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+
+    // Helper for Document Generation (Specific for Assessment)
+    const generateDoc = async (outputType) => {
+        // Prepare Assessment Data
+        const materials = currentConfig.materials[activeOppId] || {};
+        const assessmentData = materials.assessment || {};
+        const generalNotes = materials.assessmentGeneralNotes || '';
+
+        // Group questions by area for the document
+        const grouped = currentConfig.assessmentStructure.reduce((acc, q) => {
+            const area = q.area || 'General';
+            if (!acc[area]) acc[area] = [];
+
+            const savedValue = assessmentData[q.id] || {};
+            let displayVal = '';
+            let notes = '';
+
+            if (q.type === 'closed') {
+                displayVal = savedValue.val === true ? 'SÍ' : 'NO';
+                notes = savedValue.notes || '';
+            } else if (q.type === 'quantity') {
+                displayVal = savedValue.val || '';
+                notes = savedValue.notes || '';
+            } else {
+                notes = typeof savedValue === 'string' ? savedValue : (savedValue.notes || '');
+            }
+
+            acc[area].push({
+                stageId: q.stage || '',
+                question: q.question,
+                value: displayVal,
+                notes: notes
+            });
+            return acc;
+        }, {});
+
+        const sections = Object.keys(grouped).map(area => ({
+            area: area,
+            questions: grouped[area]
+        }));
+
+        const payload = {
+            Steps: [{
+                name: "Print",
+                generate: {
+                    template: templatePath,
+                    channel: "Print",
+                    generateType: "ContentAuthor",
+                    outputType: outputType,
+                    outputPath: "response://",
+                    inputPaths: [{ name: "DataInput", path: "request://" }]
+                }
+            }],
+            data: {
+                assessment: [{
+                    opportunityName: opp['Opportunity Name'] || activeOppId,
+                    accountName: opp['Account Name'] || '',
+                    generalNotes: generalNotes,
+                    sections: sections
+                }]
+            }
+        };
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': apiToken.startsWith('Bearer ') ? apiToken : `Bearer ${apiToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+        return await response.blob();
+    };
+
+    try {
+        elements.generateAssessmentDocBtn.disabled = true;
+        elements.generateAssessmentDocBtn.textContent = 'Generando...';
+
+        // 1. PDF
+        const pdfBlob = await generateDoc('PDF');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        showToast('Documento Assessment generado');
+
+        elements.viewAssessmentPdfBtn.classList.remove('hidden');
+        elements.downloadAssessmentDocxBtn.classList.remove('hidden');
+
+        elements.viewAssessmentPdfBtn.onclick = () => {
+            elements.ticketIframe.src = pdfUrl;
+            elements.ticketViewTitle.textContent = "Assessment PDF";
+            elements.ticketViewUrl.textContent = `Assessment_${activeOppId}.pdf`;
+            elements.ticketViewModal.classList.remove('hidden');
+            elements.ticketIframe.classList.remove('hidden');
+        };
+
+        // 2. DOCX
+        elements.downloadAssessmentDocxBtn.onclick = async () => {
+            try {
+                elements.downloadAssessmentDocxBtn.disabled = true;
+                const docxBlob = await generateDoc('DOCX');
+                const fileName = `Assessment_${activeOppId}_${new Date().getTime()}.docx`;
+                const url = window.URL.createObjectURL(docxBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                showToast(getTranslation('err_download_docx') || 'Error al descargar DOCX', 'error');
+            } finally {
+                elements.downloadAssessmentDocxBtn.disabled = false;
+            }
+        };
+
+        elements.viewAssessmentPdfBtn.click();
+    } catch (error) {
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        elements.generateAssessmentDocBtn.disabled = false;
+        elements.generateAssessmentDocBtn.textContent = 'Generar Documento';
+    }
+};
+
+// --- Assessment Structure Manager ---
+function renderAssessmentStructureEditor() {
+    if (!elements.assessmentStructureList) return;
+    elements.assessmentStructureList.innerHTML = '';
+
+    currentConfig.assessmentStructure.forEach((q, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="activity-input" value="${q.stage || ''}" onchange="updateAssessmentStructItem(${idx}, 'stage', this.value)"></td>
+            <td><input type="text" class="activity-input" value="${q.area || ''}" onchange="updateAssessmentStructItem(${idx}, 'area', this.value)"></td>
+            <td><textarea class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'question', this.value)">${q.question || ''}</textarea></td>
+            <td>
+                <select class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'type', this.value)">
+                    <option value="open" ${q.type === 'open' ? 'selected' : ''}>${getTranslation('opt_type_open') || 'Abierta'}</option>
+                    <option value="closed" ${q.type === 'closed' ? 'selected' : ''}>${getTranslation('opt_type_closed') || 'Cerrada (Si/No)'}</option>
+                    <option value="quantity" ${q.type === 'quantity' ? 'selected' : ''}>${getTranslation('opt_type_quantity') || 'Cantidad'}</option>
+                </select>
+            </td>
+            <td>
+                <button class="remove-item-btn" onclick="removeAssessmentStructItem(${idx})">${getTranslation('btn_delete') || '×'}</button>
+            </td>
+        `;
+        elements.assessmentStructureList.appendChild(tr);
+    });
+}
+
+window.updateAssessmentStructItem = (idx, field, val) => {
+    currentConfig.assessmentStructure[idx][field] = val;
+    // If it's a new item or we changed ID/Stage, ensure we have an ID
+    if (!currentConfig.assessmentStructure[idx].id) {
+        currentConfig.assessmentStructure[idx].id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+    }
+};
+
+window.removeAssessmentStructItem = (idx) => {
+    currentConfig.assessmentStructure.splice(idx, 1);
+    renderAssessmentStructureEditor();
+};
+
+elements.addAssessmentQuestionBtn.onclick = () => {
+    currentConfig.assessmentStructure.push({ id: Date.now().toString(), stage: '', area: '', question: '', type: 'open' });
+    renderAssessmentStructureEditor();
+};
+
+
 function renderNotes() {
     elements.notesList.innerHTML = '';
     const history = currentConfig.notes[activeOppId] || [];
     if (history.length === 0) {
-        elements.notesList.innerHTML = '<p class="sub-text">No hay notas registradas.</p>';
+        elements.notesList.innerHTML = `<p class="sub-text">${getTranslation('msg_no_notes') || 'No hay notas registradas.'}</p>`;
     } else {
         history.forEach((note, index) => {
             const div = document.createElement('div');
@@ -2447,8 +3643,8 @@ function renderNotes() {
                         ${stageBadge}
                     </div>
                     <div class="note-actions">
-                        <button class="edit-note-btn" onclick="editNote(${index})">Editar</button>
-                        <button class="delete-note-btn" onclick="deleteNote(${index})">Borrar</button>
+                        <button class="edit-note-btn" onclick="editNote(${index})">${getTranslation('btn_edit') || 'Editar'}</button>
+                        <button class="delete-note-btn" onclick="deleteNote(${index})">${getTranslation('btn_delete') || 'Borrar'}</button>
                     </div>
                 </div>
                 <div class="note-content" id="note-content-${index}">${note.text}</div>
@@ -2486,7 +3682,8 @@ window.saveEditedNote = async (index) => {
     const history = currentConfig.notes[activeOppId];
     if (!history || !history[index]) return;
 
-    const newText = document.getElementById(`edit-textarea-${index}`).value.trim();
+    const textarea = document.getElementById(`edit-textarea-${index}`);
+    const newText = textarea ? textarea.value.trim() : "";
     if (!newText) return;
 
     history[index].text = newText;
@@ -2512,8 +3709,8 @@ window.deleteNote = async (index) => {
 };
 
 elements.addNoteBtn.addEventListener('click', async () => {
-    const text = elements.newNoteInput.value.trim();
-    if (!text) return;
+    const text = elements.newNoteInput.innerHTML.trim();
+    if (!text || text === '<br>') return;
 
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
     const currentStage = activeOppId === 'global' ? '-' : (opp ? opp['Stage'] : 'N/A');
@@ -2526,7 +3723,7 @@ elements.addNoteBtn.addEventListener('click', async () => {
     });
 
     await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
-    elements.newNoteInput.value = '';
+    elements.newNoteInput.innerHTML = '';
     renderNotes();
 });
 
@@ -2534,7 +3731,7 @@ elements.addNoteBtn.addEventListener('click', async () => {
 elements.closeModalBtn.addEventListener('click', () => elements.notesModal.classList.add('hidden'));
 
 // Consolidated Activities Modal
-window.openActivities = (oppId, initialTab = 'tab-pocs') => {
+window.openActivities = (oppId, initialTab = 'tab-assessment') => {
     activeOppId = oppId;
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
@@ -2552,7 +3749,8 @@ window.openActivities = (oppId, initialTab = 'tab-pocs') => {
     });
 
     // Render based on initial tab
-    if (initialTab === 'tab-pocs') openPocs(oppId);
+    if (initialTab === 'tab-assessment') renderAssessmentTab(oppId);
+    else if (initialTab === 'tab-pocs') openPocs(oppId);
     else if (initialTab === 'tab-rfp') openRfp(oppId);
     else if (initialTab === 'tab-demo') openDemo(oppId);
     else if (initialTab === 'tab-medpicc') openMedpicc(oppId);
@@ -2631,6 +3829,15 @@ window.editPoc = (index) => {
         mat.pocs[index] = poc;
     }
 
+    // Migration logic for scope format (string[] -> {title, description}[])
+    if (poc.scope) {
+        poc.scopes = poc.scope;
+        delete poc.scope;
+    }
+    if (poc.scopes && poc.scopes.length > 0 && typeof poc.scopes[0] === 'string') {
+        poc.scopes = poc.scopes.map(s => ({ title: s, description: '' }));
+    }
+
     elements.pocDetailTitle.textContent = "Editar Prueba de Concepto";
     elements.pocObjective.value = poc.objective || '';
     elements.pocUseCase.value = poc.useCase || '';
@@ -2643,7 +3850,7 @@ window.editPoc = (index) => {
     initUrlField(elements.pocUrlAcceptance);
     initUrlField(elements.pocUrlContent);
 
-    renderPocSimpleList(elements.pocScopeContainer, poc.scope || [], 'scope');
+    renderPocSimpleList(elements.pocScopeContainer, poc.scopes || poc.scope || [], 'scope');
     renderPocSimpleList(elements.pocResourcesContainer, poc.resources || [], 'resources');
     renderPocObjectList(elements.pocStakeholdersContainer, poc.stakeholders || [], 'stakeholders');
     renderPocObjectList(elements.pocSquadContainer, poc.squad || [], 'squad');
@@ -2675,7 +3882,7 @@ elements.addPocRowBtn.onclick = () => {
     document.getElementById('poc-url-content').classList.remove('hidden');
     document.getElementById('poc-url-content-preview').classList.add('hidden');
 
-    renderPocSimpleList(elements.pocScopeContainer, [], 'scope');
+    renderPocScopeList(elements.pocScopeContainer, [], 'scope');
     renderPocSimpleList(elements.pocResourcesContainer, [], 'resources');
     renderPocObjectList(elements.pocStakeholdersContainer, [], 'stakeholders');
     renderPocObjectList(elements.pocSquadContainer, [], 'squad');
@@ -2685,7 +3892,10 @@ elements.addPocRowBtn.onclick = () => {
 };
 
 elements.savePocDetailBtn.onclick = async () => {
-    const scope = Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v);
+    const scopes = Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
+        title: row.querySelector('.scope-title-input').value,
+        description: row.querySelector('.scope-desc-input').value
+    })).filter(s => s.title);
     const resources = Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v);
 
     const stakeholders = Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
@@ -2712,7 +3922,7 @@ elements.savePocDetailBtn.onclick = async () => {
     const pocData = {
         objective: elements.pocObjective.value,
         useCase: elements.pocUseCase.value,
-        scope,
+        scopes,
         resources,
         stakeholders,
         squad,
@@ -2740,12 +3950,47 @@ elements.savePocDetailBtn.onclick = async () => {
 
 function renderPocSimpleList(container, items, type) {
     container.innerHTML = '';
-    const renderItems = items.length > 0 ? items : [''];
+    if (type === 'scope') {
+        const renderItems = items.length > 0 ? items : [{ title: '', description: '' }];
+        renderItems.forEach((item, index) => {
+            const scopeItem = typeof item === 'string' ? { title: item, description: '' } : item;
+            const row = document.createElement('div');
+            row.className = 'scope-item-row';
+            row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
+            row.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" class="scope-title-input" value="${scopeItem.title.replace(/"/g, '&quot;')}" placeholder="Título del alcance..." style="flex: 1;">
+                    <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+                </div>
+                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;">${scopeItem.description || ''}</textarea>
+            `;
+            container.appendChild(row);
+        });
+    } else {
+        const renderItems = items.length > 0 ? items : [''];
+        renderItems.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'list-item-row';
+            row.innerHTML = `
+                <input type="text" value="${item}" placeholder="Agregar item...">
+                <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+}
+
+function renderPocScopeList(container, items, type) {
+    container.innerHTML = '';
+    const renderItems = items.length > 0 ? items : [{ title: '', description: '' }];
     renderItems.forEach((item, index) => {
         const row = document.createElement('div');
         row.className = 'list-item-row';
         row.innerHTML = `
-            <input type="text" value="${item}" placeholder="${getTranslation('placeholder_item')}">
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
+                <input type="text" class="title-input" value="${item.title || ''}" placeholder="Título del Alcance">
+                <textarea class="desc-input" placeholder="Descripción detallada...">${item.description || ''}</textarea>
+            </div>
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
         container.appendChild(row);
@@ -2800,10 +4045,33 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
         if (type === 'stakeholders') container = elements.pocStakeholdersContainer;
         if (type === 'squad') container = elements.pocSquadContainer;
 
-        if (type === 'scope' || type === 'resources') {
+        if (type === 'scope') {
+            const row = document.createElement('div');
+            row.className = 'scope-item-row';
+            row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
+            row.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" class="scope-title-input" placeholder="Título del alcance..." style="flex: 1;">
+                    <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+                </div>
+                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;"></textarea>
+            `;
+            container.appendChild(row);
+        } else if (type === 'resources') {
             const row = document.createElement('div');
             row.className = 'list-item-row';
-            row.innerHTML = `<input type="text" placeholder="Agregar item..."><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
+            row.innerHTML = `
+                <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
+                    <input type="text" class="title-input" placeholder="Título del Alcance">
+                    <textarea class="desc-input" placeholder="Descripción detallada..."></textarea>
+                </div>
+                <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
+            `;
+            container.appendChild(row);
+        } else if (type === 'resources') {
+            const row = document.createElement('div');
+            row.className = 'list-item-row';
+            row.innerHTML = `<input type="text" placeholder="Agregar recurso..."><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
             container.appendChild(row);
         } else {
             const row = document.createElement('div');
@@ -2838,7 +4106,7 @@ elements.generateFoTicketBtn.onclick = async () => {
     const templatePath = settings.foApiTemplate;
 
     if (!baseUrl || !apiToken || !templatePath) {
-        showToast('Error: Configura la Base URL, API KEY y Plantilla en Ajustes', 'error');
+        showToast(getTranslation('err_config_missing') || 'Error: Configura la Base URL, API KEY y Plantilla en Ajustes', 'error');
         return;
     }
 
@@ -2846,7 +4114,7 @@ elements.generateFoTicketBtn.onclick = async () => {
     if (!opp) return;
 
     if (!elements.pocObjective.value) {
-        showToast('Error: El Objetivo de la PoC es obligatorio', 'error');
+        showToast(getTranslation('err_objective_mandatory') || 'Error: El Objetivo de la PoC es obligatorio', 'error');
         return;
     }
 
@@ -2869,7 +4137,10 @@ elements.generateFoTicketBtn.onclick = async () => {
                     opportunityName: opp['Opportunity Name'] || activeOppId,
                     objective: elements.pocObjective.value,
                     useCase: elements.pocUseCase.value,
-                    scope: Array.from(elements.pocScopeContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    scopes: Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
+                        title: row.querySelector('.scope-title-input').value,
+                        description: row.querySelector('.scope-desc-input').value
+                    })).filter(s => s.title),
                     resources: Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
                     stakeholders: Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
                         name: row.querySelector('.name-input').value,
@@ -2953,12 +4224,12 @@ elements.generateFoTicketBtn.onclick = async () => {
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
-                showToast('Descarga iniciada');
+                showToast(getTranslation('toast_download_started') || 'Descarga iniciada');
             } catch (error) {
-                showToast('Error al generar DOCX: ' + error.message, 'error');
+                showToast((getTranslation('err_generate_docx') || 'Error al generar DOCX') + ': ' + error.message, 'error');
             } finally {
                 elements.downloadDocxBtn.disabled = false;
-                elements.downloadDocxBtn.innerHTML = '<i class="fas fa-file-word"></i> Descargar DOCX';
+                elements.downloadDocxBtn.innerHTML = `<i class="fas fa-file-word"></i> ${getTranslation('btn_download') || 'Descargar'} DOCX`;
             }
         };
 
@@ -3063,7 +4334,7 @@ elements.saveRfpBtn.onclick = async () => {
     };
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast('RFP guardado');
+    showToast(getTranslation('toast_rfp_saved') || 'RFP guardado');
 };
 
 // Demos Logic
@@ -3174,7 +4445,7 @@ elements.saveDemoBtn.onclick = async () => {
     currentConfig.materials[activeOppId].walkthrough = { prep, flow };
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast('Demo guardada');
+    showToast(getTranslation('toast_demo_saved') || 'Demo guardada');
 };
 
 // MEDDPICC Logic
@@ -3262,82 +4533,158 @@ function renderActivityInputs(activities, container, removeFnName) {
 elements.closePocDetailModalBtn.onclick = () => elements.pocDetailModal.classList.add('hidden');
 
 
-// UI Helpers
-function showToast(msg) {
-    elements.successToast.textContent = msg;
-    elements.successToast.classList.remove('hidden');
-    setTimeout(() => elements.successToast.classList.add('hidden'), 3000);
-}
+// Front Office Integration Logic
+elements.generateFoTicketBtn.onclick = async () => {
+    const settings = await window.electronAPI.getSettings();
+    const baseUrl = settings.foApiUrl ? settings.foApiUrl.replace(/\/+$/, '') : '';
+    // New endpoint for On Demand Document
+    const apiUrl = `${baseUrl}/production/v7/onDemandDocument`;
+    const apiToken = settings.foApiToken;
 
-function updateResponsiblesList() {
-    elements.responsiblesList.innerHTML = '';
-    currentConfig.responsibles.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        elements.responsiblesList.appendChild(opt);
-    });
-}
+    const templatePath = settings.foApiTemplate;
 
-function saveResponsible(name) {
-    if (!name) return;
-    const trimmed = name.trim();
-    if (trimmed && !currentConfig.responsibles.includes(trimmed)) {
-        currentConfig.responsibles.push(trimmed);
-        currentConfig.responsibles.sort();
-        updateResponsiblesList();
-        // Save to settings
-        window.electronAPI.saveFile(currentConfig.directory, 'settings.json', {
-            lastDirectory: currentConfig.directory,
-            crmUrlTemplate: currentConfig.crmUrlTemplate,
-            accountUrlTemplate: currentConfig.accountUrlTemplate,
-            theme: elements.themeSelect.value,
-            responsibles: currentConfig.responsibles
-        });
+    if (!baseUrl || !apiToken || !templatePath) {
+        showToast(getTranslation('err_config_missing') || 'Error: Configura la Base URL, API KEY y Plantilla en Ajustes', 'error');
+        return;
     }
-}
 
-function initUrlField(inputId) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(`${inputId}-preview`);
-    if (!input || !preview) return;
+    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
+    if (!opp) return;
 
-    const link = preview.querySelector('.url-link');
-    const editBtn = preview.querySelector('.edit-url-btn');
+    if (!elements.pocObjective.value) {
+        showToast(getTranslation('err_objective_mandatory') || 'Error: El Objetivo de la PoC es obligatorio', 'error');
+        return;
+    }
 
-    const updatePreview = () => {
-        const val = input.value.trim();
-        if (val) {
-            input.classList.add('hidden');
-            preview.classList.remove('hidden');
-            link.href = val.startsWith('http') ? val : `https://${val}`;
-            link.textContent = val.length > 50 ? val.substring(0, 47) + '...' : val;
-        } else {
-            input.classList.remove('hidden');
-            preview.classList.add('hidden');
+    // Helper for Document Generation
+    const generateDocument = async (outputType) => {
+        const payload = {
+            Steps: [{
+                name: "Print",
+                generate: {
+                    template: templatePath,
+                    channel: "Print",
+                    generateType: "ContentAuthor",
+                    outputType: outputType,
+                    outputPath: "response://",
+                    inputPaths: [{ name: "DataInput", path: "request://" }]
+                }
+            }],
+            data: {
+                PoC: [{
+                    opportunityName: opp['Opportunity Name'] || activeOppId,
+                    objective: elements.pocObjective.value,
+                    useCase: elements.pocUseCase.value,
+                    scopes: Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
+                        title: row.querySelector('.scope-title-input').value,
+                        description: row.querySelector('.scope-desc-input').value
+                    })).filter(s => s.title),
+                    resources: Array.from(elements.pocResourcesContainer.querySelectorAll('input')).map(i => i.value).filter(v => v),
+                    stakeholders: Array.from(elements.pocStakeholdersContainer.querySelectorAll('.list-item-row')).map(row => ({
+                        name: row.querySelector('.name-input').value,
+                        role: row.querySelector('.role-input').value
+                    })).filter(s => s.name),
+                    squad: Array.from(elements.pocSquadContainer.querySelectorAll('.list-item-row')).map(row => ({
+                        name: row.querySelector('.name-input').value,
+                        role: row.querySelector('.role-input').value
+                    })).filter(s => s.name),
+                    timeline: Array.from(elements.pocTimelineBody.querySelectorAll('tr')).map(tr => ({
+                        activity: tr.querySelector('.act').value,
+                        date: tr.querySelector('.date').value,
+                        comments: tr.querySelector('.comm').value
+                    })).filter(t => t.activity),
+                    assumptions: elements.pocAssumptions.value,
+                    financials: elements.pocFinancials.value,
+                    acceptanceUrl: elements.pocUrlAcceptance.value,
+                    contentUrl: elements.pocUrlContent.value
+                }]
+            }
+        };
+
+        console.log(`Payload (${outputType}):`, JSON.stringify(payload, null, 2));
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': apiToken.startsWith('Bearer ') ? apiToken : `Bearer ${apiToken}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorMsg = response.statusText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMsg = errorJson.title || errorJson.message || errorMsg;
+            } catch (e) { }
+            throw new Error(errorMsg);
         }
+        return await response.blob();
     };
 
-    input.addEventListener('blur', updatePreview);
+    try {
+        elements.generateFoTicketBtn.disabled = true;
+        elements.generateFoTicketBtn.textContent = 'Generando...';
 
-    editBtn.addEventListener('click', () => {
-        preview.classList.add('hidden');
-        input.classList.remove('hidden');
-        input.focus();
-    });
+        // 1. First, generate PDF for preview
+        const pdfBlob = await generateDocument('PDF');
+        showToast('Documento generado exitosamente');
 
-    // Helper to allow programmatic resets
-    input.resetToPreview = updatePreview;
-}
+        const pdfUrl = URL.createObjectURL(pdfBlob);
 
-function formatToDDMMYYYY(date) {
-    if (!date) return getTranslation('label_no_date');
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return date;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-}
+        elements.viewFoTicketBtn.classList.remove('hidden');
+        elements.downloadDocxBtn.classList.remove('hidden');
+
+        elements.viewFoTicketBtn.onclick = () => {
+            elements.ticketIframe.src = pdfUrl;
+            elements.ticketViewTitle.textContent = "Previsualización PDF";
+            elements.ticketViewUrl.textContent = `PoC_${activeOppId}.pdf`;
+            elements.ticketViewModal.classList.remove('hidden');
+            elements.ticketIframe.classList.remove('hidden');
+        };
+
+        // 2. Logic for DOCX Download
+        elements.downloadDocxBtn.onclick = async () => {
+            try {
+                elements.downloadDocxBtn.disabled = true;
+                elements.downloadDocxBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando DOCX...';
+
+                const docxBlob = await generateDocument('DOCX');
+                const fileName = `PoC_${activeOppId}_${new Date().getTime()}.docx`;
+
+                const url = window.URL.createObjectURL(docxBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast(getTranslation('toast_download_started') || 'Descarga iniciada');
+            } catch (error) {
+                showToast((getTranslation('err_generate_docx') || 'Error al generar DOCX') + ': ' + error.message, 'error');
+            } finally {
+                elements.downloadDocxBtn.disabled = false;
+                elements.downloadDocxBtn.innerHTML = `<i class="fas fa-file-word"></i> ${getTranslation('btn_download') || 'Descargar'} DOCX`;
+            }
+        };
+
+        // Automatic PDF Preview
+        elements.viewFoTicketBtn.click();
+
+    } catch (error) {
+        console.error("FO API Error:", error);
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        elements.generateFoTicketBtn.disabled = false;
+        elements.generateFoTicketBtn.textContent = 'Generar Documento';
+    }
+};
+
+
+
 
 async function renderActivityCalendar() {
     const view = currentConfig.calendarView;
@@ -3356,6 +4703,7 @@ async function renderActivityCalendar() {
         const name = new Intl.DateTimeFormat(lang, {weekday: 'long'}).format(new Date(2026, 3, 26 + i)); // 26 April 2026 is Sunday
         return name.charAt(0).toUpperCase() + name.slice(1);
     });
+
 
     elements.calendarGrid.innerHTML = '';
     const headerGrid = document.querySelector('.calendar-header-grid');
@@ -3543,6 +4891,13 @@ function getActivityForDay(year, month, day) {
                 if (poc.timeline) {
                     poc.timeline.forEach(m => checkMatch(m, 'poc'));
                 }
+                if (poc.timeline) {
+                    poc.timeline.forEach(act => {
+                        if (act.date && act.date.split('T')[0] === targetDateStr) {
+                            dayActs.push({ ...act, type: 'poc', oppName, oppId });
+                        }
+                    });
+                }
             });
         }
         if (mat.rfp && mat.rfp.activities) {
@@ -3595,8 +4950,33 @@ window.openAttackPlan = (accountId) => {
     currentAttackPlanData = account.attackPlan ? JSON.parse(JSON.stringify(account.attackPlan)) : {
         licenses: [],
         activities: [],
-        strategy: ''
+        strategy: '',
+        currentOwner: ''
     };
+
+    // Default Owner logic
+    if (elements.attackPlanOwner) {
+        if (currentAttackPlanData.currentOwner) {
+            elements.attackPlanOwner.value = currentAttackPlanData.currentOwner;
+        } else {
+            // Find most recent opportunity
+            const accountOpps = currentConfig.opportunities
+                .filter(o => o['Account ID'] === accountId)
+                .sort((a, b) => {
+                    const dateA = parseCustomDate(a['Close Date']) || new Date(0);
+                    const dateB = parseCustomDate(b['Close Date']) || new Date(0);
+                    return dateB - dateA;
+                });
+
+            if (accountOpps.length > 0) {
+                elements.attackPlanOwner.value = accountOpps[0]['Opportunity Owner'] || '';
+            } else {
+                elements.attackPlanOwner.value = '';
+            }
+        }
+    }
+
+    elements.attackPlanStrategy.value = currentAttackPlanData.strategy || '';
 
     renderAttackPlanLicenses();
     renderAttackPlanActivities();
@@ -3606,14 +4986,47 @@ window.openAttackPlan = (accountId) => {
     elements.attackPlanModal.classList.remove('hidden');
 };
 
+function getAppLocale() {
+    const lang = elements.languageSelect?.value || 'es_MX';
+    const mapping = { 'es_MX': 'es-MX', 'pt_BR': 'pt-BR', 'en_US': 'en-US' };
+    return mapping[lang] || 'es-MX';
+}
+
 function renderAttackPlanLicenses() {
     elements.attackPlanLicensesContainer.innerHTML = '';
+    const locale = getAppLocale();
     currentAttackPlanData.licenses.forEach((lic, idx) => {
+        const n = parseFloat(lic.volume) || 0;
+        const legend = (n > 0 && n < 1)
+            ? `${(n * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
+            : `${n.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
+
+        const c = parseFloat(lic.consumo) || 0;
+        const legendC = (c > 0 && c < 1)
+            ? `${(c * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
+            : `${c.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
+
+
         const div = document.createElement('div');
         div.className = 'list-item-row';
         div.innerHTML = `
-            <input type="text" placeholder="Nombre de Licencia" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)">
-            <input type="number" placeholder="Volumen" value="${lic.volume || ''}" onchange="updateAttackLicense(${idx}, 'volume', this.value)" style="max-width: 120px;">
+            <input type="text" placeholder="Nombre de Licencia" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
+            
+            <div style="display: flex; flex-direction: column; gap: 2px; flex: 1.5;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" step="any" placeholder="Volumen" value="${lic.volume || ''}" 
+                        oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                        style="max-width: 100px; flex: 1;">
+                    <span id="vol-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--text-primary); font-size: 0.75rem; white-space: nowrap;">${legend}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" step="any" placeholder="Consumo" value="${lic.consumo || ''}" 
+                        oninput="updateAttackLicense(${idx}, 'consumo', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('con-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                        style="max-width: 100px; flex: 1;">
+                    <span id="con-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--brand-orange); font-size: 0.75rem; white-space: nowrap;">${legendC}</span>
+                </div>
+            </div>
+
             <button class="remove-item-btn" onclick="removeAttackLicense(${idx})">&times;</button>
         `;
         elements.attackPlanLicensesContainer.appendChild(div);
@@ -3630,7 +5043,7 @@ window.removeAttackLicense = (idx) => {
 };
 
 elements.addAttackLicenseBtn.onclick = () => {
-    currentAttackPlanData.licenses.push({ name: '', volume: '' });
+    currentAttackPlanData.licenses.push({ name: '', volume: '', consumo: '' });
     renderAttackPlanLicenses();
 };
 
@@ -3645,6 +5058,8 @@ function renderAttackPlanActivities() {
             <td><input type="date" class="activity-input" value="${act.endDate || ''}" onchange="updateAttackActivity(${idx}, 'endDate', this.value)"></td>
             <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="Comentarios...">${act.comments || ''}</textarea></td>
             <td style="white-space: nowrap;">
+                <button class="order-btn" onclick="moveAttackActivity(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Subir">▲</button>
+                <button class="order-btn" onclick="moveAttackActivity(${idx}, 1)" ${idx === currentAttackPlanData.activities.length - 1 ? 'disabled' : ''} title="Bajar">▼</button>
                 <button class="add-item-btn-inline" onclick="insertAttackActivity(${idx})" title="Insertar arriba">+</button>
                 <button class="remove-item-btn" onclick="removeAttackActivity(${idx})" title="Eliminar">&times;</button>
             </td>
@@ -3652,6 +5067,19 @@ function renderAttackPlanActivities() {
         elements.attackPlanActivitiesBody.appendChild(tr);
     });
 }
+
+window.moveAttackActivity = (idx, direction) => {
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= currentAttackPlanData.activities.length) return;
+
+    // Swap
+    const temp = currentAttackPlanData.activities[idx];
+    currentAttackPlanData.activities[idx] = currentAttackPlanData.activities[newIdx];
+    currentAttackPlanData.activities[newIdx] = temp;
+
+    renderAttackPlanActivities();
+    renderAttackTimelineChart();
+};
 
 function renderAttackTimelineChart() {
     if (!elements.attackPlanTimelineChart) return;
@@ -3743,12 +5171,32 @@ elements.saveAttackPlanBtn.onclick = async () => {
     }
 
     currentAttackPlanData.strategy = elements.attackPlanStrategy.value;
+    currentAttackPlanData.currentOwner = elements.attackPlanOwner.value;
     currentConfig.accounts[activeAccountId].attackPlan = currentAttackPlanData;
 
     await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+    renderAccountsWithPlan(); // Refresh view to reflect group changes
     showToast('Plan de Ataque guardado correctamente');
     elements.attackPlanModal.classList.add('hidden');
     renderOpportunities();
+};
+
+elements.resetAttackPlanBtn.onclick = async () => {
+    if (!activeAccountId) return;
+
+    if (confirm('¿Estás seguro de que deseas borrar todos los datos de este Plan de Ataque? Esto hará que la cuenta ya no aparezca en la sección "Planes de Cuenta".')) {
+        if (currentConfig.accounts[activeAccountId]) {
+            delete currentConfig.accounts[activeAccountId].attackPlan;
+            await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+            showToast('Plan de Ataque eliminado');
+            elements.attackPlanModal.classList.add('hidden');
+            renderOpportunities();
+            // If we are in the attack plans view, refresh it
+            if (document.getElementById('accounts-with-plan-view').classList.contains('active')) {
+                renderAccountsWithPlan();
+            }
+        }
+    }
 };
 
 elements.closeAttackPlanModalBtn.onclick = () => {
@@ -3879,30 +5327,107 @@ function renderAccountsWithPlan() {
         return;
     }
 
-    accountsWithPlan.forEach(([accountId, account]) => {
-        const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
-        const lastAct = account.attackPlan.activities && account.attackPlan.activities.length > 0 ?
-            account.attackPlan.activities[account.attackPlan.activities.length - 1] : null;
+    // Populate GroupBy Select if empty (vibrates with data structure)
+    if (elements.accountsGroupBySelect.options.length <= 1) {
+        const groupByFields = currentConfig.dataStructure.filter(s => s.groupBy);
+        groupByFields.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.header;
+            opt.textContent = f.header;
+            elements.accountsGroupBySelect.appendChild(opt);
+        });
+    }
 
-        const card = document.createElement('div');
-        card.className = 'card settings-card';
-        card.style.margin = '0';
-        card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                <h3 style="margin: 0;">🏢 ${accountName}</h3>
-                <button class="primary-btn small" onclick="openAttackPlan('${accountId}')">Ver Plan</button>
-            </div>
-            <div class="sub-text" style="margin-bottom: 1rem;">
-                <strong>Estrategia:</strong> ${account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida'}
-            </div>
-            ${lastAct ? `
-                <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
-                    <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.date})
+    const groupBy = elements.accountsGroupBySelect.value;
+
+    if (groupBy === 'none') {
+        elements.accountsWithPlanList.style.display = 'grid';
+        elements.accountsWithPlanList.innerHTML = '';
+        accountsWithPlan.forEach(([accountId, account]) => {
+            const card = createAccountPlanCard(accountId, account);
+            elements.accountsWithPlanList.appendChild(card);
+        });
+    } else {
+        elements.accountsWithPlanList.style.display = 'block';
+        elements.accountsWithPlanList.innerHTML = '';
+
+        const groups = {};
+        accountsWithPlan.forEach(([accountId, account]) => {
+            const opp = currentConfig.opportunities.find(o => o['Account ID'] === accountId);
+            let groupValue = 'Sin asignar';
+
+            // Prioritize attackPlan.currentOwner if grouping by "Opportunity Owner" or similar
+            const isOwnerField = groupBy.toLowerCase().includes('owner');
+
+            if (isOwnerField && account.attackPlan.currentOwner) {
+                groupValue = account.attackPlan.currentOwner;
+            } else {
+                // Find all opportunities for this account
+                const accountOpps = currentConfig.opportunities.filter(o => o['Account ID'] === accountId);
+                if (accountOpps.length > 0) {
+                    // Sort by Close Date to get the "actual" owner/value of the latest record
+                    accountOpps.sort((a, b) => {
+                        const dateA = parseCustomDate(a['Close Date']) || new Date(0);
+                        const dateB = parseCustomDate(b['Close Date']) || new Date(0);
+                        return dateB - dateA;
+                    });
+                    groupValue = accountOpps[0][groupBy] || 'Sin asignar';
+                }
+            }
+
+            if (!groups[groupValue]) groups[groupValue] = [];
+            groups[groupValue].push({ accountId, account });
+        });
+
+        Object.entries(groups).sort().forEach(([groupName, items]) => {
+            const groupSection = document.createElement('div');
+            groupSection.style.marginBottom = '2.5rem';
+            groupSection.innerHTML = `
+                <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; color: var(--brand-orange);">
+                    📂 ${groupName} <span class="sub-text">(${items.length})</span>
+                </h3>
+                <div class="opp-groups-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                 </div>
-            ` : ''}
-        `;
-        elements.accountsWithPlanList.appendChild(card);
-    });
+            `;
+            const container = groupSection.querySelector('.opp-groups-container');
+            items.forEach(({ accountId, account }) => {
+                container.appendChild(createAccountPlanCard(accountId, account));
+            });
+            elements.accountsWithPlanList.appendChild(groupSection);
+        });
+    }
+}
+
+function createAccountPlanCard(accountId, account) {
+    const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
+    const lastAct = account.attackPlan.activities && account.attackPlan.activities.length > 0 ?
+        account.attackPlan.activities[account.attackPlan.activities.length - 1] : null;
+
+    const card = document.createElement('div');
+    card.className = 'card settings-card';
+    card.style.margin = '0';
+    card.style.height = 'auto';
+    card.style.padding = '1.5rem';
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+            <h3 style="margin: 0; cursor: pointer; color: var(--brand-orange);" onclick="goToAccount('${accountId}')" title="Ver oportunidades de esta cuenta">
+                🏢 ${accountName}
+            </h3>
+            <button class="primary-btn small" onclick="openAttackPlan('${accountId}')">Ver Plan</button>
+        </div>
+        <div class="sub-text" style="margin-bottom: 0.5rem;">
+            <strong>Responsable:</strong> ${account.attackPlan.currentOwner || 'No definido'}
+        </div>
+        <div class="sub-text" style="margin-bottom: 1rem;">
+            <strong>Estrategia:</strong> ${account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida'}
+        </div>
+        ${lastAct ? `
+            <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
+                <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.startDate || lastAct.date || 'Sin fecha'})
+            </div>
+        ` : ''}
+    `;
+    return card;
 }
 
 initUrlField('poc-url-acceptance');
@@ -3910,8 +5435,368 @@ initUrlField('poc-url-content');
 initUrlField('rfp-url');
 initUrlField('demo-url');
 
+
+// Handover logic
+async function renderHandoverTab(oppId) {
+    const mat = currentConfig.materials[oppId] || {};
+    elements.isReferenceCaseCheckbox.checked = !!mat.isReferenceCase;
+    elements.referenceKeywords.value = mat.referenceKeywords || '';
+
+    elements.isReferenceCaseCheckbox.onchange = (e) => {
+        if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
+        currentConfig.materials[oppId].isReferenceCase = e.target.checked;
+        saveMaterials();
+    };
+    elements.referenceKeywords.oninput = (e) => {
+        if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
+        currentConfig.materials[oppId].referenceKeywords = e.target.value;
+        debounce(() => saveMaterials(), 1000)();
+    };
+}
+
+elements.generateHandoverDocBtn.onclick = async () => {
+    // Logic to consolidate everything into a PDF/DOCX handover
+    showToast('Generando Handover Document...');
+    // Real implementation would gather assessment + poC success + demo notes
+};
+
+// Data Portability
+elements.exportDataBtn.onclick = async () => {
+    const data = {
+        config: { ...currentConfig, opportunities: [] }, // Export everything but the raw CSV data (which is loaded from file)
+        notes: currentConfig.notes,
+        materials: currentConfig.materials,
+        favorites: currentConfig.favorites,
+        accounts: currentConfig.accounts
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LatinTool_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+};
+
+elements.importDataBtn.onclick = async () => {
+    // Implementation for JSON import
+    showToast('Funcionalidad de importación próxima...');
+};
+
+
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }, 100);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+window.formatDoc = (cmd, value = null) => {
+    document.execCommand(cmd, false, value);
+};
+
+// --- AUTO-UPDATE LISTENERS ---
+if (window.electronAPI && window.electronAPI.onUpdateAvailable) {
+    window.electronAPI.onUpdateAvailable((info) => {
+        console.log("Renderer: Update available", info);
+        if (elements.updateBadge) elements.updateBadge.classList.remove('hidden');
+        if (elements.updateMessage) {
+            elements.updateMessage.textContent = `Una nueva versión (${info.version}) está disponible. ¿Deseas descargarla ahora?`;
+        }
+        if (elements.confirmUpdateBtn) elements.confirmUpdateBtn.textContent = getTranslation('btn_download') || 'Descargar';
+        if (elements.updateModal) elements.updateModal.classList.remove('hidden');
+    });
+}
+
+if (window.electronAPI && window.electronAPI.onUpdateDownloaded) {
+    window.electronAPI.onUpdateDownloaded((info) => {
+        console.log("Renderer: Update downloaded", info);
+        if (elements.updateBadge) {
+            elements.updateBadge.textContent = 'READY';
+            elements.updateBadge.style.background = 'var(--brand-cyan)';
+            elements.updateBadge.classList.remove('hidden');
+        }
+        if (elements.updateMessage) {
+            elements.updateMessage.textContent = `La versión ${info.version} ha sido descargada. Reinicia para aplicar los cambios.`;
+        }
+        if (elements.confirmUpdateBtn) elements.confirmUpdateBtn.classList.add('hidden');
+        if (elements.installUpdateBtn) elements.installUpdateBtn.classList.remove('hidden');
+        if (elements.updateModal) elements.updateModal.classList.remove('hidden');
+    });
+}
+
+if (window.electronAPI && window.electronAPI.onUpdateProgress) {
+    window.electronAPI.onUpdateProgress((progress) => {
+        if (elements.updateMessage) {
+            elements.updateMessage.textContent = `${getTranslation('msg_downloading') || 'Descargando'}: ${Math.round(progress.percent)}%`;
+        }
+    });
+}
+
+if (window.electronAPI && window.electronAPI.onUpdateError) {
+    window.electronAPI.onUpdateError((err) => {
+        console.error('Update error:', err);
+        showToast(getTranslation('err_update') || 'Error en la actualización');
+    });
+}
+
+// Update Buttons
+if (elements.confirmUpdateBtn) {
+    elements.confirmUpdateBtn.onclick = () => {
+        window.electronAPI.downloadUpdate();
+        showToast('Iniciando descarga...');
+        elements.confirmUpdateBtn.disabled = true;
+    };
+}
+
+if (elements.installUpdateBtn) {
+    elements.installUpdateBtn.onclick = () => {
+        window.electronAPI.installUpdate();
+    };
+}
+
+if (elements.cancelUpdateBtn) {
+    elements.cancelUpdateBtn.onclick = () => {
+        elements.updateModal.classList.add('hidden');
+    };
+}
+
+if (elements.closeUpdateModalBtn) {
+    elements.closeUpdateModalBtn.onclick = () => {
+        elements.updateModal.classList.add('hidden');
+    };
+}
+
+
 init();
 
+// Initialize manager settings
+async function initManagerSettings() {
+    const settings = await window.electronAPI.getSettings();
+    if (settings && settings.managerSettings) {
+        currentConfig.managerSettings = settings.managerSettings;
+    }
+}
+initManagerSettings();
+
+/**
+ * Initializes a URL field with a dynamic preview.
+ * Hides the input and shows a clickable link when a valid URL is entered.
+ * @param {string|HTMLElement} target - The ID of the input or the input element itself.
+ */
+function initUrlField(target) {
+    const input = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!input) return;
+
+    const wrapper = input.closest('.url-field-wrapper');
+    if (!wrapper) return;
+
+    const previewDiv = wrapper.querySelector('.url-preview');
+    const urlLink = wrapper.querySelector('.url-link');
+    const editBtn = wrapper.querySelector('.edit-url-btn');
+
+    const updatePreview = () => {
+        const val = input.value.trim();
+        if (val && (val.startsWith('http') || val.startsWith('https') || val.startsWith('www'))) {
+            input.classList.add('hidden');
+            if (previewDiv) previewDiv.classList.remove('hidden');
+            if (urlLink) {
+                // Ensure link works even if it starts with www
+                urlLink.href = val.startsWith('www') ? `https://${val}` : val;
+            }
+        } else {
+            input.classList.remove('hidden');
+            if (previewDiv) previewDiv.classList.add('hidden');
+        }
+    };
+
+    // Initial check
+    updatePreview();
+
+    // Listen for changes
+    input.addEventListener('change', updatePreview);
+    input.addEventListener('blur', updatePreview);
+
+    // Edit button logic
+    if (editBtn) {
+        editBtn.onclick = () => {
+            input.classList.remove('hidden');
+            if (previewDiv) previewDiv.classList.add('hidden');
+            input.focus();
+        };
+    }
+}
+
+/**
+ * Saves the current materials data to the directory.
+ */
+async function saveMaterials() {
+    if (!currentConfig.directory) return;
+    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
+
+// --- Utility Functions ---
+
+function updateResponsiblesList() {
+    if (!elements.responsiblesList) return;
+    elements.responsiblesList.innerHTML = '';
+    (currentConfig.responsibles || []).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        elements.responsiblesList.appendChild(opt);
+    });
+}
+
+window.saveResponsible = async (name) => {
+    if (!name || (currentConfig.responsibles && currentConfig.responsibles.includes(name))) return;
+    if (!currentConfig.responsibles) currentConfig.responsibles = [];
+    currentConfig.responsibles.push(name);
+    await window.electronAPI.saveFile(currentConfig.directory, 'responsibles.json', currentConfig.responsibles);
+    updateResponsiblesList();
+};
+
+function formatToDDMMYYYY(dateInput) {
+    if (!dateInput) return '—';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) {
+        return dateInput;
+    }
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function updateStageSubmenu() {
+    if (typeof renderOpportunities === 'function') {
+        renderOpportunities();
+    }
+}
+
+async function updateNotificationBadge() {
+    // Placeholder for notification logic
+}
+
+async function getAppVersion() {
+    try {
+        const version = await window.electronAPI.getAppVersion();
+        if (elements.appVersion) {
+            elements.appVersion.textContent = `v${version}`;
+        }
+        return version;
+    } catch (e) {
+        return '2.0.0';
+    }
+}
+
+// Update Listeners
+if (window.electronAPI.onUpdateAvailable) {
+    window.electronAPI.onUpdateAvailable((info) => {
+        if (elements.updateBadge) elements.updateBadge.classList.remove('hidden');
+        showToast(getTranslation('update_available') || 'Nueva actualización disponible');
+    });
+}
+
+if (window.electronAPI.onUpdateDownloaded) {
+    window.electronAPI.onUpdateDownloaded((info) => {
+        showToast(getTranslation('update_downloaded') || 'Actualización descargada. Se instalará al reiniciar.', 'success');
+    });
+}
+
+// --- Contacts and Attack Plan Management ---
+
+async function renderGlobalContacts() {
+    if (!elements.globalContactsBody) return;
+    const contacts = currentConfig.contacts || [];
+    elements.globalContactsBody.innerHTML = '';
+    
+    contacts.forEach((contact, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${contact.name || ''}</td>
+            <td>${contact.role || ''}</td>
+            <td>${contact.email || ''}</td>
+            <td>${contact.phone || ''}</td>
+            <td>${contact.influence || ''}</td>
+            <td>${contact.account || ''}</td>
+            <td>${contact.notes || ''}</td>
+            <td>
+                <button class="remove-item-btn" onclick="deleteGlobalContact(${idx})">&times;</button>
+            </td>
+        `;
+        elements.globalContactsBody.appendChild(tr);
+    });
+}
+
+window.deleteGlobalContact = async (idx) => {
+    if (!confirm(getTranslation('confirm_delete') || '¿Estás seguro?')) return;
+    currentConfig.contacts.splice(idx, 1);
+    await window.electronAPI.saveFile(currentConfig.directory, 'contacts.json', currentConfig.contacts);
+    renderGlobalContacts();
+};
+
+async function saveAccountContacts(accountId) {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    const rows = Array.from(elements.accountContactsBody.querySelectorAll('tr'));
+    currentConfig.accounts[accountId].contacts = rows.map(tr => {
+        const inputs = tr.querySelectorAll('input');
+        return {
+            name: inputs[0].value,
+            role: inputs[1].value,
+            email: inputs[2].value
+        };
+    });
+    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+}
+
+window.deleteAccountContact = async (accountId, idx) => {
+    if (!confirm(getTranslation('confirm_delete') || '¿Estás seguro?')) return;
+    currentConfig.accounts[accountId].contacts.splice(idx, 1);
+    renderAccountContacts(accountId);
+};
+
+window.saveAttackPlan = async (accountId) => {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    currentConfig.accounts[accountId].attackPlan = {
+        ...currentConfig.accounts[accountId].attackPlan, // Simplified for now
+        strategy: elements.attackPlanStrategy.value,
+        currentOwner: elements.attackPlanOwner ? elements.attackPlanOwner.value : ''
+    };
+    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+    showToast(getTranslation('toast_attack_plan_saved') || 'Plan de Ataque guardado');
+};
+
+window.addGlobalContact = async () => {
+    if (!currentConfig.contacts) currentConfig.contacts = [];
+    currentConfig.contacts.push({ name: '', role: '', email: '', phone: '', influence: '', account: '', notes: '' });
+    renderGlobalContacts();
+};
+
+window.addAccountContact = (accountId) => {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    if (!currentConfig.accounts[accountId].contacts) currentConfig.accounts[accountId].contacts = [];
+    currentConfig.accounts[accountId].contacts.push({ name: '', role: '', email: '' });
+    renderAccountContacts(accountId);
+};
 
 // --- LuxeEditor Implementation ---
 
@@ -4155,6 +6040,5 @@ function initLuxeEditors() {
 // Ensure initLuxeEditors is called after the DOM is ready or at the end of init()
 // For this app, we can call it right after the class definition we just added.
 initLuxeEditors();
-
 
 
