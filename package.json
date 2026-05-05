@@ -1,7 +1,7 @@
 {
   "name": "presales",
   "productName": "Presales Integrity Ledger",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Presales LatinTool - Productivity tool for Presales Engineers",
   "main": "main.js",
   "author": "Presales Latin America Team <presales-latam@example.com>",
@@ -23,7 +23,7 @@
     "appId": "com.presales.manager",
     "productName": "Presales Integrity Ledger",
     "directories": {
-      "output": "dist/v2.2.0"
+      "output": "dist/v2.2.1"
     },
     "win": {
       "target": [
