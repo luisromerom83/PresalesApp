@@ -404,11 +404,7 @@ function showView(viewId, isBack = false, triggerBtn = null) {
 
     if (triggerBtn) {
         triggerBtn.classList.add('active');
-    } else {
-        const navBtn = document.querySelector(`[data-target="${viewId}"]`);
-        if (navBtn) navBtn.classList.add('active');
     }
-    if (navBtn && viewId !== 'opp-list-view') navBtn.classList.add('active');
 
     // Show/Hide back button based on history
     if (currentConfig.viewHistory.length > 0) {
@@ -445,7 +441,7 @@ window.goToAccount = (accountId) => {
     showView('opp-list-view');
 };
 
-window.goToOpportunity = (oppId) => {
+window.openDetails = (oppId) => {
     currentConfig.activeFilters = {};
     currentConfig.currentFavoritesFilter = false;
     currentConfig.currentSearchQuery = oppId.toLowerCase();
@@ -491,7 +487,6 @@ const setupSidebarToggle = (toggleId, submenuId) => {
     }
 };
 
-setupSidebarToggle('toggle-fav-group', 'fav-group-submenu');
 setupSidebarToggle('toggle-opp-group', 'opp-group-submenu');
 setupSidebarToggle('toggle-ms-group', 'ms-group-submenu');
 setupSidebarToggle('toggle-mgmt-group', 'mgmt-group-submenu');
@@ -2525,7 +2520,7 @@ function renderGlobalNotesHistory() {
         card.className = 'history-card card';
         card.innerHTML = `
             <div class="history-card-header">
-                <strong class="opp-link" onclick="goToOpportunity('${item.oppId}')">${item.oppName}</strong>
+                <strong class="opp-link" onclick="openDetails('${item.oppId}')">${item.oppName}</strong>
                 <span class="sub-text">${item.accountName || ''}</span>
             </div>
             <div class="history-card-body">
@@ -4022,12 +4017,26 @@ function renderPocTimeline(timeline) {
         const actStart = item.startDate || actDeadline;
         
         tr.innerHTML = `
-            <td><input type="text" class="activity-input act" value="${item.activity || ''}" placeholder="${getTranslation('placeholder_milestone')}"></td>
-            <td><input type="date" class="activity-input start-date" value="${actStart}"></td>
-            <td><input type="date" class="activity-input date" value="${actDeadline}"></td>
-            <td><input type="text" class="activity-input comm" value="${item.comments || ''}" placeholder="..."></td>
+            <td><input type="text" class="activity-input act" value="${item.activity || ''}" placeholder="${getTranslation('placeholder_milestone')}" data-index="${index}"></td>
+            <td><input type="date" class="activity-input start-date" value="${actStart}" data-index="${index}"></td>
+            <td><input type="date" class="activity-input date" value="${actDeadline}" data-index="${index}"></td>
+            <td><input type="text" class="activity-input comm" value="${item.comments || ''}" placeholder="..." data-index="${index}"></td>
             <td><button type="button" class="remove-item-btn" onclick="this.closest('tr').remove()">&times;</button></td>
         `;
+
+        // Add event listeners to update state in real-time
+        const inputs = tr.querySelectorAll('.activity-input');
+        inputs.forEach(input => {
+            input.oninput = () => {
+                const idx = parseInt(input.getAttribute('data-index'));
+                if (!timeline[idx]) timeline[idx] = { activity: '', date: '', comments: '' };
+                if (input.classList.contains('act')) timeline[idx].activity = input.value;
+                if (input.classList.contains('start-date')) timeline[idx].startDate = input.value;
+                if (input.classList.contains('date')) timeline[idx].date = input.value;
+                if (input.classList.contains('comm')) timeline[idx].comments = input.value;
+            };
+        });
+
         elements.pocTimelineBody.appendChild(tr);
     });
 }
@@ -4373,6 +4382,12 @@ function renderWalkthroughList(container, steps, type) {
             <input type="text" class="step-desc" placeholder="${getTranslation('placeholder_step_desc') || 'Descripción del paso...'}" value="${step.desc || ''}" style="flex: 1;">
             <button class="delete-row-btn" onclick="removeWalkthroughStep('${type}', ${index})">&times;</button>
         `;
+        
+        const input = div.querySelector('.step-desc');
+        input.oninput = () => {
+            steps[index].desc = input.value;
+        };
+        
         container.appendChild(div);
     });
 }
@@ -4524,6 +4539,20 @@ function renderActivityInputs(activities, container, removeFnName) {
                 </div>
             </td>
         `;
+        
+        // Add event listeners to update state in real-time
+        const inputs = tr.querySelectorAll('.activity-input');
+        inputs.forEach(input => {
+            input.oninput = () => {
+                const idx = parseInt(input.getAttribute('data-index'));
+                if (input.classList.contains('act')) activities[idx].activity = input.value;
+                if (input.classList.contains('resp')) activities[idx].responsible = input.value;
+                if (input.classList.contains('comm')) activities[idx].comments = input.value;
+                if (input.classList.contains('start-date-input')) activities[idx].startDate = input.value ? new Date(input.value).toISOString() : null;
+                if (input.classList.contains('date-input')) activities[idx].date = input.value ? new Date(input.value).toISOString() : null;
+            };
+        });
+
         container.appendChild(tr);
     });
 }
@@ -4784,6 +4813,7 @@ async function renderActivityCalendar() {
 }
 
 function renderDayAgenda(year, month, day) {
+    const lang = elements.languageSelect.value.replace("_", "-");
     const dayActivities = getActivityForDay(year, month, day);
     if (dayActivities.length === 0) return;
 
@@ -4808,7 +4838,7 @@ function renderDayAgenda(year, month, day) {
     `;
 
     const activitiesHtml = dayActivities.map(act => `
-        <div class="agenda-activity-row" onclick="goToOpportunity('${act.oppId}')">
+        <div class="agenda-activity-row" onclick="openDetails('${act.oppId}')">
             <div class="agenda-dot-col">
                 <span class="agenda-dot dot-${act.type}"></span>
             </div>
@@ -4847,7 +4877,7 @@ function renderDayCell(year, month, day) {
         evBtn.title = `${act.oppName}\n${act.activity}\n${act.responsible}`;
         evBtn.onclick = (e) => {
             e.stopPropagation();
-            goToOpportunity(act.oppId);
+            openDetails(act.oppId);
         };
         eventContainer.appendChild(evBtn);
     });
@@ -4859,6 +4889,7 @@ function getActivityForDay(year, month, day) {
     const activities = [];
     const targetDate = new Date(year, month, day);
     targetDate.setHours(0, 0, 0, 0);
+    const targetDateStr = targetDate.toISOString().split('T')[0];
 
     for (const oppId in currentConfig.materials) {
         const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
@@ -4890,13 +4921,6 @@ function getActivityForDay(year, month, day) {
                 }
                 if (poc.timeline) {
                     poc.timeline.forEach(m => checkMatch(m, 'poc'));
-                }
-                if (poc.timeline) {
-                    poc.timeline.forEach(act => {
-                        if (act.date && act.date.split('T')[0] === targetDateStr) {
-                            dayActs.push({ ...act, type: 'poc', oppName, oppId });
-                        }
-                    });
                 }
             });
         }
