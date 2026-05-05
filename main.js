@@ -113,9 +113,15 @@ app.whenReady().then(() => {
   });
 
   // Check for updates
-  if (process.platform !== 'linux') {
-    autoUpdater.checkForUpdatesAndNotify();
+  console.log('Update system: checking if platform is supported...', process.platform);
+  // Relaxed check for testing, but added warning for Linux
+  if (process.platform === 'linux') {
+    console.log('Update system: Running on Linux. Auto-update for AppImage requires system integration.');
   }
+  
+  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+    console.error('Initial update check failed:', err);
+  });
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -285,12 +291,29 @@ ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
 
-ipcMain.handle('download-update', () => {
-  autoUpdater.downloadUpdate();
+ipcMain.handle('download-update', async () => {
+  console.log('IPC: download-update triggered');
+  try {
+    const result = await autoUpdater.downloadUpdate();
+    console.log('Update download started successfully:', result);
+    return result;
+  } catch (err) {
+    console.error('Update download initiation failed:', err);
+    if (mainWindow) mainWindow.webContents.send('update-error', `Error al iniciar descarga: ${err.message}`);
+    throw err;
+  }
 });
 
-ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall();
+ipcMain.handle('install-update', async () => {
+  console.log('IPC: install-update triggered');
+  try {
+    autoUpdater.quitAndInstall();
+    return { success: true };
+  } catch (err) {
+    console.error('Install failed:', err);
+    if (mainWindow) mainWindow.webContents.send('update-error', `Error al instalar: ${err.message}`);
+    throw err;
+  }
 });
 
 ipcMain.handle('list-files', async (event, dir) => {

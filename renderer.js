@@ -1170,10 +1170,17 @@ async function init() {
                 elements.updateMessage.textContent = `Hay una nueva versión disponible (v${info.version}). ¿Deseas descargarla ahora?`;
                 elements.confirmUpdateBtn.classList.remove('hidden');
                 elements.confirmUpdateBtn.textContent = "Descargar";
-                elements.confirmUpdateBtn.onclick = () => {
-                    window.electronAPI.downloadUpdate();
-                    elements.confirmUpdateBtn.textContent = "Iniciando...";
-                    elements.confirmUpdateBtn.disabled = true;
+                elements.confirmUpdateBtn.onclick = async () => {
+                    try {
+                        elements.confirmUpdateBtn.textContent = "Iniciando...";
+                        elements.confirmUpdateBtn.disabled = true;
+                        await window.electronAPI.downloadUpdate();
+                    } catch (err) {
+                        console.error("Renderer: downloadUpdate failed", err);
+                        showToast(`No se pudo iniciar la descarga: ${err.message}`, 'error');
+                        elements.confirmUpdateBtn.disabled = false;
+                        elements.confirmUpdateBtn.textContent = "Reintentar";
+                    }
                 };
                 elements.updateModal.classList.remove('hidden');
             };
