@@ -441,16 +441,7 @@ window.goToAccount = (accountId) => {
     showView('opp-list-view');
 };
 
-window.openDetails = (oppId) => {
-    currentConfig.activeFilters = {};
-    currentConfig.currentFavoritesFilter = false;
-    currentConfig.currentSearchQuery = oppId.toLowerCase();
-    elements.oppSearchInput.value = oppId;
 
-    renderOpportunities();
-    renderDynamicFilters();
-    showView('opp-list-view');
-};
 
 document.addEventListener('keydown', (e) => {
     // Ctrl+F -> Search
@@ -2890,7 +2881,7 @@ function renderOpportunityGroups(opps, visibleCols) {
         `;
 
         // Toggle Account Collapse
-        headerTr.onclick = () => {
+        headerTr.onclick = (e) => { if (e.target.closest("button") || e.target.closest("select")) return;
             if (currentConfig.collapsedAccounts.has(accountId)) {
                 currentConfig.collapsedAccounts.delete(accountId);
             } else {
@@ -3102,7 +3093,7 @@ function loadMeddpicc(medd, accountId) {
 }
 
 // Opportunity Details
-window.openDetails = (oppId) => {
+window.openDetails = (oppId) => { console.log("Abriendo Detalles de Oportunidad", oppId);
     activeOppId = oppId;
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
@@ -3170,7 +3161,7 @@ window.openDetails = (oppId) => {
     const defaultSubPane = elements.detailsModal.querySelector('#sub-tab-m');
     if (defaultSubPane) defaultSubPane.classList.add('active');
 
-    elements.detailsModal.classList.remove('hidden');
+    elements.detailsModal.classList.remove('hidden'); setTimeout(() => { const s = window.getComputedStyle(elements.detailsModal); let p = elements.detailsModal; let pChain = []; while(p){ pChain.push({id: p.id, tag: p.tagName, class: p.className, display: window.getComputedStyle(p).display}); p = p.parentElement; } console.log("MODAL CHAIN:", JSON.stringify(pChain)); }, 500);
 };
 
 // Handle Tab and Sub-Tab Switching globally and MEDDPICC Add Buttons
@@ -4970,7 +4961,7 @@ function getActivityForDay(year, month, day) {
 let activeAccountId = null;
 let currentAttackPlanData = { licenses: [], activities: [], strategy: '' };
 
-window.openAttackPlan = (accountId) => {
+window.openAttackPlan = (accountId) => { console.log("Abriendo Plan de Ataque", accountId);
     activeAccountId = accountId;
     const account = currentConfig.accounts[accountId] || {};
     const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
@@ -5237,7 +5228,7 @@ elements.closeAttackPlanModalBtn.onclick = () => {
 // --- Account Contacts Management ---
 let currentContactsData = [];
 
-window.openAccountContacts = (accountId) => {
+window.openAccountContacts = (accountId) => { console.log("Abriendo Contactos", accountId);
     activeAccountId = accountId;
     const account = currentConfig.accounts[accountId] || {};
     const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;

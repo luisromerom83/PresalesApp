@@ -28,7 +28,7 @@ const translations = {
         // Sidebar
         sidebar_opps: "Oportunidades",
         sidebar_all: "Todas",
-        sidebar_favorites: "⭐ Favoritos",
+        sidebar_favorites: "Favoritos",
         sidebar_calendar: "Calendario de Actividades",
         sidebar_contacts: "Contactos",
         sidebar_account_plans: "Planes de Cuenta",
@@ -46,7 +46,7 @@ const translations = {
         view_title_contacts: "Contactos Globales",
         view_title_account_plans: "Cuentas con Plan de Ataque",
         view_title_resources: "Recursos Globales",
-        view_title_favorites: "⭐ Favoritos",
+        view_title_favorites: "Favoritos",
         view_title_settings: "Configuración",
 
         // Toolbars / Search
@@ -369,6 +369,7 @@ const translations = {
         col_csv_field: "Campo (Header)",
         col_csv_sample: "Muestra",
         col_csv_type: "Tipo",
+        col_csv_options: "Opciones",
         col_csv_view: "Vista",
         col_csv_group: "Agrupar",
         btn_add_field: "+ Agregar Campo",
@@ -564,7 +565,7 @@ const translations = {
         // Sidebar
         sidebar_opps: "Oportunidades",
         sidebar_all: "Todas",
-        sidebar_favorites: "⭐ Favoritos",
+        sidebar_favorites: "Favoritos",
         sidebar_calendar: "Calendário de Atividades",
         sidebar_contacts: "Contatos",
         sidebar_account_plans: "Planos de Conta",
@@ -582,7 +583,7 @@ const translations = {
         view_title_contacts: "Contatos Globais",
         view_title_account_plans: "Contas com Plano de Ataque",
         view_title_resources: "Recursos Globais",
-        view_title_favorites: "⭐ Favoritos",
+        view_title_favorites: "Favoritos",
         view_title_settings: "Configuração",
 
         // Toolbars / Search
@@ -903,6 +904,7 @@ const translations = {
         col_csv_field: "Campo (Header)",
         col_csv_sample: "Amostra",
         col_csv_type: "Tipo",
+        col_csv_options: "Opções",
         col_csv_view: "Visualização",
         col_csv_group: "Agrupar",
         btn_add_field: "+ Adicionar Campo",
@@ -1441,6 +1443,7 @@ const translations = {
         col_csv_field: "Field (Header)",
         col_csv_sample: "Sample",
         col_csv_type: "Type",
+        col_csv_options: "Options",
         col_csv_view: "View",
         col_csv_group: "Group",
         btn_add_field: "+ Add Field",

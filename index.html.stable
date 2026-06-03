@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presales Integrity Ledger</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/logo_shield.svg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style id="layout-fix-styles">
+        #app-container {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .main-layout {
+            position: absolute !important;
+            top: 70px !important; bottom: 0 !important;
+            left: 0 !important; right: 0 !important;
+            background: var(--bg-color) !important;
+            display: block !important;
+        }
+        .sidebar {
+            position: absolute !important;
+            top: 0 !important; left: 0 !important; width: 240px !important; height: 100% !important;
+            background: var(--glass-bg) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+            z-index: 100 !important;
+            padding-top: 10px !important;
+        }
+        .content {
+            position: absolute !important;
+            top: 0 !important; left: 240px !important; right: 0 !important; bottom: 0 !important;
+            background: var(--bg-color) !important;
+            display: block !important;
+            padding: 0 !important;
+            z-index: 90 !important;
+            overflow: auto !important;
+        }
+        .nav-group:first-child {
+            margin-top: 0 !important;
+        }
+        .sidebar-scrollable {
+        #toggle-sidebar-btn {
+            display: none !important;
+        }
+            padding-top: 0 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-left">
+                <button id="back-btn" class="back-btn hidden" title="Volver" data-i18n="btn_back"
+                    data-i18n-prop="title">&larr;</button>
+                <img src="assets/logo_shield.svg" alt="Logo" class="app-logo" id="app-logo-trigger">
+                <h1 id="app-title" data-i18n="app_title">Presales Integrity Ledger</h1>
+            </div>
+            <div class="header-right">
+                <div id="update-badge" class="update-badge hidden" title="Nueva actualización disponible"
+                    data-i18n="update_available" data-i18n-prop="title">
+                    <span class="badge-icon">☁️</span>
+                    <span class="badge-text" data-i18n="update_badge_text">Update</span>
+                </div>
+                <button id="add-general-note-btn" class="help-btn" title="Notas Generales" data-i18n="btn_general_notes"
+                    data-i18n-prop="title"
+                    style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange);">📝</button>
+                <button id="help-btn" class="help-btn" title="Manual de Ayuda" data-i18n="help_manual"
+                    data-i18n-prop="title">?</button>
+                <div class="header-user-info">
+                    <span id="header-display-name" data-i18n="user_name"
+                        style="font-weight: 600; color: var(--brand-orange);">Usuario</span>
+                    <span id="header-display-company" data-i18n="company_name"
+                        style="font-size: 0.8rem; color: var(--text-secondary);">Empresa</span>
+                </div>
+                <div class="header-logo">
+                    <img src="assets/logo.svg" alt="Quadient Logo" class="theme-logo">
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Screen 1: Directory Selection -->
+            <section id="directory-screen" class="screen active">
+                <div class="card center-content">
+                    <img src="assets/logo.svg" alt="Quadient Logo" class="entry-logo theme-logo">
+                    <h2 data-i18n="init_config_title">Configuración Inicial</h2>
+                    <p data-i18n="init_config_desc">Selecciona el directorio donde se alojarán todos los archivos de
+                        configuración (JSON).</p>
+                    <button id="select-dir-btn" class="primary-btn" data-i18n="btn_select_dir">Seleccionar
+                        Directorio</button>
+                    <p id="selected-path" class="path-display" data-i18n="path_not_selected"></p>
+                    <button id="continue-btn" class="secondary-btn hidden" data-i18n="btn_continue">Continuar</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: Data Form -->
+            <section id="form-screen" class="screen">
+                <div class="card center-content">
+                    <img src="assets/logo.svg" alt="Quadient Logo" class="entry-logo theme-logo">
+                    <h2 data-i18n="user_data_title">Datos de Usuario</h2>
+                    <form id="user-form">
+                        <div class="form-group">
+                            <label for="name" data-i18n="label_full_name">Nombre Completo</label>
+                            <input type="text" id="name" required placeholder="Ej. Juan Pérez"
+                                data-i18n="placeholder_full_name" data-i18n-prop="placeholder">
+                        </div>
+                        <div class="form-group">
+                            <label for="email" data-i18n="label_email">Correo Electrónico</label>
+                            <input type="email" id="email" required placeholder="juan@ejemplo.com"
+                                data-i18n="placeholder_email" data-i18n-prop="placeholder">
+                        </div>
+                        <div class="form-group">
+                            <label for="company" data-i18n="label_company">Empresa</label>
+                            <input type="text" id="company" placeholder="Nombre de tu empresa"
+                                data-i18n="placeholder_company" data-i18n-prop="placeholder">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="back-to-dir-btn" class="text-btn"
+                                data-i18n="btn_back">Volver</button>
+                            <button type="submit" class="primary-btn" data-i18n="btn_enter">Entrar</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Screen 3: Main Screen -->
+            <section id="main-screen" class="screen main-screen">
+                <div class="main-layout">
+                    <aside class="sidebar">
+                        <button id="toggle-sidebar-btn" class="sidebar-toggle" title="Ocultar Sidebar">
+                            <span class="toggle-icon-arrow">&lsaquo;</span>
+                        </button>
+                        <div class="sidebar-scrollable">
+                            <nav>
+                                <!-- Favoritos Group -->
+                                <div id="fav-group-container" class="nav-group">
+                                    <div class="nav-group-label" id="toggle-fav-group">
+                                        <span><i class="fas fa-star" style="margin-right: 0.5rem; color: #ffb400;"></i> <span data-i18n="sidebar_favorites">Favoritos</span></span><span
+                                            class="toggle-icon">▾</span>
+                                    </div>
+                                    <div id="fav-group-submenu" class="submenu">
+                                        <button class="nav-btn active" data-target="opp-list-view" id="favorites-nav-btn"><i class="fas fa-star"></i> <span data-i18n="sidebar_favorites">Favoritos</span></button>
+                                    </div>
+                                </div>
+
+                                <!-- Oportunidades Group -->
+                                <div id="opp-group-container" class="nav-group">
+                                    <div class="nav-group-label" id="toggle-opp-group">
+                                        <span><i class="fas fa-briefcase" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span data-i18n="sidebar_opps">Oportunidades</span></span><span
+                                            class="toggle-icon">▾</span>
+                                    </div>
+                                    <div id="opp-group-submenu" class="submenu">
+                                        <button class="nav-btn" data-target="opp-list-view" id="all-opps-btn"><i class="fas fa-list"></i> <span data-i18n="sidebar_all">Todas</span></button>
+                                        <div id="dynamic-filters-container">
+                                            <!-- Dynamic groups injected here -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Gestión Group -->
+                                <div id="mgmt-group-container" class="nav-group">
+                                    <div class="nav-group-label" id="toggle-mgmt-group">
+                                        <span><i class="fas fa-tasks" style="margin-right: 0.5rem; color: #72bf44;"></i> <span data-i18n="sidebar_mgmt">Gestión</span></span><span class="toggle-icon">▾</span>
+                                    </div>
+                                </div>
+                                <div id="mgmt-group-submenu" class="submenu collapsed">
+                                    <button class="nav-btn" data-target="activity-calendar-view" id="calendar-nav-btn"><i class="fas fa-calendar-alt"></i> <span data-i18n="sidebar_calendar">Calendario</span></button>
+                                    <button class="nav-btn" data-target="global-contacts-view"><i class="fas fa-users"></i> <span data-i18n="sidebar_contacts">Contactos</span></button>
+                                    <button class="nav-btn" data-target="accounts-with-plan-view"><i class="fas fa-map-marked-alt"></i> <span data-i18n="sidebar_account_plans">Planes</span></button>
+                                    <button class="nav-btn" data-target="notes-history-view"><i class="fas fa-history"></i> <span data-i18n="sidebar_history">Historial</span></button>
+                                    <button class="nav-btn" data-target="resources-view"><i class="fas fa-folder-open"></i> <span data-i18n="sidebar_resources">Recursos</span></button>
+                                    <button class="nav-btn" data-target="spiff-view"><i class="fas fa-money-bill-wave"></i> <span data-i18n="sidebar_spiff">SPIFF</span></button>
+                                </div>
+                            </div>
+
+                            <!-- Microsoft Group -->
+                            <div id="ms-group-container" class="nav-group">
+                                <div class="nav-group-label" id="toggle-ms-group">
+                                    <span><i class="fab fa-microsoft" style="margin-right: 0.5rem; color: #f25022;"></i> <span data-i18n="sidebar_ms">Microsoft</span></span><span class="toggle-icon">▾</span>
+                                </div>
+                                <div id="ms-group-submenu" class="submenu collapsed">
+                                    <button class="nav-btn" data-target="todo-view" id="todo-nav-btn"><i class="fas fa-check-square"></i> Microsoft To-Do</button>
+                                    <button class="nav-btn" data-target="calendar-ms-view" id="calendar-ms-nav-btn"><i class="fas fa-calendar-alt"></i> Microsoft Calendar</button>
+                                </div>
+                            </div>
+
+                            <!-- Configuración Group -->
+                            <div id="config-group-container" class="nav-group">
+                                <div class="nav-group-label" id="toggle-config-group">
+                                    <span data-i18n="sidebar_settings">Configuración</span><span
+                                        class="toggle-icon">▾</span>
+                                </div>
+                                <div id="config-group-submenu" class="submenu collapsed">
+                                    <button class="nav-btn" data-target="settings-view" data-tab="settings-general"
+                                        data-i18n="settings_tab_general">General</button>
+                                    <button class="nav-btn" data-target="settings-view"
+                                        data-tab="settings-classifications"
+                                        data-i18n="settings_tab_classifications">Clasificaciones</button>
+                                    <button class="nav-btn" data-target="settings-view"
+                                        data-tab="settings-sidebar-filters" data-i18n="settings_tab_sidebar">Filtros
+                                        Sidebar</button>
+                                    <button class="nav-btn" data-target="settings-view" data-tab="settings-api"
+                                        data-i18n="settings_tab_api">API / Integración</button>
+                                    <button class="nav-btn" data-target="settings-view" data-tab="settings-assessment"
+                                        data-i18n="settings_tab_assessment">Estructura Assessment</button>
+                                    <button class="nav-btn" data-target="settings-view" data-tab="settings-structure"
+                                        data-i18n="settings_tab_structure">Estructura CSV</button>
+                                </div>
+                            </div>
+                        </nav>
+                        <div id="app-version" class="sidebar-version">v2.2.0</div>
+                        </div>
+                    </aside>
+
+                    <div class="content">
+
+                        <!-- Notes History View -->
+                        <div id="notes-history-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_history">Historial Global de Notas</h2>
+                            </div>
+                            <div class="history-container">
+                                <section class="history-group">
+                                    <h3 data-i18n="history_this_week">Esta Semana</h3>
+                                    <div id="history-week" class="history-list"></div>
+                                </section>
+                                <section class="history-group">
+                                    <h3 data-i18n="history_this_month">Este Mes</h3>
+                                    <div id="history-month" class="history-list"></div>
+                                </section>
+                                <section class="history-group">
+                                    <h3 data-i18n="history_this_year">Este Año</h3>
+                                    <div id="history-year" class="history-list"></div>
+                                </section>
+                            </div>
+                        </div>
+
+                        <!-- Microsoft To-Do View -->
+                        <div id="todo-view" class="view">
+                            <webview src="https://to-do.office.com/tasks/" id="todo-webview" partition="persist:todo">
+                            </webview>
+                        </div>
+
+                        <!-- Microsoft Calendar View -->
+                        <div id="calendar-ms-view" class="view">
+                            <webview src="https://outlook.office.com/calendar/" id="calendar-ms-webview"
+                                partition="persist:todo">
+                            </webview>
+                        </div>
+
+                        <!-- SPIFF View -->
+                        <div id="spiff-view" class="view">
+                            <webview src="https://us1.spiff.com/" id="spiff-webview" partition="persist:spiff">
+                            </webview>
+                        </div>
+                        <!-- Opportunities View -->
+                        <div id="opp-list-view" class="view active">
+                            <div class="toolbar">
+                                <h2 id="opp-view-title" data-i18n="view_title_opps">Oportunidades</h2>
+                                <div class="search-container" style="display: flex; align-items: center; gap: 1rem;">
+                                    <input type="text" id="opp-search-input"
+                                        placeholder="Buscar por nombre, ID o cuenta..."
+                                        data-i18n="placeholder_search_opps" data-i18n-prop="placeholder">
+                                    <label class="checkbox-container luxe-checkbox" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; white-space: nowrap; margin-right: 1rem;">
+                                        <input type="checkbox" id="hide-accounts-cb" style="width: 14px; height: 14px;">
+                                        <span data-i18n="hide_accounts" style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Ocultar Cuentas</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="table-container">
+                                <table id="opp-table">
+                                    <thead id="opp-table-head">
+                                        <!-- Dynamic headers -->
+                                    </thead>
+                                    <tbody id="opp-list-body">
+                                        <!-- Rows injected here -->
+                                    </tbody>
+                                </table>
+                                <div id="opp-pagination" class="pagination-container hidden" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--glass-border);">
+                                    <button id="opp-prev-btn" class="secondary-btn small">&larr; Anterior</button>
+                                    <span id="opp-page-info" class="sub-text" style="font-size: 0.85rem; font-weight: 600;">Página 1 de 1</span>
+                                    <button id="opp-next-btn" class="secondary-btn small">Siguiente &rarr;</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Activity Calendar View -->
+                        <div id="activity-calendar-view" class="view">
+                            <div class="toolbar calendar-toolbar">
+                                <h2 data-i18n="view_title_calendar">Calendario de Actividades</h2>
+                                <div class="calendar-controls">
+                                    <div class="calendar-view-switcher">
+                                        <button class="view-btn small" data-view="agenda"
+                                            data-i18n="cal_btn_agenda">Agenda</button>
+                                        <button class="view-btn small" data-view="day"
+                                            data-i18n="cal_btn_day">Día</button>
+                                        <button class="view-btn small" data-view="work-week"
+                                            data-i18n="cal_btn_work_week">Semana (L-V)</button>
+                                        <button class="view-btn small" data-view="full-week"
+                                            data-i18n="cal_btn_full_week">Semana Completa</button>
+                                        <button class="view-btn small active" data-view="month"
+                                            data-i18n="cal_btn_month">Mes</button>
+                                    </div>
+                                    <div class="calendar-nav">
+                                        <button id="prev-month-btn" class="secondary-btn small">&larr;</button>
+                                        <h3 id="current-month-display">Mes Año</h3>
+                                        <button id="next-month-btn" class="secondary-btn small">&rarr;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="calendar-container">
+                                <div class="calendar-header-grid">
+                                    <div data-i18n="day_sun">Dom</div>
+                                    <div data-i18n="day_mon">Lun</div>
+                                    <div data-i18n="day_tue">Mar</div>
+                                    <div data-i18n="day_wed">Mié</div>
+                                    <div data-i18n="day_thu">Jue</div>
+                                    <div data-i18n="day_fri">Vie</div>
+                                    <div data-i18n="day_sat">Sáb</div>
+                                </div>
+                                <div id="calendar-grid" class="calendar-grid">
+                                    <!-- Days injected here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Global Contacts View -->
+                        <div id="global-contacts-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_contacts">Contactos Globales</h2>
+                                <div class="search-container">
+                                    <input type="text" id="contacts-search-input" placeholder="Buscar contactos..."
+                                        data-i18n="placeholder_search_contacts" data-i18n-prop="placeholder"
+                                        class="form-input">
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table id="global-contacts-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="label_resource_name">Nombre</th>
+                                            <th data-i18n="label_contact_pos">Posición</th>
+                                            <th data-i18n="sidebar_email">Email</th>
+                                            <th data-i18n="label_contact_phone">Teléfono</th>
+                                            <th data-i18n="label_influence">Influencia</th>
+                                            <th data-i18n="label_contact_account">Cuenta</th>
+                                            <th data-i18n="label_contact_notes">Notas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="global-contacts-body">
+                                        <!-- Contacts injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Accounts with Plan View -->
+                        <div id="accounts-with-plan-view" class="view">
+                            <div class="toolbar"
+                                style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2 data-i18n="view_title_account_plans">Cuentas con Plan de Ataque</h2>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label for="accounts-groupby-select" class="sub-text"
+                                        style="margin: 0; font-weight: 600;">Agrupar por:</label>
+                                    <select id="accounts-groupby-select" class="form-input"
+                                        style="width: auto; min-width: 150px;">
+                                        <option value="none">Ninguno</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="accounts-with-plan-list" class="opp-groups-container"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                                <!-- Account plan cards injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Resources View -->
+                        <div id="resources-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_resources">Recursos Globales</h2>
+                                <div class="search-container">
+                                    <input type="text" id="resources-search-input" placeholder="Buscar recursos..."
+                                        data-i18n="placeholder_search_resources" data-i18n-prop="placeholder"
+                                        class="form-input">
+                                </div>
+                                <button id="add-resource-btn" class="primary-btn small"
+                                    data-i18n="btn_add_resource">Añadir Recurso</button>
+                            </div>
+                            <div class="table-container">
+                                <table id="resources-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="label_resource_name">Nombre</th>
+                                            <th data-i18n="label_resource_content">Enlace / Email / Nota</th>
+                                            <th style="width: 100px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resources-body">
+                                        <!-- Resources injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Manager View (Hidden) -->
+                        <div id="manager-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_manager">Gestión de Manager</h2>
+                            </div>
+
+                            <!-- Commission Calculator -->
+                            <div class="card settings-card"
+                                style="margin-bottom: 1.5rem; background: var(--grad-calm); color: #000; padding: 0.6rem 1rem; width: fit-content; height: auto !important; align-self: flex-start;">
+                                <h3 style="margin-bottom: 0.5rem; color: #000; font-size: 0.9rem; font-weight: 800;"
+                                    data-i18n="title_calculator">🧮
+                                    Calculadora de Comisión</h3>
+                                <div style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: nowrap;">
+                                    <div style="width: 100px;">
+                                        <label
+                                            style="font-size: 0.65rem; font-weight: 800; margin-bottom: 0.2rem; display: block; text-transform: uppercase;"
+                                            data-i18n="label_amount">Monto</label>
+                                        <input type="number" id="calc-amount" class="form-input"
+                                            style="background: rgba(255,255,255,0.9); color: #000; border: 1px solid rgba(0,0,0,0.1); height: 26px; padding: 2px 6px; font-size: 0.8rem;"
+                                            placeholder="0.00">
+                                    </div>
+                                    <div style="width: 60px;">
+                                        <label
+                                            style="font-size: 0.65rem; font-weight: 800; margin-bottom: 0.2rem; display: block; text-transform: uppercase;">%</label>
+                                        <input type="number" id="calc-percent" class="form-input"
+                                            style="background: rgba(255,255,255,0.9); color: #000; border: 1px solid rgba(0,0,0,0.1); height: 26px; padding: 2px 6px; font-size: 0.8rem;"
+                                            placeholder="0">
+                                    </div>
+                                    <div style="width: 80px;">
+                                        <label
+                                            style="font-size: 0.65rem; font-weight: 800; margin-bottom: 0.2rem; display: block; text-transform: uppercase;">FX</label>
+                                        <input type="number" id="calc-exchange" class="form-input"
+                                            style="background: rgba(255,255,255,0.9); color: #000; border: 1px solid rgba(0,0,0,0.1); height: 26px; padding: 2px 6px; font-size: 0.8rem;"
+                                            placeholder="1.00">
+                                    </div>
+                                    <div style="font-size: 1rem; font-weight: 900; padding-bottom: 2px;">=</div>
+                                    <div
+                                        style="background: rgba(255,255,255,0.95); padding: 0.2rem 0.6rem; border-radius: 4px; min-width: 100px; border: 1px solid rgba(0,0,0,0.1); text-align: right;">
+                                        <label
+                                            style="font-size: 0.6rem; color: #444; display: block; text-align: left; font-weight: 700;"
+                                            data-i18n="label_commission">COMISIÓN</label>
+                                        <span id="calc-result"
+                                            style="font-size: 0.95rem; font-weight: 900; color: var(--brand-orange);">$
+                                            0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card settings-card" style="height: auto !important;">
+                                <h3 data-i18n="label_team_members">Equipo y Documentación</h3>
+                                <div class="form-group" style="margin-bottom: 2rem; display: flex; gap: 0.5rem;">
+                                    <input type="text" id="new-member-name" class="form-input"
+                                        data-i18n="placeholder_member_name" data-i18n-prop="placeholder">
+                                    <button id="add-member-btn" class="primary-btn small" data-i18n="btn_add_member">+
+                                        Añadir Miembro</button>
+                                </div>
+                                <div id="manager-team-list" class="manager-team-grid"></div>
+                            </div>
+                        </div>
+
+                        <!-- Settings View -->
+                        <div id="settings-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_settings">Configuración</h2>
+                            </div>
+
+
+                            <!-- Tab 1: General -->
+                            <div id="settings-general" class="tab-pane active">
+                                <div class="card settings-card">
+                                    <div class="form-group">
+                                        <label data-i18n="label_theme">Tema Visual</label>
+                                        <select id="theme-select" class="form-input">
+                                            <option value="auto" data-i18n="opt_theme_auto">Sistema (Auto)</option>
+                                            <option value="light" data-i18n="opt_theme_light">Claro (Blanco)</option>
+                                            <option value="dark" data-i18n="opt_theme_dark">Oscuro (Negro)</option>
+                                            <option value="nordic" data-i18n="opt_theme_nordic">Nordic Frost</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="label_language">Lenguaje / Language</label>
+                                        <select id="language-select" class="form-input">
+                                            <option value="es_MX">Español (MX)</option>
+                                            <option value="pt_BR">Português (BR)</option>
+                                            <option value="en_US">English (US)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label data-i18n="label_work_dir">Carpeta de Trabajo</label>
+                                        <div class="path-display" id="settings-path-display"
+                                            data-i18n="path_not_selected" style="display: block; margin-bottom: 1rem;">
+                                            No seleccionada</div>
+                                        <button id="change-dir-btn" class="secondary-btn small"
+                                            data-i18n="btn_change_dir">Cambiar Carpeta</button>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="local-repo-path" data-i18n="label_local_repo">Repositorio Local de
+                                            Archivos (Anexos)</label>
+                                        <p class="sub-text" data-i18n="desc_local_repo">Se recomienda usar una carpeta
+                                            sincronizada con OneDrive.
+                                        </p>
+                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                            <span id="local-repo-display" class="path-display" style="flex: 1;"
+                                                data-i18n="path_not_selected">No
+                                                seleccionada</span>
+                                            <button id="select-local-repo-btn" class="secondary-btn small"
+                                                data-i18n="btn_select">Seleccionar</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group"
+                                        style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                        <label data-i18n="label_backup">Copia de Seguridad / Portabilidad</label>
+                                        <div style="display: flex; gap: 1rem;">
+                                            <button id="export-data-btn" class="secondary-btn small"><i
+                                                    class="fas fa-file-export"></i> <span
+                                                    data-i18n="btn_export_data">Exportar Mis Datos</span></button>
+                                            <button id="import-data-btn" class="secondary-btn small"><i
+                                                    class="fas fa-file-import"></i> <span
+                                                    data-i18n="btn_import_data">Importar Datos</span></button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="browser-path" data-i18n="label_browser_path">Comando / Path del Navegador (Opcional)</label>
+                                        <p class="sub-text" data-i18n="desc_browser_path">Si se deja vacío, usará el predeterminado del sistema. Ej: /usr/bin/google-chrome o firefox.</p>
+                                        <input type="text" id="browser-path" placeholder="Ej: google-chrome" data-i18n="placeholder_browser_path" data-i18n-prop="placeholder">
+                                        <label for="crm-url-template" data-i18n="label_crm_url_template">Plantilla de URL Oportunidad (CRM)</label>
+                                        <p class="sub-text" data-i18n="placeholder_crm_url">Ejemplo: https://mycrm.com/{Opportunity ID}/view</p>
+                                        <input type="text" id="crm-url-template" placeholder="https://..." data-i18n="placeholder_crm_url" data-i18n-prop="placeholder">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="account-url-template" data-i18n="label_account_url_template">Plantilla de URL Account</label>
+                                        <p class="sub-text" data-i18n="placeholder_account_url">Ejemplo: https://mycrm.com/account/{Account Name}</p>
+                                        <input type="text" id="account-url-template" placeholder="https://..." data-i18n="placeholder_account_url" data-i18n-prop="placeholder">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 2: Classifications -->
+                            <div id="settings-classifications" class="tab-pane">
+                                <div class="card settings-card">
+                                    <h3 data-i18n="title_classifications">Clasificaciones de Cuenta</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="desc_classifications">
+                                        Administra las categorías
+                                        disponibles para clasificar cuentas.</p>
+                                    <div id="classification-manager-list" style="margin-bottom: 1rem;">
+                                        <!-- Categories injected here -->
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <input type="text" id="new-classification-input"
+                                            placeholder="Nueva categoría..." class="form-input"
+                                            data-i18n="placeholder_new_category" data-i18n-prop="placeholder">
+                                        <button id="add-classification-btn" class="secondary-btn"
+                                            data-i18n="btn_add">Añadir</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 3: Sidebar Filters -->
+                            <div id="settings-sidebar-filters" class="tab-pane">
+                                <div class="card settings-card">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h3 data-i18n="title_sidebar_filters">Filtros del Sidebar</h3>
+                                        <button id="add-sidebar-filter-btn" class="secondary-btn small"
+                                            data-i18n="btn_new_group">+ Nuevo Grupo</button>
+                                    </div>
+                                    <p class="sub-text" style="margin-bottom: 1.5rem;" data-i18n="desc_sidebar_filters">
+                                        Crea grupos de filtrado basados
+                                        en columnas del CSV o reglas lógicas.</p>
+                                    <div id="sidebar-filters-manager-list">
+                                        <!-- Dynamic filters management cards injected here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="settings-api" class="tab-pane">
+                                <div class="card settings-card">
+                                    <h3 data-i18n="title_fo_api">Integración Front Office (API)</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="desc_fo_api">Configura
+                                        el endpoint y Token de
+                                        Autorización para generar tickets.</p>
+                                    <div class="form-group">
+                                        <label for="fo-api-url" data-i18n="label_fo_url">Base URL (Front Office)</label>
+                                        <p class="sub-text" data-i18n="desc_fo_url">Ejemplo:
+                                            https://company.quadientcloud.eu/</p>
+                                        <input type="text" id="fo-api-url" placeholder="https://...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-token" data-i18n="label_api_key">API KEY</label>
+                                        <input type="password" id="fo-api-token" placeholder="Introduce tu API KEY..."
+                                            data-i18n="placeholder_api_key" data-i18n-prop="placeholder">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-template" data-i18n="label_poc_template">Plantilla PoC
+                                            (Resource Path)</label>
+                                        <p class="sub-text" data-i18n="desc_poc_template">Ejemplo:
+                                            icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/MyPoCTemplate.jld
+                                        </p>
+                                        <input type="text" id="fo-api-template"
+                                            placeholder="ej: root:S:Production//Templates/MyTemplate.jld" data-i18n="placeholder_fo_template" data-i18n-prop="placeholder">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-assessment-template"
+                                            data-i18n="label_assessment_template">Plantilla Assessment (Resource
+                                            Path)</label>
+                                        <p class="sub-text" data-i18n="desc_assessment_template">Ejemplo:
+                                            icm:S:Production:S:UserResource//Interactive/StandardPackage/Templates/AssessmentTemplate.jld
+                                        </p>
+                                        <input type="text" id="fo-api-assessment-template"
+                                            placeholder="ej: root:S:Production//Templates/AssessmentTemplate.jld">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fo-api-holder" data-i18n="label_fo_holder">Holder por Defecto (User
+                                            Name)</label>
+                                        <p class="sub-text" data-i18n="desc_fo_holder">Nombre de usuario que recibirá el
+                                            ticket (ej: j.perez)</p>
+                                        <input type="text" id="fo-api-holder" placeholder="Usuario de FO..."
+                                            data-i18n="placeholder_fo_holder" data-i18n-prop="placeholder">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 5: Assessment Structure -->
+                            <div id="settings-assessment" class="tab-pane">
+                                <div class="card settings-card">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h3 data-i18n="title_assessment_structure">Estructura del Assessment</h3>
+                                        <button id="add-assessment-question-btn" class="secondary-btn small"
+                                            data-i18n="btn_new_question">+ Nueva Pregunta</button>
+                                    </div>
+                                    <p class="sub-text" style="margin-bottom: 1.5rem;"
+                                        data-i18n="desc_assessment_structure">Administra las preguntas, etapas
+                                        y agrupaciones del assessment técnico.</p>
+                                    <div class="table-container small">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 80px;" data-i18n="col_id_stage">ID/Stage</th>
+                                                    <th style="width: 150px;" data-i18n="col_area_stage">Área / Etapa
+                                                    </th>
+                                                    <th data-i18n="col_question">Pregunta</th>
+                                                    <th style="width: 80px;" data-i18n="col_actions">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="assessment-structure-list">
+                                                <!-- Questions management rows injected here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tab 4: CSV Structure -->
+                            <div id="settings-structure" class="tab-pane">
+                                <div class="card settings-card">
+                                    <h3 data-i18n="title_csv_structure">Estructura de Datos (CSV)</h3>
+                                    <p class="sub-text" style="margin-bottom: 1rem;" data-i18n="desc_csv_structure">
+                                        Define las columnas que esperas en
+                                        tu CSV y sus valores de ejemplo.</p>
+                                    <div class="table-container small" style="margin-bottom: 1rem;">
+                                        <table id="structure-table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-i18n="col_csv_field">Campo (Header)</th>
+                                                    <th data-i18n="col_csv_sample">Muestra</th>
+                                                    <th data-i18n="col_csv_type">Tipo</th>
+                                                    <th data-i18n="col_csv_view">Vista</th>
+                                                    <th data-i18n="col_csv_group">Agrupar</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="structure-body"></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="form-actions" style="margin-top: 1rem; gap: 1rem; display: flex;">
+                                        <button id="add-structure-row-btn" class="secondary-btn small"
+                                            data-i18n="btn_add_field">+ Agregar Campo</button>
+                                        <button id="download-sample-btn" class="secondary-btn small"
+                                            data-i18n="btn_download_sample">Descargar Muestra</button>
+                                        <button id="reset-structure-btn" class="secondary-btn small"
+                                            style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);"
+                                            data-i18n="btn_reset_standard">Restablecer Estándar</button>
+                                        <label class="csv-upload-btn primary-btn small"
+                                            style="margin: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                            <span data-i18n="btn_import_csv">Importar CSV</span>
+                                            <input type="file" id="csv-input" accept=".csv" hidden>
+                                        </label>
+                                        <button id="save-structure-btn" class="primary-btn small"
+                                            data-i18n="btn_save_structure">Guardar Estructura</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button id="save-settings-btn" class="primary-btn" data-i18n="btn_save_settings">Guardar
+                                    Ajustes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal for Notes -->
+            <div id="notes-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modal-opp-name">Oportunidad</h3>
+                        <button id="close-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="modal-opp-details-grid" class="opp-details-grid">
+                            <div><strong>ID:</strong> <span id="modal-opp-id" class="dynamic-link"></span></div>
+                            <div><strong>Account:</strong> <span id="modal-opp-account"></span></div>
+                        </div>
+
+                        <div class="notes-section">
+                            <h4 data-i18n="header_notes_history">Historial de Notas</h4>
+                            <div id="notes-list" class="notes-history">
+                                <!-- Notes injected here -->
+                            </div>
+
+                            <div class="add-note">
+                                <div class="editor-toolbar">
+                                    <button class="toolbar-btn" onmousedown="event.preventDefault(); formatDoc('bold')"
+                                        title="Bold"><i class="fas fa-bold"></i></button>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('italic')" title="Italic"><i
+                                            class="fas fa-italic"></i></button>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('underline')"
+                                        title="Underline"><i class="fas fa-underline"></i></button>
+                                    <div style="width: 1px; background: var(--glass-border); margin: 0 0.5rem;"></div>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('insertUnorderedList')"
+                                        title="Bullet List"><i class="fas fa-list-ul"></i></button>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('insertOrderedList')"
+                                        title="Numbered List"><i class="fas fa-list-ol"></i></button>
+                                    <div style="width: 1px; background: var(--glass-border); margin: 0 0.5rem;"></div>
+                                    <button class="toolbar-btn"
+                                        onmousedown="event.preventDefault(); formatDoc('formatBlock', 'h3')"
+                                        title="Heading"><i class="fas fa-heading"></i></button>
+                                </div>
+                                <div id="new-note-input" class="rich-text-editor" contenteditable="true"
+                                    placeholder="Escribe una nueva nota..."></div>
+                                <button id="add-note-btn" class="primary-btn">Agregar Nota</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consolidated Modal for Activities (PoCs, RFPs, Demos) -->
+            <div id="activities-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="activities-modal-title" data-i18n="modal_activities_title">Actividades</h3>
+                        <button id="close-activities-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-tabs">
+                        <button class="tab-btn active" data-tab="tab-assessment">📋 <span
+                                data-i18n="btn_assessment">Assessment</span></button>
+                        <button class="tab-btn" data-tab="tab-demo" data-i18n="btn_demos">📽️ Demos</button>
+                        <button class="tab-btn" data-tab="tab-pocs" data-i18n="btn_pocs">🧪 PoCs</button>
+                        <button class="tab-btn" data-tab="tab-rfp" data-i18n="btn_rfps">📄 RFPs / RFIs</button>
+                        <button class="tab-btn" data-tab="tab-handover" data-i18n="btn_handover">🏁 Handover</button>
+                        <button class="tab-btn" data-tab="tab-medpicc" data-i18n="tab_medpicc">🎯 Calificación (MEDDPICC)</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Assessment Tab Content -->
+                        <div id="tab-assessment" class="tab-content active">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-assessment" class="sub-text"></span>
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center;">
+                                <input type="text" id="assessment-search-input" placeholder="Filtrar preguntas..."
+                                    data-i18n="placeholder_filter_questions" data-i18n-prop="placeholder"
+                                    class="form-input" style="flex: 1;">
+                            </div>
+                            <div class="assessment-container">
+                                <div class="assessment-item">
+                                    <label class="assessment-question"
+                                        data-i18n="label_assessment_general_notes">Observaciones Generales / Notas
+                                        Previas</label>
+                                    <textarea id="assessment-general-notes" class="assessment-answer"
+                                        placeholder="Anota aquí cualquier detalle general..."
+                                        data-i18n="placeholder_general_notes" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                            </div>
+                            <div id="assessment-questions-list" class="assessment-container">
+                                <!-- Questions injected here -->
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem; display: flex; gap: 1rem;">
+                                <button id="save-assessment-btn" class="primary-btn"
+                                    data-i18n="btn_save_assessment">Guardar Assessment</button>
+                                <button id="generate-assessment-doc-btn" class="secondary-btn small"
+                                    style="background: var(--grad-primary); color: white; border: none;"
+                                    data-i18n="btn_generate_doc">
+                                    <i class="fas fa-file-pdf"></i> Generar Documento
+                                </button>
+                                <button id="view-assessment-pdf-btn" class="secondary-btn small hidden">
+                                    <i class="fas fa-eye"></i> <span data-i18n="btn_view_pdf">Ver PDF</span>
+                                </button>
+                                <button id="download-assessment-docx-btn" class="secondary-btn small hidden">
+                                    <i class="fas fa-file-word"></i> <span data-i18n="btn_download_docx">Descargar
+                                        DOCX</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- PoCs Tab Content -->
+                        <div id="tab-pocs" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-poc" class="sub-text"></span>
+                                <button id="add-poc-row-btn" class="primary-btn small" data-i18n="btn_new_poc">+ Nueva
+                                    PoC</button>
+                            </div>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="label_description">Descripción</th>
+                                            <th data-i18n="label_start">Inicio</th>
+                                            <th data-i18n="label_owner">Responsable</th>
+                                            <th style="text-align: right;" data-i18n="label_actions">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="pocs-list-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- RFP Tab Content -->
+                        <div id="tab-rfp" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-rfp" class="sub-text"></span>
+                            </div>
+                            <div class="form-group">
+                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+                                        data-i18n="label_documentation">Documentación</span></label>
+                                <div class="url-field-wrapper">
+                                    <input type="text" id="rfp-url" placeholder="https://..." class="url-input">
+                                    <div id="rfp-url-preview" class="url-preview hidden">
+                                        <a href="#" class="url-link" target="_blank" data-i18n="btn_open_link">Abrir
+                                            link</a>
+                                        <button type="button" class="text-btn edit-url-btn"
+                                            data-i18n="btn_edit_link">(Editar)</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <h4 data-i18n="title_activities_tracking">Actividades y Seguimiento</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="label_activity_owner">Actividad / Responsable</th>
+                                            <th data-i18n="label_comments">Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rfp-activities-body"></tbody>
+                                </table>
+                            </div>
+                            <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;"
+                                data-i18n="btn_add_activity">+ Agregar Actividad</button>
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button id="save-rfp-btn" class="primary-btn" data-i18n="btn_save_rfp">Guardar
+                                    RFP</button>
+                            </div>
+                        </div>
+
+                        <!-- Demo Tab Content -->
+                        <div id="tab-demo" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-demo" class="sub-text"></span>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="label_demo_desc">Descripción de la Demo Solicitada</label>
+                                <textarea id="demo-desc" placeholder="..." rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+                                        data-i18n="label_material">Material</span></label>
+                                <div class="url-field-wrapper">
+                                    <input type="text" id="demo-url" placeholder="https://..." class="url-input">
+                                    <div id="demo-url-preview" class="url-preview hidden">
+                                        <a href="#" class="url-link" target="_blank" data-i18n="btn_open_link">Abrir
+                                            link</a>
+                                        <button type="button" class="text-btn edit-url-btn"
+                                            data-i18n="btn_edit_link">(Editar)</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <h4 data-i18n="title_prep_activities">Actividades de Preparación</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th data-i18n="label_activity_owner">Actividad / Responsable</th>
+                                            <th data-i18n="label_comments">Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="demo-activities-body"></tbody>
+                                </table>
+                            </div>
+                            <button id="add-demo-activity-btn" class="secondary-btn small" style="margin-top: 1rem;"
+                                data-i18n="btn_add_activity">+ Agregar Actividad</button>
+
+                            <div class="poc-form-section"
+                                style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h4 data-i18n="label_walkthrough" style="margin: 0;">Demo Walkthrough (Pasos)</h4>
+                                </div>
+
+                                <div class="walkthrough-container"
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                    <div class="walkthrough-section">
+                                        <h5 data-i18n="label_prep_steps"
+                                            style="margin-bottom: 0.5rem; color: var(--brand-teal);">Preparación (Antes)
+                                        </h5>
+                                        <div id="walkthrough-prep-body" class="dynamic-list"></div>
+                                        <button id="add-walkthrough-prep-btn" class="text-btn small"
+                                            style="margin-top: 0.5rem; color: var(--brand-teal);"
+                                            data-i18n="btn_add_step">+ Añadir Paso</button>
+                                    </div>
+                                    <div class="walkthrough-section">
+                                        <h5 data-i18n="label_flow_steps"
+                                            style="margin-bottom: 0.5rem; color: var(--brand-orange);">Presentación
+                                            (Durante)</h5>
+                                        <div id="walkthrough-flow-body" class="dynamic-list"></div>
+                                        <button id="add-walkthrough-flow-btn" class="text-btn small"
+                                            style="margin-top: 0.5rem; color: var(--brand-orange);"
+                                            data-i18n="btn_add_step">+ Añadir Paso</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem;">
+                                <button id="save-demo-btn" class="primary-btn" data-i18n="btn_save_demo">Guardar
+                                    Demo</button>
+                            </div>
+                        </div>
+
+
+                        <!-- Handover Tab Content -->
+                        <div id="tab-handover" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-handover" class="sub-text"></span>
+                            </div>
+                            <div class="card settings-card">
+                                <h3 data-i18n="title_handover_summary">Resumen de Cierre (Handover)</h3>
+                                <p class="sub-text" data-i18n="desc_handover">Genera un documento consolidado con todo
+                                    lo trabajado para el equipo
+                                    de ventas o implementación.</p>
+                                <div class="form-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                                    <button id="generate-handover-doc-btn" class="primary-btn">
+                                        <i class="fas fa-file-invoice"></i> <span
+                                            data-i18n="btn_generate_handover">Generar Resumen Ejecutivo</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card settings-card" style="margin-top: 1.5rem;">
+                                <h3 data-i18n="title_reference_case">Referencia y Caso de Uso</h3>
+                                <p class="sub-text" data-i18n="desc_reference_case">Si este proyecto es un caso de éxito
+                                    que puede servir de referencia
+                                    para otros preventas, márcalo aquí.</p>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="is-reference-case-checkbox">
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span data-i18n="label_mark_reference">Marcar como Caso de Referencia</span>
+                                </div>
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label data-i18n="label_keywords">Keywords / Tecnologías (Separadas por
+                                        comas)</label>
+                                    <input type="text" id="reference-keywords"
+                                        placeholder="Ej. SAP, Azure, Retail, On-Premise"
+                                        data-i18n="placeholder_keywords" data-i18n-prop="placeholder"
+                                        class="form-input">
+                                </div>
+
+                        <div id="tab-medpicc" class="tab-content">
+                            <div class="toolbar-inline">
+                                <span id="activities-opp-info-medpicc" class="sub-text"></span>
+                            </div>
+                            <div class="medpicc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_metrics">Metrics (M)</label>
+                                    <textarea id="med-metrics" placeholder="Impacto cuantificable..." rows="2" data-i18n="med_metrics_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_eb">Economic Buyer (E)</label>
+                                    <textarea id="med-buyer" placeholder="¿Quién firma el cheque?..." rows="2" data-i18n="med_eb_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dc">Decision Criteria (D)</label>
+                                    <textarea id="med-criteria" placeholder="Requerimientos técnicos/negocio..." rows="2" data-i18n="med_dc_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dp">Decision Process (D)</label>
+                                    <textarea id="med-process" placeholder="Pasos para la aprobación..." rows="2" data-i18n="med_dp_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_pp">Paper Process (P)</label>
+                                    <textarea id="med-paper" placeholder="Proceso legal/compras..." rows="2" data-i18n="med_pp_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_ip">Identify Pain (I)</label>
+                                    <textarea id="med-pain" placeholder="Problema crítico del negocio..." rows="2" data-i18n="med_ip_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_champion">Champion (C)</label>
+                                    <textarea id="med-champion" placeholder="Tu aliado interno..." rows="2" data-i18n="med_champion_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_competition">Competition (C)</label>
+                                    <textarea id="med-competition" placeholder="Contra quién competimos..." rows="2" data-i18n="med_competition_placeholder" data-i18n-prop="placeholder"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                                <button id="save-medpicc-btn" class="primary-btn" data-i18n="btn_save_medpicc">Guardar Calificación</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Modal for PoC Detail (Add/Edit) -->
+            <div id="poc-detail-modal" class="modal hidden">
+                <div class="modal-content large">
+                    <div class="modal-header">
+                        <h3 id="poc-detail-title" data-i18n="title_poc_detail">Detalle de Prueba de Concepto (PoC)</h3>
+                        <button id="close-poc-detail-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="poc-form-section">
+                            <h4 data-i18n="title_exec_summary">1. Resumen Ejecutivo</h4>
+                            <div class="form-group">
+                                <label data-i18n="label_poc_objective">Proof of Concept Objective</label>
+                                <textarea id="poc-objective" placeholder="Objetivo de la PoC..." rows="2"
+                                    data-i18n="placeholder_poc_objective" data-i18n-prop="placeholder"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="label_poc_usecase">Proof of Concept Primary Use Case</label>
+                                <textarea id="poc-use-case" placeholder="Caso de uso principal..." rows="2"
+                                    data-i18n="placeholder_poc_usecase" data-i18n-prop="placeholder"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4 data-i18n="title_scope_timeline">2. Alcance y Cronograma</h4>
+                            <div class="form-group">
+                                <label data-i18n="label_poc_scope">Proof of Concept Scope Summary</label>
+                                <div id="poc-scope-container" class="dynamic-list"></div>
+                                <button type="button" class="secondary-btn small add-list-item" data-type="scope"
+                                    data-i18n="btn_add_scope">+ Agregar Alcance</button>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="label_timeline">Timeline</label>
+                                <div class="table-container small">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th data-i18n="label_activity">Actividad</th>
+                                                <th data-i18n="label_milestone_date">Fecha Milestone</th>
+                                                <th data-i18n="label_status_comments">Estado / Comentarios</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="poc-timeline-body"></tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="secondary-btn small" id="add-poc-timeline-btn"
+                                    data-i18n="btn_add_milestone">+ Agregar Milestone</button>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4 data-i18n="title_team_resources">3. Equipo y Recursos</h4>
+                            <div class="form-group">
+                                <label data-i18n="label_poc_resources">Proof of Concept Resources</label>
+                                <div id="poc-resources-container" class="dynamic-list"></div>
+                                <button type="button" class="secondary-btn small add-list-item" data-type="resources"
+                                    data-i18n="btn_add_resource">+ Agregar Recurso</button>
+                            </div>
+                            <div class="two-col-grid">
+                                <div class="form-group">
+                                    <label data-i18n="label_stakeholders">Stakeholders (Cliente)</label>
+                                    <div id="poc-stakeholders-container" class="dynamic-list"></div>
+                                    <button type="button" class="secondary-btn small add-list-item"
+                                        data-type="stakeholders" data-i18n="btn_add_stakeholder">+ Agregar
+                                        Stakeholder</button>
+                                </div>
+                                <div class="form-group">
+                                    <label data-i18n="label_squad">Squad (Interno)</label>
+                                    <div id="poc-squad-container" class="dynamic-list"></div>
+                                    <button type="button" class="secondary-btn small add-list-item" data-type="squad"
+                                        data-i18n="btn_add_squad">+ Agregar Miembro Squad</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4 data-i18n="title_logistics_finance">4. Logística y Finanzas</h4>
+                            <div class="form-group">
+                                <label data-i18n="label_assumptions">Assumptions</label>
+                                <textarea id="poc-assumptions" placeholder="Supuestos y premisas..."
+                                    data-i18n="placeholder_assumptions" data-i18n-prop="placeholder"
+                                    rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="label_financials">Financials</label>
+                                <textarea id="poc-financials" placeholder="Detalles financieros..." rows="2"
+                                    data-i18n="placeholder_financials" data-i18n-prop="placeholder"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4 data-i18n="title_documentation">5. Documentación</h4>
+                            <div class="two-col-grid">
+                                <div class="form-group">
+                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+                                            data-i18n="label_doc_acceptance">Documento de Aceptación</span></label>
+                                    <div class="url-field-wrapper">
+                                        <input type="text" id="poc-url-acceptance" placeholder="https://..."
+                                            class="url-input">
+                                        <div id="poc-url-acceptance-preview" class="url-preview hidden">
+                                            <a href="#" class="url-link" target="_blank" data-i18n="btn_open_link">Abrir
+                                                link</a>
+                                            <button type="button" class="text-btn edit-url-btn"
+                                                data-i18n="btn_edit_link">(Editar)</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label><img src="assets/cloud-icon.svg" class="onedrive-icon"> <span
+                                            data-i18n="label_poc_material">Material de la PoC</span></label>
+                                    <div class="url-field-wrapper">
+                                        <input type="text" id="poc-url-content" placeholder="https://..."
+                                            class="url-input">
+                                        <div id="poc-url-content-preview" class="url-preview hidden">
+                                            <a href="#" class="url-link" target="_blank" data-i18n="btn_open_link">Abrir
+                                                link</a>
+                                            <button type="button" class="text-btn edit-url-btn"
+                                                data-i18n="btn_edit_link">(Editar)</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions"
+                            style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                            <button id="download-docx-btn" class="secondary-btn hidden"
+                                style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">
+                                <i class="fas fa-file-word"></i> <span data-i18n="btn_download_docx">Descargar
+                                    DOCX</span></button>
+                            <button id="view-fo-ticket-btn" class="secondary-btn hidden"
+                                style="background: rgba(255, 66, 0, 0.1); color: var(--brand-orange); border-color: var(--brand-orange);">
+                                <i class="fas fa-file-pdf"></i> <span data-i18n="btn_preview_pdf">Previsualizar
+                                    PDF</span></button>
+                            <button id="generate-fo-ticket-btn" class="secondary-btn"
+                                style="background: rgba(0, 120, 215, 0.1); color: #0078d7; border-color: #0078d7;">
+                                <i class="fas fa-sync"></i> <span data-i18n="btn_generate_doc">Generar Ticket FO</span></button>
+                            <button id="generate-poc-doc-btn" class="secondary-btn"
+                                style="background: rgba(138, 43, 226, 0.1); color: var(--brand-purple); border-color: var(--brand-purple);" data-i18n="btn_generate_document">
+                                <i class="fas fa-sync"></i> Generar Documento</button>
+                            <button id="save-poc-detail-btn" class="primary-btn" data-i18n="btn_save_poc_detail">Guardar
+                                Prueba de Concepto</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Migration Question Modal -->
+            <div id="migration-modal" class="modal hidden">
+                <div class="modal-content small">
+                    <div class="modal-header">
+                        <h3>Migrar Datos</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Deseas copiar todos los archivos de configuración existentes a la nueva carpeta?</p>
+                        <div class="form-actions">
+                            <button id="no-migrate-btn" class="secondary-btn">No, empezar de cero</button>
+                            <button id="yes-migrate-btn" class="primary-btn">Sí, copiar archivos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opportunity Details Modal -->
+            <div id="details-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="details-modal-title" data-i18n="modal_details_title">Detalles de la Oportunidade</h2>
+                        <button class="close-modal-btn" id="close-details-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Modal Tabs -->
+                        <div class="modal-tabs">
+                            <button class="tab-btn active" data-tab="general" data-i18n="tab_general">General</button>
+                            <button class="tab-btn" data-tab="meddpicc" data-i18n="tab_meddpicc">MEDDPICC</button>
+                        </div>
+
+                        <!-- General Tab Content -->
+                        <div id="tab-general" class="tab-content active">
+                            <div id="details-content" class="details-grid">
+                                <!-- Dynamic labels and values -->
+                            </div>
+                            <div class="opportunity-overview">
+                                <h4 data-i18n="label_opp_explanation">Explicación de la Oportunidad</h4>
+                                <textarea id="opp-description"
+                                    placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
+                                <div class="form-actions">
+                                    <button id="save-opp-description-btn" class="primary-btn small"
+                                        data-i18n="btn_save_explanation">Guardar
+                                        Explicación</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MEDDPICC Tab Content -->
+                        <div id="tab-meddpicc" class="tab-content">
+                            <div class="meddpicc-sub-tabs">
+                                <button class="sub-tab-btn active" data-sub-tab="m" data-i18n="hint_m"
+                                    data-i18n-prop="title">M</button>
+                                <button class="sub-tab-btn" data-sub-tab="e" data-i18n="hint_e"
+                                    data-i18n-prop="title">E</button>
+                                <button class="sub-tab-btn" data-sub-tab="d1" data-i18n="hint_d1"
+                                    data-i18n-prop="title">D</button>
+                                <button class="sub-tab-btn" data-sub-tab="d2" data-i18n="hint_d2"
+                                    data-i18n-prop="title">D</button>
+                                <button class="sub-tab-btn" data-sub-tab="p" data-i18n="hint_p"
+                                    data-i18n-prop="title">P</button>
+                                <button class="sub-tab-btn" data-sub-tab="i" data-i18n="hint_i"
+                                    data-i18n-prop="title">I</button>
+                                <button class="sub-tab-btn" data-sub-tab="c" data-i18n="hint_c"
+                                    data-i18n-prop="title">C</button>
+                                <button class="sub-tab-btn" data-sub-tab="c2" data-i18n="hint_c2"
+                                    data-i18n-prop="title">C</button>
+                            </div>
+
+                            <div class="meddpicc-content">
+                                <div id="sub-tab-m" class="sub-tab-pane active">
+                                    <label data-i18n="label_metrics">M - Metrics</label>
+                                    <p class="medd-hint" data-i18n="hint_m"></p>
+                                    <div id="medd-m-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="m">+ <span
+                                            data-i18n="label_metrics">Métrica</span></button>
+                                </div>
+                                <div id="sub-tab-e" class="sub-tab-pane">
+                                    <label data-i18n="label_economic_buyer">E - Economic Buyer</label>
+                                    <p class="medd-hint" data-i18n="hint_e"></p>
+                                    <div class="medd-form">
+                                        <div class="form-group">
+                                            <label data-i18n="label_contact">Contacto</label>
+                                            <select id="medd-e-contact" class="form-input">
+                                                <option value="" data-i18n="placeholder_select_contact"></option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label data-i18n="label_role">Rol</label>
+                                            <input type="text" id="medd-e-role" class="form-input">
+                                        </div>
+                                        <div class="two-col-grid">
+                                            <div class="form-group">
+                                                <label data-i18n="label_influence">Influencia</label>
+                                                <select id="medd-e-influence" class="form-input">
+                                                    <option value="Bajo" data-i18n="opt_low"></option>
+                                                    <option value="Medio" data-i18n="opt_med"></option>
+                                                    <option value="Alto" data-i18n="opt_high"></option>
+                                                    <option value="Crítico" data-i18n="opt_critical"></option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label data-i18n="label_support">Apoyo</label>
+                                                <select id="medd-e-support" class="form-input">
+                                                    <option value="Aliado" data-i18n="opt_ally"></option>
+                                                    <option value="Neutral" data-i18n="opt_neutral"></option>
+                                                    <option value="Adversario" data-i18n="opt_adversary"></option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-d1" class="sub-tab-pane">
+                                    <label data-i18n="label_decision_criteria">D - Decision Criteria</label>
+                                    <p class="medd-hint" data-i18n="hint_d1"></p>
+                                    <div id="medd-d1-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="d1">+ <span
+                                            data-i18n="label_decision_criteria">Criterio</span></button>
+                                </div>
+                                <div id="sub-tab-d2" class="sub-tab-pane">
+                                    <label data-i18n="label_decision_process">D - Decision Process</label>
+                                    <p class="medd-hint" data-i18n="hint_d2"></p>
+                                    <div id="medd-d2-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="d2">+ <span
+                                            data-i18n="label_decision_process">Paso</span></button>
+                                </div>
+                                <div id="sub-tab-p" class="sub-tab-pane">
+                                    <label data-i18n="label_paper_process">P - Paper Process</label>
+                                    <p class="medd-hint" data-i18n="hint_p"></p>
+                                    <div id="medd-p-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="p">+ <span
+                                            data-i18n="label_paper_process">Hito</span></button>
+                                </div>
+                                <div id="sub-tab-i" class="sub-tab-pane">
+                                    <label data-i18n="label_implicate_pain">I - Implicate Pain</label>
+                                    <p class="medd-hint" data-i18n="hint_i"></p>
+                                    <div id="medd-i-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="i">+ <span
+                                            data-i18n="label_implicate_pain">Dolor</span></button>
+                                </div>
+                                <div id="sub-tab-c" class="sub-tab-pane">
+                                    <label data-i18n="label_champion">C - Champion</label>
+                                    <p class="medd-hint" data-i18n="hint_c"></p>
+                                    <div class="medd-form">
+                                        <div class="form-group">
+                                            <label data-i18n="label_contact">Contacto</label>
+                                            <select id="medd-c-contact" class="form-input">
+                                                <option value="" data-i18n="placeholder_select_contact"></option>
+                                            </select>
+                                        </div>
+                                        <div class="two-col-grid">
+                                            <div class="form-group">
+                                                <label data-i18n="label_role">Rol</label>
+                                                <input type="text" id="medd-c-role" class="form-input">
+                                            </div>
+                                            <div class="form-group">
+                                                <label data-i18n="label_influence">Influencia</label>
+                                                <select id="medd-c-influence" class="form-input">
+                                                    <option value="Bajo" data-i18n="opt_low"></option>
+                                                    <option value="Medio" data-i18n="opt_med"></option>
+                                                    <option value="Alto" data-i18n="opt_high"></option>
+                                                    <option value="Crítico" data-i18n="opt_critical"></option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group checkbox-group">
+                                            <input type="checkbox" id="medd-c-validated">
+                                            <label for="medd-c-validated" data-i18n="label_validated">Validado</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="sub-tab-c2" class="sub-tab-pane">
+                                    <label data-i18n="label_competition">C - Competition</label>
+                                    <p class="medd-hint" data-i18n="hint_c2"></p>
+                                    <div id="medd-c2-list" class="dynamic-list"></div>
+                                    <button class="secondary-btn small add-medd-item-btn" data-type="c2">+ <span
+                                            data-i18n="label_competition">Competidor</span></button>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 1rem;">
+                                <button id="save-meddpicc-btn" class="primary-btn" data-i18n="btn_save_meddpicc">Guardar
+                                    MEDDPICC</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update Confirmation Modal -->
+            <div id="update-modal" class="modal hidden">
+                <div class="modal-content small">
+                    <div class="modal-header">
+                        <h3>Actualización de Software</h3>
+                        <button id="close-update-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="update-message">Una nueva versión está disponible. ¿Deseas descargarla e instalarla
+                            ahora?</p>
+                        <div class="form-actions" style="margin-top: 1.5rem;">
+                            <button id="cancel-update-btn" class="secondary-btn">Más tarde</button>
+                            <button id="confirm-update-btn" class="primary-btn">Actualizar Ahora</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Attack Plan Modal -->
+            <div id="attack-plan-modal" class="modal hidden">
+                <div class="modal-content large">
+                    <div class="modal-header">
+                        <h3 id="attack-plan-modal-title">Plan de Ataque: Nombre de Cuenta</h3>
+                        <button id="close-attack-plan-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="poc-form-section">
+                            <h4>1. Licencias y Volúmenes</h4>
+                            <div id="attack-plan-licenses-container" class="dynamic-list">
+                                <!-- Licenses injected here -->
+                            </div>
+                            <button id="add-attack-license-btn" class="secondary-btn small">+ Agregar Licencia</button>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4>2. Cronograma de Actividades</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Actividad</th>
+                                            <th>Inicio</th>
+                                            <th>Fin</th>
+                                            <th>Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="attack-plan-activities-body">
+                                        <!-- Activities injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button id="add-attack-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                                Agregar Actividad</button>
+
+                            <!-- Timeline Chart Section -->
+                            <div class="timeline-chart-section" style="margin-top: 2rem;">
+                                <h4>Visualización de Timeline</h4>
+                                <div id="attack-plan-timeline-chart" class="timeline-chart-container">
+                                    <!-- Timeline bars will be injected here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="poc-form-section">
+                            <h4>3. Estrategia y Responsable</h4>
+                            <div class="form-group">
+                                <label for="attack-plan-owner"
+                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Responsable Actual
+                                    de la Cuenta</label>
+                                <input type="text" id="attack-plan-owner" class="form-input"
+                                    placeholder="Nombre del responsable...">
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="attack-plan-strategy"
+                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Estrategia de
+                                    Ataque</label>
+                                <textarea id="attack-plan-strategy"
+                                    placeholder="Define aquí la estrategia para esta cuenta..." rows="6"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-actions"
+                            style="margin-top: 2rem; display: flex; justify-content: space-between;">
+                            <button id="reset-attack-plan-btn" class="secondary-btn small"
+                                style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;">
+                                <i class="fas fa-undo"></i> Resetear Plan
+                            </button>
+                            <button id="save-attack-plan-btn" class="primary-btn">Guardar Plan de Ataque</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Contacts Modal -->
+            <div id="account-contacts-modal" class="modal hidden">
+                <div class="modal-content large" style="max-width: 1000px;">
+                    <div class="modal-header">
+                        <h2 id="account-contacts-modal-title">Contactos de la Cuenta</h2>
+                        <button id="close-account-contacts-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="poc-form-section">
+                            <h4>Listado de Contactos</h4>
+                            <div class="table-container small">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Posición</th>
+                                            <th>Email</th>
+                                            <th>Teléfono</th>
+                                            <th>Influencia</th>
+                                            <th>Comentarios</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="account-contacts-body">
+                                        <!-- Contacts injected here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button id="add-account-contact-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                                Agregar Contacto</button>
+                        </div>
+
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="save-account-contacts-btn" class="primary-btn">Guardar Contactos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource Modal -->
+            <div id="resource-modal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="resource-modal-title" data-i18n="modal_resource_title">Nuevo Recurso</h2>
+                        <button id="close-resource-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label data-i18n="label_resource_name">Nombre del Recurso</label>
+                            <input type="text" id="resource-name-input" class="form-input"
+                                data-i18n="placeholder_resource_name" data-i18n-prop="placeholder">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="label_resource_content">Enlace / Email / Nota</label>
+                            <textarea id="resource-content-input" class="form-input" rows="3"
+                                data-i18n="placeholder_resource_content" data-i18n-prop="placeholder"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button id="save-resource-btn" class="primary-btn"
+                                data-i18n="btn_save_settings">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket View Modal -->
+            <div id="ticket-view-modal" class="modal hidden">
+                <div class="modal-content large"
+                    style="height: 90vh; display: flex; flex-direction: column; padding: 0;">
+                    <div class="modal-header"
+                        style="padding: 1.2rem 2rem; background: var(--bg-card); border-bottom: 1px solid var(--glass-border); display: flex; align-items: flex-start; justify-content: space-between;">
+                        <div style="flex: 1;">
+                            <h3 id="ticket-view-title" style="margin: 0;">Vista de Ticket FO</h3>
+                            <p id="ticket-view-url"
+                                style="font-size: 0.8rem; color: var(--text-dim); margin: 0.3rem 0 0 0; word-break: break-all; font-family: monospace;">
+                            </p>
+                        </div>
+                        <button id="close-ticket-view-btn" class="close-btn"
+                            style="margin-top: -0.5rem;">&times;</button>
+                    </div>
+                    <div id="ticket-preview-container"
+                        style="flex: 1; position: relative; background: #fff; overflow: hidden;">
+                        <iframe id="ticket-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSV Mapping Modal -->
+            <div id="csv-mapping-modal" class="modal hidden">
+                <div class="modal-content large" style="max-height: 90vh; display: flex; flex-direction: column;">
+                    <div class="modal-header">
+                        <h3>Mapeo de Columnas CSV</h3>
+                        <button id="close-csv-mapping-modal-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body" style="flex: 1; overflow-y: auto;">
+                        <p class="sub-text" style="margin-bottom: 1.5rem;">
+                            Algunos encabezados de tu CSV no coinciden. Por favor, asocia las columnas de tu archivo con
+                            los campos del sistema.
+                            <strong>Los marcados con (*) son obligatorios.</strong>
+                        </p>
+                        <div class="table-container small">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Campo del Sistema</th>
+                                        <th>Columna en tu CSV</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="csv-mapping-body">
+                                    <!-- Mapping rows injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="form-actions" style="margin-top: 2rem;">
+                            <button id="confirm-csv-mapping-btn" class="primary-btn">Importar con este Mapeo</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Overlay -->
+            <div id="success-toast" class="toast hidden" data-i18n="toast_success_update">
+                ¡Actualizado con éxito!
+            </div>
+
+            <datalist id="responsibles-list"></datalist>
+        </main>
+    </div>
+
+    <!-- LuxeEditor Modals -->
+    <div id="luxe-link-modal" class="modal hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>Insertar/Editar Enlace</h3>
+                <button class="close-btn" onclick="closeLuxeLinkModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Texto a mostrar</label>
+                    <input type="text" id="luxe-link-text" class="form-input" placeholder="Ej. Mi Enlace">
+                </div>
+                <div class="form-group">
+                    <label>URL (Enlace)</label>
+                    <input type="text" id="luxe-link-url" class="form-input" placeholder="https://...">
+                </div>
+                <div class="form-actions">
+                    <button id="luxe-remove-link-btn" class="secondary-btn small hidden" style="background: rgba(214, 8, 77, 0.1); color: var(--brand-magenta);">Quitar Enlace</button>
+                    <button id="luxe-save-link-btn" class="primary-btn small">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="luxe-image-modal" class="modal hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>Insertar Imagen</h3>
+                <button class="close-btn" onclick="closeLuxeImageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs-mini">
+                    <button class="tab-mini-btn active" data-tab="luxe-img-url">URL</button>
+                    <button class="tab-mini-btn" data-tab="luxe-img-file">Archivo Local</button>
+                </div>
+                <div id="luxe-img-url" class="tab-mini-content active">
+                    <div class="form-group">
+                        <label>URL de la Imagen</label>
+                        <input type="text" id="luxe-image-url-input" class="form-input" placeholder="https://...">
+                    </div>
+                </div>
+                <div id="luxe-img-file" class="tab-mini-content">
+                    <div class="form-group">
+                        <label>Seleccionar archivo</label>
+                        <button id="luxe-select-image-btn" class="secondary-btn small">Elegir Imagen...</button>
+                        <p id="luxe-image-file-name" class="sub-text" style="margin-top: 0.5rem;"></p>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button id="luxe-insert-image-btn" class="primary-btn small">Insertar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="node_modules/papaparse/papaparse.min.js"></script>
+    <script src="translations.js"></script>
+    <script src="renderer.js"></script>
+</body>
+
+</html>

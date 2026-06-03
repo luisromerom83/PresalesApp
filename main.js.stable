@@ -1,0 +1,313 @@
+const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } = require('electron');
+app.disableHardwareAcceleration();
+const path = require('path');
+const fs = require('fs');
+const { exec } = require('child_process');
+const { autoUpdater } = require('electron-updater');
+
+if (require('electron-squirrel-startup')) return app.quit();
+
+// Force Spanish locale for date formats
+app.commandLine.appendSwitch('lang', 'es-MX');
+app.commandLine.appendSwitch('accept-languages', 'es-MX');
+
+// Configure autoUpdater
+autoUpdater.autoDownload = false; // Manual download
+autoUpdater.autoInstallOnAppQuit = true;
+
+let mainWindow;
+
+function createWindow() {
+  const iconPath = path.join(__dirname, 'assets', 'logo_shield.png');
+  const appIcon = nativeImage.createFromPath(iconPath);
+
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    title: "Presales Integrity Ledger",
+    icon: appIcon,
+    frame: true, // Standard window frame
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: true, // Enable webview tag
+    }
+  });
+
+  mainWindow.loadFile('index.html');
+}
+
+app.whenReady().then(() => {
+  // Set App ID for Windows search and shortcuts
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.presales.manager');
+  }
+
+  // Intercept headers to allow framing of Microsoft To-Do and login pages
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const headers = details.responseHeaders;
+    const url = details.url.toLowerCase();
+
+    // Domains involved in To-Do and Microsoft Login
+    const targetDomains = [
+      'to-do.office.com',
+      'outlook.office.com',
+      'outlook.live.com',
+      'login.microsoftonline.com',
+      'login.live.com',
+      'account.microsoft.com',
+      'quadientcloud.com',
+      'quadientcloud.eu',
+      'spiff.com'
+    ];
+
+    if (targetDomains.some(domain => url.includes(domain))) {
+      Object.keys(headers).forEach(header => {
+        const lowerHeader = header.toLowerCase();
+        if (
+          lowerHeader === 'content-security-policy' ||
+          lowerHeader === 'content-security-policy-report-only' ||
+          lowerHeader === 'x-frame-options'
+        ) {
+          delete headers[header];
+        }
+      });
+    }
+
+    callback({ responseHeaders: headers });
+  });
+
+  const log = require('electron-log');
+  autoUpdater.logger = log;
+  autoUpdater.logger.transports.file.level = 'info';
+
+  createWindow();
+
+  // Auto-Update Events
+  autoUpdater.autoDownload = false; // We will trigger download manually
+
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    if (mainWindow) mainWindow.webContents.send('update-available', info);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    if (mainWindow) mainWindow.webContents.send('update-downloaded', info);
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    if (mainWindow) mainWindow.webContents.send('update-progress', progressObj);
+  });
+
+  autoUpdater.on('error', (err) => {
+    // Ignore 404 errors for latest-linux.yml on Linux
+    if (process.platform === 'linux' && err.message.includes('latest-linux.yml')) {
+      console.log('Update info not found on GitHub for Linux. Skipping update check.');
+      return;
+    }
+    console.error('Update error:', err);
+    if (mainWindow) mainWindow.webContents.send('update-error', err.message);
+  });
+
+  // Check for updates
+  if (process.platform !== 'linux') {
+    autoUpdater.checkForUpdatesAndNotify();
+  }
+
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+// IPC Handlers
+ipcMain.handle('check-directory', async (event, dir) => {
+  try {
+    if (!dir || !fs.existsSync(dir)) return { exists: false, empty: true };
+    const files = fs.readdirSync(dir);
+    // Consider empty if no json files exist (our data files)
+    const hasData = files.some(f => f.endsWith('.json'));
+    return { exists: true, empty: !hasData };
+  } catch (error) {
+    return { exists: false, empty: true };
+  }
+});
+
+ipcMain.handle('select-directory', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  });
+  if (result.canceled) {
+    return null;
+  } else {
+    return result.filePaths[0];
+  }
+});
+
+const settingsPath = path.join(app.getPath('userData'), 'settings.json');
+
+ipcMain.handle('get-settings', () => {
+  if (fs.existsSync(settingsPath)) {
+    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  }
+  return {};
+});
+
+ipcMain.handle('save-settings', (event, newSettings) => {
+  let existingSettings = {};
+  if (fs.existsSync(settingsPath)) {
+    existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  }
+  const mergedSettings = { ...existingSettings, ...newSettings };
+  fs.writeFileSync(settingsPath, JSON.stringify(mergedSettings, null, 2));
+  return { success: true };
+});
+
+ipcMain.handle('copy-file-to-dir', async (event, { sourcePath, destDir }) => {
+  try {
+    const fileName = path.basename(sourcePath);
+    const destPath = path.join(destDir, fileName);
+    fs.copyFileSync(sourcePath, destPath);
+    return { success: true, fileName };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('migrate-files', async (event, { sourceDir, destDir }) => {
+  try {
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+
+    const files = fs.readdirSync(sourceDir);
+    const relevantFiles = files.filter(f => f.endsWith('.json') || f.endsWith('.csv'));
+
+    relevantFiles.forEach(file => {
+      fs.copyFileSync(path.join(sourceDir, file), path.join(destDir, file));
+    });
+
+    return { success: true, count: relevantFiles.length };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('open-external-url', async (event, url) => {
+  if (url) {
+    try {
+      let settings = {};
+      if (fs.existsSync(settingsPath)) {
+        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      }
+
+      if (settings.browserPath) {
+        // Escapar la URL para evitar inyección de comandos
+        // En Linux/macOS, envolver en comillas simples es generalmente seguro si no hay comillas simples en la URL
+        const safeUrl = url.replace(/'/g, "'\\''");
+        exec(`${settings.browserPath} '${safeUrl}'`, (error) => {
+          if (error) {
+            console.error(`Error opening with custom browser: ${error}`);
+            shell.openExternal(url); // Fallback to default
+          }
+        });
+        return { success: true };
+      }
+    } catch (e) {
+      console.error("Error reading settings for browser path:", e);
+    }
+
+    await shell.openExternal(url);
+    return { success: true };
+  }
+  return { success: false };
+});
+
+ipcMain.handle('save-file', async (event, { directory, filename, data }) => {
+
+
+  try {
+    const filePath = path.join(directory, filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('load-file', async (event, { directory, filename }) => {
+  try {
+    const filePath = path.join(directory, filename);
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data);
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+});
+
+ipcMain.handle('select-image', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'png', 'gif', 'webp', 'svg'] }
+    ]
+  });
+  if (result.canceled) {
+    return null;
+  } else {
+    const filePath = result.filePaths[0];
+    const fileName = path.basename(filePath);
+    // Return base64 for simplicity in this version, or path if needed
+    const data = fs.readFileSync(filePath);
+    const base64 = data.toString('base64');
+    const mimeType = `image/${path.extname(filePath).slice(1)}`;
+    return `data:${mimeType};base64,${base64}`;
+  }
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+ipcMain.handle('download-update', () => {
+  autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle('install-update', () => {
+  autoUpdater.quitAndInstall();
+});
+
+ipcMain.handle('list-files', async (event, dir) => {
+  try {
+    if (!fs.existsSync(dir)) return [];
+    const files = fs.readdirSync(dir, { withFileTypes: true });
+    return files.map(f => ({
+      name: f.name,
+      isDirectory: f.isDirectory(),
+      size: f.isFile() ? fs.statSync(path.join(dir, f.name)).size : 0,
+      mtime: fs.statSync(path.join(dir, f.name)).mtime
+    }));
+  } catch (error) {
+    return [];
+  }
+});
+
+ipcMain.handle('open-path', async (event, fullPath) => {
+  if (fs.existsSync(fullPath)) {
+    shell.openPath(fullPath);
+    return { success: true };
+  }
+  return { success: false, error: 'Path not found' };
+});
+
+ipcMain.handle('notify', (event, { title, body }) => {
+  const { Notification } = require('electron');
+  new Notification({ title, body }).show();
+});

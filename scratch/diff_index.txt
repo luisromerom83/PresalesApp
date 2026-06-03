@@ -1,0 +1,453 @@
+diff --git a/index.html b/index.html
+index 791a95e..60b58ca 100644
+--- a/index.html
++++ b/index.html
+@@ -6,52 +6,10 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Presales Integrity Ledger</title>
+     <link rel="stylesheet" href="style.css">
+-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
++    <link rel="preconnect" href="https://fonts.googleapis.com">
++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="icon" type="image/svg+xml" href="assets/logo_shield.svg">
+-    <style id="layout-fix-styles">
+-        #app-container {
+-            display: block !important;
+-            width: 100% !important;
+-            height: 100% !important;
+-        }
+-        header {
+-            position: relative !important;
+-            height: 70px !important;
+-            z-index: 1000 !important;
+-            background: var(--bg-color) !important;
+-            border-bottom: 2px solid var(--brand-orange) !important;
+-        }
+-        #main-layout-container {
+-            position: absolute !important;
+-            top: 70px !important; bottom: 0 !important;
+-            left: 0 !important; right: 0 !important;
+-            background: var(--bg-color) !important;
+-            display: block !important;
+-        }
+-        .sidebar {
+-            position: absolute !important;
+-            top: 0 !important; left: 0 !important; width: 240px !important; height: 100% !important;
+-            background: var(--bg-color) !important;
+-            border-right: 1px solid var(--glass-border) !important;
+-            z-index: 100 !important;
+-            padding-top: 10px !important;
+-        }
+-        .content {
+-            position: absolute !important;
+-            top: 0 !important; left: 240px !important; right: 0 !important; bottom: 0 !important;
+-            background: var(--bg-color) !important;
+-            display: block !important;
+-            padding: 0 !important;
+-            z-index: 90 !important;
+-            overflow: auto !important;
+-        }
+-        #toggle-sidebar-btn {
+-            display: none !important;
+-        }
+-        .nav-group:first-child {
+-            margin-top: -15px !important;
+-        }
+-    </style>
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+ </head>
+@@ -706,6 +664,17 @@
+                                     Ajustes</button>
+                             </div>
+                         </div>
++                        
++                        <!-- Visual Mockup Element: Bottom Status Bar -->
++                        <div class="bottom-status-bar">
++                            <div class="status-segment active"></div>
++                            <div class="status-segment active"></div>
++                            <div class="status-segment active"></div>
++                            <div class="status-segment active"></div>
++                            <div class="status-segment"></div>
++                            <div class="status-segment"></div>
++                        </div>
++
+                     </div>
+                 </div>
+             </section>
+@@ -1186,52 +1155,10 @@
+             </div>
+ 
+ 
+-            <!-- Migration Question Modal -->
+-            <div id="migration-modal" class="modal hidden">
+-                <div class="modal-content small">
+-                    <div class="modal-header">
+-                        <h3>Migrar Datos</h3>
+-                    </div>
+-                    <div class="modal-body">
+-                        <p>¿Deseas copiar todos los archivos de configuración existentes a la nueva carpeta?</p>
+-                        <div class="form-actions">
+-                            <button id="no-migrate-btn" class="secondary-btn">No, empezar de cero</button>
+-                            <button id="yes-migrate-btn" class="primary-btn">Sí, copiar archivos</button>
+-                        </div>
+-                    </div>
+-                </div>
++            
+             </div>
+ 
+-            <!-- Opportunity Details Modal -->
+-            <div id="details-modal" class="modal hidden">
+-                <div class="modal-content">
+-                    <div class="modal-header">
+-                        <h2 id="details-modal-title" data-i18n="modal_details_title">Detalles de la Oportunidade</h2>
+-                        <button class="close-modal-btn" id="close-details-btn">&times;</button>
+-                    </div>
+-                    <div class="modal-body">
+-                        <!-- Modal Tabs -->
+-                        <div class="modal-tabs">
+-                            <button class="tab-btn active" data-tab="general" data-i18n="tab_general">General</button>
+-                            <button class="tab-btn" data-tab="meddpicc" data-i18n="tab_meddpicc">MEDDPICC</button>
+-                        </div>
+-
+-                        <!-- General Tab Content -->
+-                        <div id="tab-general" class="tab-content active">
+-                            <div id="details-content" class="details-grid">
+-                                <!-- Dynamic labels and values -->
+-                            </div>
+-                            <div class="opportunity-overview">
+-                                <h4 data-i18n="label_opp_explanation">Explicación de la Oportunidad</h4>
+-                                <textarea id="opp-description"
+-                                    placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
+-                                <div class="form-actions">
+-                                    <button id="save-opp-description-btn" class="primary-btn small"
+-                                        data-i18n="btn_save_explanation">Guardar
+-                                        Explicación</button>
+-                                </div>
+-                            </div>
+-                        </div>
++            
+ 
+                         <!-- MEDDPICC Tab Content -->
+                         <div id="tab-meddpicc" class="tab-content">
+@@ -1374,7 +1301,163 @@
+                 </div>
+             </div>
+ 
+-            <!-- Update Confirmation Modal -->
++            
++            </div>
++
++            
++
++                        <div class="poc-form-section">
++                            <h4>3. Estrategia y Responsable</h4>
++                            <div class="form-group">
++                                <label for="attack-plan-owner"
++                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Responsable Actual
++                                    de la Cuenta</label>
++                                <input type="text" id="attack-plan-owner" class="form-input"
++                                    placeholder="Nombre del responsable...">
++                            </div>
++                            <div class="form-group" style="margin-top: 1rem;">
++                                <label for="attack-plan-strategy"
++                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Estrategia de
++                                    Ataque</label>
++                                <textarea id="attack-plan-strategy"
++                                    placeholder="Define aquí la estrategia para esta cuenta..." rows="6"></textarea>
++                            </div>
++                        </div>
++
++                        <div class="form-actions"
++                            style="margin-top: 2rem; display: flex; justify-content: space-between;">
++                            <button id="reset-attack-plan-btn" class="secondary-btn small"
++                                style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;">
++                                <i class="fas fa-undo"></i> Resetear Plan
++                            </button>
++                            <button id="save-attack-plan-btn" class="primary-btn">Guardar Plan de Ataque</button>
++                        </div>
++                    </div>
++                </div>
++            </div>
++
++            
++            </div>
++
++            
++            </div>
++
++            
++
++            
++            </div>
++
++            <!-- Success Overlay -->
++            <div id="success-toast" class="toast hidden" data-i18n="toast_success_update">
++                ¡Actualizado con éxito!
++            </div>
++
++            <datalist id="responsibles-list"></datalist>
++        </main>
++    </div>
++
++    <!-- LuxeEditor Modals -->
++    <div id="luxe-link-modal" class="modal hidden">
++        <div class="modal-content small">
++            <div class="modal-header">
++                <h3>Insertar/Editar Enlace</h3>
++                <button class="close-btn" onclick="closeLuxeLinkModal()">&times;</button>
++            </div>
++            <div class="modal-body">
++                <div class="form-group">
++                    <label>Texto a mostrar</label>
++                    <input type="text" id="luxe-link-text" class="form-input" placeholder="Ej. Mi Enlace">
++                </div>
++                <div class="form-group">
++                    <label>URL (Enlace)</label>
++                    <input type="text" id="luxe-link-url" class="form-input" placeholder="https://...">
++                </div>
++                <div class="form-actions">
++                    <button id="luxe-remove-link-btn" class="secondary-btn small hidden" style="background: rgba(214, 8, 77, 0.1); color: var(--brand-magenta);">Quitar Enlace</button>
++                    <button id="luxe-save-link-btn" class="primary-btn small">Guardar</button>
++                </div>
++            </div>
++        </div>
++    </div>
++
++    <div id="luxe-image-modal" class="modal hidden">
++        <div class="modal-content small">
++            <div class="modal-header">
++                <h3>Insertar Imagen</h3>
++                <button class="close-btn" onclick="closeLuxeImageModal()">&times;</button>
++            </div>
++            <div class="modal-body">
++                <div class="tabs-mini">
++                    <button class="tab-mini-btn active" data-tab="luxe-img-url">URL</button>
++                    <button class="tab-mini-btn" data-tab="luxe-img-file">Archivo Local</button>
++                </div>
++                <div id="luxe-img-url" class="tab-mini-content active">
++                    <div class="form-group">
++                        <label>URL de la Imagen</label>
++                        <input type="text" id="luxe-image-url-input" class="form-input" placeholder="https://...">
++                    </div>
++                </div>
++                <div id="luxe-img-file" class="tab-mini-content">
++                    <div class="form-group">
++                        <label>Seleccionar archivo</label>
++                        <button id="luxe-select-image-btn" class="secondary-btn small">Elegir Imagen...</button>
++                        <p id="luxe-image-file-name" class="sub-text" style="margin-top: 0.5rem;"></p>
++                    </div>
++                </div>
++                <div class="form-actions">
++                    <button id="luxe-insert-image-btn" class="primary-btn small">Insertar</button>
++                </div>
++            </div>
++        </div>
++    </div>
++
++
++    <!-- MODALS REPOSITIONED BY ANTIGRAVITY -->
++<!-- Migration Question Modal -->
++            <div id="migration-modal" class="modal hidden">
++                <div class="modal-content small">
++                    <div class="modal-header">
++                        <h3>Migrar Datos</h3>
++                    </div>
++                    <div class="modal-body">
++                        <p>¿Deseas copiar todos los archivos de configuración existentes a la nueva carpeta?</p>
++                        <div class="form-actions">
++                            <button id="no-migrate-btn" class="secondary-btn">No, empezar de cero</button>
++                            <button id="yes-migrate-btn" class="primary-btn">Sí, copiar archivos</button>
++                        </div>
++                    </div>
++                </div>
++<!-- Opportunity Details Modal -->
++            <div id="details-modal" class="modal hidden">
++                <div class="modal-content">
++                    <div class="modal-header">
++                        <h2 id="details-modal-title" data-i18n="modal_details_title">Detalles de la Oportunidade</h2>
++                        <button class="close-modal-btn" id="close-details-btn">&times;</button>
++                    </div>
++                    <div class="modal-body">
++                        <!-- Modal Tabs -->
++                        <div class="modal-tabs">
++                            <button class="tab-btn active" data-tab="general" data-i18n="tab_general">General</button>
++                            <button class="tab-btn" data-tab="meddpicc" data-i18n="tab_meddpicc">MEDDPICC</button>
++                        </div>
++
++                        <!-- General Tab Content -->
++                        <div id="tab-general" class="tab-content active">
++                            <div id="details-content" class="details-grid">
++                                <!-- Dynamic labels and values -->
++                            </div>
++                            <div class="opportunity-overview">
++                                <h4 data-i18n="label_opp_explanation">Explicación de la Oportunidad</h4>
++                                <textarea id="opp-description"
++                                    placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
++                                <div class="form-actions">
++                                    <button id="save-opp-description-btn" class="primary-btn small"
++                                        data-i18n="btn_save_explanation">Guardar
++                                        Explicación</button>
++                                </div>
++                            </div>
++                        </div>
++<!-- Update Confirmation Modal -->
+             <div id="update-modal" class="modal hidden">
+                 <div class="modal-content small">
+                     <div class="modal-header">
+@@ -1390,9 +1473,7 @@
+                         </div>
+                     </div>
+                 </div>
+-            </div>
+-
+-            <!-- Account Attack Plan Modal -->
++<!-- Account Attack Plan Modal -->
+             <div id="attack-plan-modal" class="modal hidden">
+                 <div class="modal-content large">
+                     <div class="modal-header">
+@@ -1437,38 +1518,7 @@
+                                 </div>
+                             </div>
+                         </div>
+-
+-                        <div class="poc-form-section">
+-                            <h4>3. Estrategia y Responsable</h4>
+-                            <div class="form-group">
+-                                <label for="attack-plan-owner"
+-                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Responsable Actual
+-                                    de la Cuenta</label>
+-                                <input type="text" id="attack-plan-owner" class="form-input"
+-                                    placeholder="Nombre del responsable...">
+-                            </div>
+-                            <div class="form-group" style="margin-top: 1rem;">
+-                                <label for="attack-plan-strategy"
+-                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Estrategia de
+-                                    Ataque</label>
+-                                <textarea id="attack-plan-strategy"
+-                                    placeholder="Define aquí la estrategia para esta cuenta..." rows="6"></textarea>
+-                            </div>
+-                        </div>
+-
+-                        <div class="form-actions"
+-                            style="margin-top: 2rem; display: flex; justify-content: space-between;">
+-                            <button id="reset-attack-plan-btn" class="secondary-btn small"
+-                                style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;">
+-                                <i class="fas fa-undo"></i> Resetear Plan
+-                            </button>
+-                            <button id="save-attack-plan-btn" class="primary-btn">Guardar Plan de Ataque</button>
+-                        </div>
+-                    </div>
+-                </div>
+-            </div>
+-
+-            <!-- Account Contacts Modal -->
++<!-- Account Contacts Modal -->
+             <div id="account-contacts-modal" class="modal hidden">
+                 <div class="modal-content large" style="max-width: 1000px;">
+                     <div class="modal-header">
+@@ -1505,9 +1555,7 @@
+                         </div>
+                     </div>
+                 </div>
+-            </div>
+-
+-            <!-- Resource Modal -->
++<!-- Resource Modal -->
+             <div id="resource-modal" class="modal hidden">
+                 <div class="modal-content">
+                     <div class="modal-header">
+@@ -1531,9 +1579,7 @@
+                         </div>
+                     </div>
+                 </div>
+-            </div>
+-
+-            <!-- Ticket View Modal -->
++<!-- Ticket View Modal -->
+             <div id="ticket-view-modal" class="modal hidden">
+                 <div class="modal-content large"
+                     style="height: 90vh; display: flex; flex-direction: column; padding: 0;">
+@@ -1554,8 +1600,7 @@
+                     </div>
+                 </div>
+             </div>
+-
+-            <!-- CSV Mapping Modal -->
++<!-- CSV Mapping Modal -->
+             <div id="csv-mapping-modal" class="modal hidden">
+                 <div class="modal-content large" style="max-height: 90vh; display: flex; flex-direction: column;">
+                     <div class="modal-header">
+@@ -1586,71 +1631,6 @@
+                         </div>
+                     </div>
+                 </div>
+-            </div>
+-
+-            <!-- Success Overlay -->
+-            <div id="success-toast" class="toast hidden" data-i18n="toast_success_update">
+-                ¡Actualizado con éxito!
+-            </div>
+-
+-            <datalist id="responsibles-list"></datalist>
+-        </main>
+-    </div>
+-
+-    <!-- LuxeEditor Modals -->
+-    <div id="luxe-link-modal" class="modal hidden">
+-        <div class="modal-content small">
+-            <div class="modal-header">
+-                <h3>Insertar/Editar Enlace</h3>
+-                <button class="close-btn" onclick="closeLuxeLinkModal()">&times;</button>
+-            </div>
+-            <div class="modal-body">
+-                <div class="form-group">
+-                    <label>Texto a mostrar</label>
+-                    <input type="text" id="luxe-link-text" class="form-input" placeholder="Ej. Mi Enlace">
+-                </div>
+-                <div class="form-group">
+-                    <label>URL (Enlace)</label>
+-                    <input type="text" id="luxe-link-url" class="form-input" placeholder="https://...">
+-                </div>
+-                <div class="form-actions">
+-                    <button id="luxe-remove-link-btn" class="secondary-btn small hidden" style="background: rgba(214, 8, 77, 0.1); color: var(--brand-magenta);">Quitar Enlace</button>
+-                    <button id="luxe-save-link-btn" class="primary-btn small">Guardar</button>
+-                </div>
+-            </div>
+-        </div>
+-    </div>
+-
+-    <div id="luxe-image-modal" class="modal hidden">
+-        <div class="modal-content small">
+-            <div class="modal-header">
+-                <h3>Insertar Imagen</h3>
+-                <button class="close-btn" onclick="closeLuxeImageModal()">&times;</button>
+-            </div>
+-            <div class="modal-body">
+-                <div class="tabs-mini">
+-                    <button class="tab-mini-btn active" data-tab="luxe-img-url">URL</button>
+-                    <button class="tab-mini-btn" data-tab="luxe-img-file">Archivo Local</button>
+-                </div>
+-                <div id="luxe-img-url" class="tab-mini-content active">
+-                    <div class="form-group">
+-                        <label>URL de la Imagen</label>
+-                        <input type="text" id="luxe-image-url-input" class="form-input" placeholder="https://...">
+-                    </div>
+-                </div>
+-                <div id="luxe-img-file" class="tab-mini-content">
+-                    <div class="form-group">
+-                        <label>Seleccionar archivo</label>
+-                        <button id="luxe-select-image-btn" class="secondary-btn small">Elegir Imagen...</button>
+-                        <p id="luxe-image-file-name" class="sub-text" style="margin-top: 0.5rem;"></p>
+-                    </div>
+-                </div>
+-                <div class="form-actions">
+-                    <button id="luxe-insert-image-btn" class="primary-btn small">Insertar</button>
+-                </div>
+-            </div>
+-        </div>
+-    </div>
+     <script src="node_modules/papaparse/papaparse.min.js"></script>
+     <script src="translations.js"></script>
+     <script src="renderer.js"></script>

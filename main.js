@@ -37,6 +37,10 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer] line ${line}: ${message}`);
+  });
 }
 
 app.whenReady().then(() => {
