@@ -397,10 +397,12 @@ function showView(viewId, isBack = false, triggerBtn = null) {
 
     // Handle active state of navigation buttons
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.submenu-btn').forEach(b => b.classList.remove('active'));
-
     const targetView = document.getElementById(viewId);
     if (targetView) targetView.classList.add('active');
+
+    if (viewId === 'resources-view') {
+        renderResources();
+    }
 
     if (triggerBtn) {
         triggerBtn.classList.add('active');
@@ -1873,56 +1875,87 @@ if (downloadSampleBtn) {
 }
 
 // Resources Logic
+// Resources Logic
 function renderResources() {
     if (!elements.resourcesBody) return;
     elements.resourcesBody.innerHTML = '';
-    const query = elements.resourcesSearchInput.value.toLowerCase().trim();
+    const query = elements.resourcesSearchInput ? elements.resourcesSearchInput.value.toLowerCase().trim() : '';
+
+    if (!Array.isArray(currentConfig.resources)) {
+        currentConfig.resources = [];
+    }
 
     currentConfig.resources.forEach((res, index) => {
-        if (!res.name.toLowerCase().includes(query) && !res.content.toLowerCase().includes(query)) return;
+        const name = typeof res === 'object' ? (res.name || res.title || res.header || 'Recurso') : String(res);
+        const content = typeof res === 'object' ? (res.content || res.url || res.link || res.value || '') : String(res);
+
+        if (query) {
+            const nameMatch = name.toLowerCase().includes(query);
+            const contentMatch = content.toLowerCase().includes(query);
+            if (!nameMatch && !contentMatch) return;
+        }
 
         const tr = document.createElement('tr');
 
-        let displayContent = res.content;
-        if (res.content.startsWith('http')) {
-            displayContent = `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, '${res.content}')">${res.content}</a>`;
-        } else if (res.content.includes('@')) {
-            displayContent = `<a href="mailto:${res.content}" class="dynamic-link">${res.content}</a>`;
+        let displayContent = content;
+        if (content.startsWith('http')) {
+            displayContent = `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, '${content}')" style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${content}</a>`;
+        } else if (content.includes('@')) {
+            displayContent = `<a href="mailto:${content}" class="dynamic-link" style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${content}</a>`;
         }
 
+        const editTitle = getTranslation('btn_edit') || 'Editar';
+        const deleteTitle = getTranslation('btn_delete') || 'Eliminar';
+
         tr.innerHTML = `
-            <td><strong>${res.name}</strong></td>
-            <td>${displayContent}</td>
-            <td style="text-align: right;">
-                <button class="primary-btn small edit-res-btn" data-index="${index}" title="Editar">✏️</button>
-                <button class="delete-row-btn delete-res-btn" data-index="${index}" title="Eliminar">&times;</button>
+            <td style="word-break: break-word; overflow-wrap: break-word;"><strong>${name}</strong></td>
+            <td style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${displayContent}</td>
+            <td style="text-align: right; white-space: nowrap; width: 170px;">
+                <button type="button" class="secondary-btn small edit-res-btn" data-index="${index}" title="${editTitle}" style="margin-right: 0.4rem; padding: 0.3rem 0.6rem;">
+                    <i class="fas fa-edit"></i> <span>${editTitle}</span>
+                </button>
+                <button type="button" class="secondary-btn small delete-res-btn" data-index="${index}" title="${deleteTitle}" style="color: var(--brand-magenta); border-color: var(--brand-magenta); padding: 0.3rem 0.6rem;">
+                    <i class="fas fa-trash"></i> <span>${deleteTitle}</span>
+                </button>
             </td>
         `;
         elements.resourcesBody.appendChild(tr);
     });
 
     elements.resourcesBody.querySelectorAll('.edit-res-btn').forEach(btn => {
-        btn.onclick = () => openResourceModal(parseInt(btn.dataset.index));
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            openResourceModal(parseInt(btn.dataset.index));
+        };
     });
 
     elements.resourcesBody.querySelectorAll('.delete-res-btn').forEach(btn => {
-        btn.onclick = () => deleteResource(parseInt(btn.dataset.index));
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            deleteResource(parseInt(btn.dataset.index));
+        };
     });
 }
 
 let editingResourceIndex = null;
 
 function openResourceModal(index = null) {
-    editingResourceIndex = index;
-    if (index !== null) {
-        const res = currentConfig.resources[index];
-        elements.resourceNameInput.value = res.name;
-        elements.resourceContentInput.value = res.content;
-        if (elements.resourceModalTitle) elements.resourceModalTitle.textContent = getTranslation('modal_resource_edit_title');
+    editingResourceIndex = (index !== null && index !== undefined && !isNaN(index)) ? index : null;
+    if (editingResourceIndex !== null) {
+        const res = currentConfig.resources[editingResourceIndex];
+        if (res) {
+            elements.resourceNameInput.value = res.name || '';
+            elements.resourceContentInput.value = res.content || '';
+            if (elements.resourceModalTitle) {
+                elements.resourceModalTitle.textContent = getTranslation('modal_resource_edit_title') || 'Editar Recurso';
+            }
+        }
     } else {
         elements.resourceNameInput.value = '';
         elements.resourceContentInput.value = '';
-        if (elements.resourceModalTitle) elements.resourceModalTitle.textContent = getTranslation('modal_resource_title');
+        if (elements.resourceModalTitle) {
+            elements.resourceModalTitle.textContent = getTranslation('modal_resource_title') || 'Nuevo Recurso';
+        }
     }
     elements.resourceModal.classList.remove('hidden');
 }
@@ -1931,6 +1964,7 @@ async function deleteResource(index) {
     if (confirm(getTranslation('confirm_delete') || '¿Eliminar este recurso?')) {
         currentConfig.resources.splice(index, 1);
         await window.electronAPI.saveFile(currentConfig.directory, 'resources.json', currentConfig.resources);
+        showToast(getTranslation('toast_resource_deleted') || 'Recurso eliminado');
         renderResources();
     }
 }
@@ -1948,7 +1982,7 @@ if (elements.saveResourceBtn) {
         const content = elements.resourceContentInput.value.trim();
 
         if (!name || !content) {
-            showToast('Nombre y contenido obligatorios');
+            showToast(getTranslation('msg_fill_required') || 'Nombre y contenido obligatorios');
             return;
         }
 
@@ -1961,7 +1995,7 @@ if (elements.saveResourceBtn) {
         }
 
         await window.electronAPI.saveFile(currentConfig.directory, 'resources.json', currentConfig.resources);
-        showToast(getTranslation('toast_settings_saved'));
+        showToast(getTranslation('toast_settings_saved') || 'Recurso guardado correctamente');
         elements.resourceModal.classList.add('hidden');
         renderResources();
     };
@@ -3098,7 +3132,7 @@ window.openDetails = (oppId) => { console.log("Abriendo Detalles de Oportunidad"
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
 
-    elements.detailsModalTitle.textContent = `Detalles: ${opp['Opportunity Name'] || oppId}`;
+    elements.detailsModalTitle.textContent = `${getTranslation('prefix_details') || 'Detalles'}: ${opp['Opportunity Name'] || oppId}`;
     elements.detailsContent.innerHTML = '';
 
     // Sort keys alphabetically but prioritize Name/ID/Account
@@ -3831,7 +3865,7 @@ window.editPoc = (index) => {
         poc.scopes = poc.scopes.map(s => ({ title: s, description: '' }));
     }
 
-    elements.pocDetailTitle.textContent = "Editar Prueba de Concepto";
+    elements.pocDetailTitle.textContent = getTranslation('title_edit_poc') || "Editar Prueba de Concepto";
     elements.pocObjective.value = poc.objective || '';
     elements.pocUseCase.value = poc.useCase || '';
     elements.pocAssumptions.value = poc.assumptions || '';
@@ -3861,7 +3895,7 @@ window.deletePoc = async (index) => {
 
 elements.addPocRowBtn.onclick = () => {
     activePocIndex = null;
-    elements.pocDetailTitle.textContent = "Nueva Prueba de Concepto";
+    elements.pocDetailTitle.textContent = getTranslation('title_new_poc') || "Nueva Prueba de Concepto";
     elements.pocObjective.value = '';
     elements.pocUseCase.value = '';
     elements.pocAssumptions.value = '';
@@ -4966,7 +5000,7 @@ window.openAttackPlan = (accountId) => { console.log("Abriendo Plan de Ataque", 
     const account = currentConfig.accounts[accountId] || {};
     const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
 
-    elements.attackPlanModalTitle.textContent = `Plan de Ataque: ${accountName}`;
+    elements.attackPlanModalTitle.textContent = `${getTranslation('title_attack_plan') || 'Plan de Ataque'}: ${accountName}`;
 
     // Load existing data or initialize
     currentAttackPlanData = account.attackPlan ? JSON.parse(JSON.stringify(account.attackPlan)) : {
@@ -5005,6 +5039,7 @@ window.openAttackPlan = (accountId) => { console.log("Abriendo Plan de Ataque", 
     renderAttackTimelineChart();
     elements.attackPlanStrategy.value = currentAttackPlanData.strategy || '';
 
+    applyLanguage(elements.languageSelect.value);
     elements.attackPlanModal.classList.remove('hidden');
 };
 
@@ -5017,33 +5052,39 @@ function getAppLocale() {
 function renderAttackPlanLicenses() {
     elements.attackPlanLicensesContainer.innerHTML = '';
     const locale = getAppLocale();
+    const thousandStr = getTranslation('unit_thousand') || 'Mil';
+    const millionStr = getTranslation('unit_million') || 'Millones';
+    const licNamePlaceholder = getTranslation('placeholder_license_name') || 'Nombre de Licencia';
+    const volPlaceholder = getTranslation('placeholder_volume') || 'Volumen';
+    const conPlaceholder = getTranslation('placeholder_consumo') || 'Consumo';
+
     currentAttackPlanData.licenses.forEach((lic, idx) => {
         const n = parseFloat(lic.volume) || 0;
         const legend = (n > 0 && n < 1)
-            ? `${(n * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
-            : `${n.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
+            ? `${(n * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} ${thousandStr}`
+            : `${n.toLocaleString(locale, { maximumFractionDigits: 3 })} ${millionStr}`;
 
         const c = parseFloat(lic.consumo) || 0;
         const legendC = (c > 0 && c < 1)
-            ? `${(c * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} Mil`
-            : `${c.toLocaleString(locale, { maximumFractionDigits: 3 })} Millones`;
+            ? `${(c * 1000).toLocaleString(locale, { maximumFractionDigits: 3 })} ${thousandStr}`
+            : `${c.toLocaleString(locale, { maximumFractionDigits: 3 })} ${millionStr}`;
 
 
         const div = document.createElement('div');
         div.className = 'list-item-row';
         div.innerHTML = `
-            <input type="text" placeholder="Nombre de Licencia" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
+            <input type="text" placeholder="${licNamePlaceholder}" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
             
             <div style="display: flex; flex-direction: column; gap: 2px; flex: 1.5;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="number" step="any" placeholder="Volumen" value="${lic.volume || ''}" 
-                        oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                    <input type="number" step="any" placeholder="${volPlaceholder}" value="${lic.volume || ''}" 
+                        oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${thousandStr}' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${millionStr}';" 
                         style="max-width: 100px; flex: 1;">
                     <span id="vol-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--text-primary); font-size: 0.75rem; white-space: nowrap;">${legend}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="number" step="any" placeholder="Consumo" value="${lic.consumo || ''}" 
-                        oninput="updateAttackLicense(${idx}, 'consumo', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('con-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Mil' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' Millones';" 
+                    <input type="number" step="any" placeholder="${conPlaceholder}" value="${lic.consumo || ''}" 
+                        oninput="updateAttackLicense(${idx}, 'consumo', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('con-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${thousandStr}' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${millionStr}';" 
                         style="max-width: 100px; flex: 1;">
                     <span id="con-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--brand-orange); font-size: 0.75rem; white-space: nowrap;">${legendC}</span>
                 </div>
@@ -5109,7 +5150,7 @@ function renderAttackTimelineChart() {
 
     const activities = currentAttackPlanData.activities.filter(a => a.startDate);
     if (activities.length === 0) {
-        elements.attackPlanTimelineChart.innerHTML = '<p class="sub-text">Define al menos una fecha de inicio para ver el timeline.</p>';
+        elements.attackPlanTimelineChart.innerHTML = `<p class="sub-text">${getTranslation('msg_define_start_date') || 'Define al menos una fecha de inicio para ver el timeline.'}</p>`;
         return;
     }
 

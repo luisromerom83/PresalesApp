@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage, Menu } = require('electron');
 app.disableHardwareAcceleration();
 const path = require('path');
 const fs = require('fs');
@@ -6,6 +6,12 @@ const { exec } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
 if (require('electron-squirrel-startup')) return app.quit();
+
+// Linux display compatibility (Wayland / X11 fractional scaling & window decorations)
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+  app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
+}
 
 // Force Spanish locale for date formats
 app.commandLine.appendSwitch('lang', 'es-MX');
@@ -21,6 +27,9 @@ function createWindow() {
   const iconPath = path.join(__dirname, 'assets', 'logo_shield.png');
   const appIcon = nativeImage.createFromPath(iconPath);
 
+  // Disable default menu to prevent GTK menubar height offset on Linux
+  Menu.setApplicationMenu(null);
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -28,6 +37,7 @@ function createWindow() {
     icon: appIcon,
     frame: true, // Standard window frame
     autoHideMenuBar: true,
+    useContentSize: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

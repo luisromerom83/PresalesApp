@@ -8,50 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="assets/logo_shield.svg">
-    <style id="layout-fix-styles">
-        #app-container {
-            display: block !important;
-            width: 100% !important;
-            height: 100% !important;
-        }
-        header {
-            position: relative !important;
-            height: 70px !important;
-            z-index: 1000 !important;
-            background: var(--bg-color) !important;
-            border-bottom: 2px solid var(--brand-orange) !important;
-        }
-        #main-layout-container {
-            position: absolute !important;
-            top: 70px !important; bottom: 0 !important;
-            left: 0 !important; right: 0 !important;
-            background: var(--bg-color) !important;
-            display: block !important;
-        }
-        .sidebar {
-            position: absolute !important;
-            top: 0 !important; left: 0 !important; width: 240px !important; height: 100% !important;
-            background: var(--bg-color) !important;
-            border-right: 1px solid var(--glass-border) !important;
-            z-index: 100 !important;
-            padding-top: 10px !important;
-        }
-        .content {
-            position: absolute !important;
-            top: 0 !important; left: 240px !important; right: 0 !important; bottom: 0 !important;
-            background: var(--bg-color) !important;
-            display: block !important;
-            padding: 0 !important;
-            z-index: 90 !important;
-            overflow: auto !important;
-        }
-        #toggle-sidebar-btn {
-            display: none !important;
-        }
-        .nav-group:first-child {
-            margin-top: -15px !important;
-        }
-    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -213,7 +170,7 @@
                                     </div>
                                 </div>
                             </nav>
-                            <div id="app-version" class="sidebar-version">v2.2.0</div>
+                            <div id="app-version" class="sidebar-version">v2.2.3</div>
                         </div>
                     </aside>
 
@@ -393,12 +350,12 @@
                                     data-i18n="btn_add_resource">Añadir Recurso</button>
                             </div>
                             <div class="table-container">
-                                <table id="resources-table">
+                                <table id="resources-table" style="table-layout: fixed; width: 100%;">
                                     <thead>
                                         <tr>
-                                            <th data-i18n="label_resource_name">Nombre</th>
+                                            <th style="width: 200px;" data-i18n="label_resource_name">Nombre</th>
                                             <th data-i18n="label_resource_content">Enlace / Email / Nota</th>
-                                            <th style="width: 100px;"></th>
+                                            <th style="width: 170px; text-align: right;" data-i18n="label_actions">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="resources-body">
@@ -775,7 +732,6 @@
                         <button class="tab-btn" data-tab="tab-pocs" data-i18n="btn_pocs">🧪 PoCs</button>
                         <button class="tab-btn" data-tab="tab-rfp" data-i18n="btn_rfps">📄 RFPs / RFIs</button>
                         <button class="tab-btn" data-tab="tab-handover" data-i18n="btn_handover">🏁 Handover</button>
-                        <button class="tab-btn" data-tab="tab-medpicc" data-i18n="tab_medpicc">🎯 Calificación (MEDDPICC)</button>
                     </div>
                     <div class="modal-body">
                         <!-- Assessment Tab Content -->
@@ -991,49 +947,7 @@
                                         data-i18n="placeholder_keywords" data-i18n-prop="placeholder"
                                         class="form-input">
                                 </div>
-
-                        <div id="tab-medpicc" class="tab-content">
-                            <div class="toolbar-inline">
-                                <span id="activities-opp-info-medpicc" class="sub-text"></span>
-                            </div>
-                            <div class="medpicc-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_metrics">Metrics (M)</label>
-                                    <textarea id="med-metrics" placeholder="Impacto cuantificable..." rows="2" data-i18n="med_metrics_placeholder" data-i18n-prop="placeholder"></textarea>
                                 </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_eb">Economic Buyer (E)</label>
-                                    <textarea id="med-buyer" placeholder="¿Quién firma el cheque?..." rows="2" data-i18n="med_eb_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dc">Decision Criteria (D)</label>
-                                    <textarea id="med-criteria" placeholder="Requerimientos técnicos/negocio..." rows="2" data-i18n="med_dc_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_dp">Decision Process (D)</label>
-                                    <textarea id="med-process" placeholder="Pasos para la aprobación..." rows="2" data-i18n="med_dp_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_pp">Paper Process (P)</label>
-                                    <textarea id="med-paper" placeholder="Proceso legal/compras..." rows="2" data-i18n="med_pp_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_ip">Identify Pain (I)</label>
-                                    <textarea id="med-pain" placeholder="Problema crítico del negocio..." rows="2" data-i18n="med_ip_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_champion">Champion (C)</label>
-                                    <textarea id="med-champion" placeholder="Tu aliado interno..." rows="2" data-i18n="med_champion_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label style="color: var(--brand-orange); font-weight: 600;" data-i18n="label_med_competition">Competition (C)</label>
-                                    <textarea id="med-competition" placeholder="Contra quién competimos..." rows="2" data-i18n="med_competition_placeholder" data-i18n-prop="placeholder"></textarea>
-                                </div>
-                            </div>
-                            <div class="form-actions" style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
-                                <button id="save-medpicc-btn" class="primary-btn" data-i18n="btn_save_medpicc">Guardar Calificación</button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1399,28 +1313,28 @@
             <div id="attack-plan-modal" class="modal hidden">
                 <div class="modal-content large">
                     <div class="modal-header">
-                        <h3 id="attack-plan-modal-title">Plan de Ataque: Nombre de Cuenta</h3>
+                        <h3 id="attack-plan-modal-title">Plan de Ataque</h3>
                         <button id="close-attack-plan-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div class="poc-form-section">
-                            <h4>1. Licencias y Volúmenes</h4>
+                            <h4 data-i18n="attack_section_licenses">1. Licencias y Volúmenes</h4>
                             <div id="attack-plan-licenses-container" class="dynamic-list">
                                 <!-- Licenses injected here -->
                             </div>
-                            <button id="add-attack-license-btn" class="secondary-btn small">+ Agregar Licencia</button>
+                            <button id="add-attack-license-btn" class="secondary-btn small" data-i18n="btn_add_license">+ Agregar Licencia</button>
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>2. Cronograma de Actividades</h4>
+                            <h4 data-i18n="attack_section_activities">2. Cronograma de Actividades</h4>
                             <div class="table-container small">
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Actividad</th>
-                                            <th>Inicio</th>
-                                            <th>Fin</th>
-                                            <th>Comentarios</th>
+                                            <th data-i18n="label_activity">Actividad</th>
+                                            <th data-i18n="label_start">Inicio</th>
+                                            <th data-i18n="label_end">Fin</th>
+                                            <th data-i18n="label_comments">Comentarios</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -1429,12 +1343,12 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <button id="add-attack-activity-btn" class="secondary-btn small" style="margin-top: 1rem;">+
+                            <button id="add-attack-activity-btn" class="secondary-btn small" style="margin-top: 1rem;" data-i18n="btn_add_activity">+
                                 Agregar Actividad</button>
 
                             <!-- Timeline Chart Section -->
                             <div class="timeline-chart-section" style="margin-top: 2rem;">
-                                <h4>Visualización de Timeline</h4>
+                                <h4 data-i18n="title_timeline_viz">Visualización de Timeline</h4>
                                 <div id="attack-plan-timeline-chart" class="timeline-chart-container">
                                     <!-- Timeline bars will be injected here -->
                                 </div>
@@ -1442,30 +1356,30 @@
                         </div>
 
                         <div class="poc-form-section">
-                            <h4>3. Estrategia y Responsable</h4>
+                            <h4 data-i18n="attack_section_strategy">3. Estrategia y Responsable</h4>
                             <div class="form-group">
                                 <label for="attack-plan-owner"
-                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Responsable Actual
+                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;" data-i18n="label_current_owner">Responsable Actual
                                     de la Cuenta</label>
                                 <input type="text" id="attack-plan-owner" class="form-input"
-                                    placeholder="Nombre del responsable...">
+                                    placeholder="Nombre del responsable..." data-i18n="placeholder_owner_name" data-i18n-prop="placeholder">
                             </div>
                             <div class="form-group" style="margin-top: 1rem;">
                                 <label for="attack-plan-strategy"
-                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Estrategia de
+                                    style="font-weight: 600; margin-bottom: 0.5rem; display: block;" data-i18n="label_attack_strategy">Estrategia de
                                     Ataque</label>
                                 <textarea id="attack-plan-strategy"
-                                    placeholder="Define aquí la estrategia para esta cuenta..." rows="6"></textarea>
+                                    placeholder="Define aquí la estrategia para esta cuenta..." rows="6" data-i18n="placeholder_attack_strategy" data-i18n-prop="placeholder"></textarea>
                             </div>
                         </div>
 
                         <div class="form-actions"
                             style="margin-top: 2rem; display: flex; justify-content: space-between;">
                             <button id="reset-attack-plan-btn" class="secondary-btn small"
-                                style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;">
+                                style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;" data-i18n="btn_reset_plan">
                                 <i class="fas fa-undo"></i> Resetear Plan
                             </button>
-                            <button id="save-attack-plan-btn" class="primary-btn">Guardar Plan de Ataque</button>
+                            <button id="save-attack-plan-btn" class="primary-btn" data-i18n="btn_save_attack_plan">Guardar Plan de Ataque</button>
                         </div>
                     </div>
                 </div>
