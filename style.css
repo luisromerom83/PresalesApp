@@ -709,7 +709,8 @@ main {
 }
 
 #todo-view,
-#calendar-ms-view {
+#calendar-ms-view,
+#spiff-view {
     padding: 0;
     overflow: hidden;
     display: none;
@@ -717,13 +718,15 @@ main {
 }
 
 #todo-view.active,
-#calendar-ms-view.active {
+#calendar-ms-view.active,
+#spiff-view.active {
     display: flex;
     flex-direction: column;
 }
 
 #todo-view webview,
-#calendar-ms-view webview {
+#calendar-ms-view webview,
+#spiff-view webview {
     flex: 1;
     width: 100%;
     height: 100%;
