@@ -737,8 +737,6 @@
                                 <!-- Questions injected here -->
                             </div>
                             <div class="form-actions" style="margin-top: 2rem; display: flex; gap: 1rem;">
-                                <button id="save-assessment-btn" class="primary-btn"
-                                    data-i18n="btn_save_assessment">Guardar Assessment</button>
                                 <button id="generate-assessment-doc-btn" class="secondary-btn small"
                                     style="background: var(--grad-primary); color: white; border: none;"
                                     data-i18n="btn_generate_doc">
@@ -809,10 +807,6 @@
                             </div>
                             <button id="add-rfp-activity-btn" class="secondary-btn small" style="margin-top: 1rem;"
                                 data-i18n="btn_add_activity">+ Agregar Actividad</button>
-                            <div class="form-actions" style="margin-top: 2rem;">
-                                <button id="save-rfp-btn" class="primary-btn" data-i18n="btn_save_rfp">Guardar
-                                    RFP</button>
-                            </div>
                         </div>
 
                         <!-- Demo Tab Content -->
@@ -881,10 +875,6 @@
                                             data-i18n="btn_add_step">+ Añadir Paso</button>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="form-actions" style="margin-top: 2rem;">
-                                <button id="save-demo-btn" class="primary-btn" data-i18n="btn_save_demo">Guardar
-                                    Demo</button>
                             </div>
                         </div>
 
@@ -1074,8 +1064,6 @@
                             <button id="generate-poc-doc-btn" class="secondary-btn"
                                 style="background: rgba(138, 43, 226, 0.1); color: var(--brand-purple); border-color: var(--brand-purple);" data-i18n="btn_generate_document">
                                 <i class="fas fa-sync"></i> Generar Documento</button>
-                            <button id="save-poc-detail-btn" class="primary-btn" data-i18n="btn_save_poc_detail">Guardar
-                                Prueba de Concepto</button>
                         </div>
                     </div>
                 </div>
@@ -1121,11 +1109,6 @@
                                 <h4 data-i18n="label_opp_explanation">Explicación de la Oportunidad</h4>
                                 <textarea id="opp-description"
                                     placeholder="Escribe aquí de qué trata esta oportunidad..." data-i18n="placeholder_opp_explanation" data-i18n-prop="placeholder"></textarea>
-                                <div class="form-actions">
-                                    <button id="save-opp-description-btn" class="primary-btn small"
-                                        data-i18n="btn_save_explanation">Guardar
-                                        Explicación</button>
-                                </div>
                             </div>
                         </div>
 
@@ -1261,10 +1244,6 @@
                                 </div>
                             </div>
 
-                            <div class="form-actions" style="margin-top: 1rem;">
-                                <button id="save-meddpicc-btn" class="primary-btn" data-i18n="btn_save_meddpicc">Guardar
-                                    MEDDPICC</button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1354,11 +1333,10 @@
 
                         <div class="form-actions"
                             style="margin-top: 2rem; display: flex; justify-content: space-between;">
-                            <button id="reset-attack-plan-btn" class="secondary-btn small"
+                            <button id="reset-attack-plan-btn" class="secondary-btn small" data-no-autosave
                                 style="color: var(--brand-magenta); border-color: var(--brand-magenta); width: auto; margin: 0;" data-i18n="btn_reset_plan">
                                 <i class="fas fa-undo"></i> Resetear Plan
                             </button>
-                            <button id="save-attack-plan-btn" class="primary-btn" data-i18n="btn_save_attack_plan">Guardar Plan de Ataque</button>
                         </div>
                     </div>
                 </div>
@@ -1396,9 +1374,6 @@
                                 <span data-i18n="btn_add_contact">Agregar Contacto</span></button>
                         </div>
 
-                        <div class="form-actions" style="margin-top: 2rem;">
-                            <button id="save-account-contacts-btn" class="primary-btn" data-i18n="btn_save_contacts">Guardar Contactos</button>
-                        </div>
                     </div>
                 </div>
             </div>

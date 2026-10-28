@@ -619,7 +619,10 @@ const translations = {
         "label_select_file": "Seleccionar archivo",
         "btn_choose_image": "Elegir Imagen...",
         "btn_insert": "Insertar",
-        "sidebar_email": "Email"
+        "sidebar_email": "Email",
+        "status_saving": "Guardando…",
+        "status_saved": "Guardado ✓",
+        "status_save_error": "Error al guardar"
     },
     "pt_BR": {
         "app_title": "Presales Integrity Ledger",
@@ -1241,7 +1244,10 @@ const translations = {
         "label_select_file": "Selecionar arquivo",
         "btn_choose_image": "Escolher imagem...",
         "btn_insert": "Inserir",
-        "sidebar_email": "E-mail"
+        "sidebar_email": "E-mail",
+        "status_saving": "Salvando…",
+        "status_saved": "Salvo ✓",
+        "status_save_error": "Erro ao salvar"
     },
     "en_US": {
         "app_title": "Presales Integrity Ledger",
@@ -1863,7 +1869,10 @@ const translations = {
         "label_select_file": "Select file",
         "btn_choose_image": "Choose image...",
         "btn_insert": "Insert",
-        "sidebar_email": "Email"
+        "sidebar_email": "Email",
+        "status_saving": "Saving…",
+        "status_saved": "Saved ✓",
+        "status_save_error": "Save failed"
     }
 };
 

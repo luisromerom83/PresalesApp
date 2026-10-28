@@ -132,13 +132,11 @@ const elements = {
     rfpUrl: document.getElementById('rfp-url'),
     rfpActivitiesBody: document.getElementById('rfp-activities-body'),
     addRfpActivityBtn: document.getElementById('add-rfp-activity-btn'),
-    saveRfpBtn: document.getElementById('save-rfp-btn'),
 
     demoDesc: document.getElementById('demo-desc'),
     demoUrl: document.getElementById('demo-url'),
     demoActivitiesBody: document.getElementById('demo-activities-body'),
     addDemoActivityBtn: document.getElementById('add-demo-activity-btn'),
-    saveDemoBtn: document.getElementById('save-demo-btn'),
 
     pocDetailModal: document.getElementById('poc-detail-modal'),
     pocDetailTitle: document.getElementById('poc-detail-title'),
@@ -155,7 +153,6 @@ const elements = {
     pocFinancials: document.getElementById('poc-financials'),
     pocUrlAcceptance: document.getElementById('poc-url-acceptance'),
     pocUrlContent: document.getElementById('poc-url-content'),
-    savePocDetailBtn: document.getElementById('save-poc-detail-btn'),
 
     yesMigrateBtn: document.getElementById('yes-migrate-btn'),
     noMigrateBtn: document.getElementById('no-migrate-btn'),
@@ -191,7 +188,6 @@ const elements = {
     addAttackActivityBtn: document.getElementById('add-attack-activity-btn'),
     attackPlanStrategy: document.getElementById('attack-plan-strategy'),
     attackPlanOwner: document.getElementById('attack-plan-owner'),
-    saveAttackPlanBtn: document.getElementById('save-attack-plan-btn'),
     resetAttackPlanBtn: document.getElementById('reset-attack-plan-btn'),
     attackPlanTimelineChart: document.getElementById('attack-plan-timeline-chart'),
 
@@ -206,7 +202,6 @@ const elements = {
     closeAccountContactsModalBtn: document.getElementById('close-account-contacts-modal-btn'),
     accountContactsBody: document.getElementById('account-contacts-body'),
     addAccountContactBtn: document.getElementById('add-account-contact-btn'),
-    saveAccountContactsBtn: document.getElementById('save-account-contacts-btn'),
     addGeneralNoteBtn: document.getElementById('add-general-note-btn'),
     walkthroughPrepBody: document.getElementById('walkthrough-prep-body'),
     walkthroughFlowBody: document.getElementById('walkthrough-flow-body'),
@@ -240,8 +235,6 @@ const elements = {
     nextMonthBtn: document.getElementById('next-month-btn'),
     responsiblesList: document.getElementById('responsibles-list'),
     oppDescription: document.getElementById('opp-description'),
-    saveOppDescriptionBtn: document.getElementById('save-opp-description-btn'),
-    saveMeddpiccBtn: document.getElementById('save-meddpicc-btn'),
     meddMList: document.getElementById('medd-m-list'),
     meddEContact: document.getElementById('medd-e-contact'),
     meddERole: document.getElementById('medd-e-role'),
@@ -303,7 +296,6 @@ const elements = {
     assessmentQuestList: document.getElementById('assessment-questions-list'),
     assessmentSearchInput: document.getElementById('assessment-search-input'),
     assessmentGeneralNotes: document.getElementById('assessment-general-notes'),
-    saveAssessmentBtn: document.getElementById('save-assessment-btn'),
     generateAssessmentDocBtn: document.getElementById('generate-assessment-doc-btn'),
     viewAssessmentPdfBtn: document.getElementById('view-assessment-pdf-btn'),
     downloadAssessmentDocxBtn: document.getElementById('download-assessment-docx-btn'),
@@ -343,16 +335,6 @@ const elements = {
     mainLayout: document.querySelector('.main-layout'),
 
     // MEDDPICC Elements
-    activitiesOppInfoMedpicc: document.getElementById('activities-opp-info-medpicc'),
-    medMetrics: document.getElementById('med-metrics'),
-    medBuyer: document.getElementById('med-buyer'),
-    medCriteria: document.getElementById('med-criteria'),
-    medProcess: document.getElementById('med-process'),
-    medPaper: document.getElementById('med-paper'),
-    medPain: document.getElementById('med-pain'),
-    medChampion: document.getElementById('med-champion'),
-    medCompetition: document.getElementById('med-competition'),
-    saveMedpiccBtn: document.getElementById('save-medpicc-btn'),
     appLogo: document.querySelector('.app-logo')
 };
 
@@ -644,7 +626,10 @@ elements.activitiesModal.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-elements.closeActivitiesModalBtn.onclick = () => elements.activitiesModal.classList.add('hidden');
+elements.closeActivitiesModalBtn.onclick = () => {
+    flushAutosaves('rfp', 'demo', 'assessment');
+    elements.activitiesModal.classList.add('hidden');
+};
 
 
 function renderDynamicFilters() {
@@ -2089,6 +2074,7 @@ function getTranslation(key, params) {
 }
 
 elements.closeDetailsBtn.addEventListener('click', () => {
+    flushAutosaves('oppDescription', 'meddpicc');
     elements.detailsModal.classList.add('hidden');
 });
 
@@ -3202,6 +3188,7 @@ function loadMeddpicc(medd, accountId) {
 
 // Opportunity Details
 window.openDetails = (oppId) => { console.log("Abriendo Detalles de Oportunidad", oppId);
+    flushAutosaves();
     activeOppId = oppId;
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
@@ -3332,7 +3319,7 @@ document.addEventListener('click', (e) => {
 });
 
 // Save Opportunity Description
-elements.saveOppDescriptionBtn.onclick = async () => {
+function persistOppDescription() {
     if (!activeOppId) return;
 
     if (!currentConfig.materials[activeOppId]) {
@@ -3345,12 +3332,11 @@ elements.saveOppDescriptionBtn.onclick = async () => {
 
     currentConfig.materials[activeOppId].description = elements.oppDescription.value.trim();
 
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast(getTranslation('toast_explanation_saved'));
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
 
 // Save MEDDPICC
-elements.saveMeddpiccBtn.onclick = async () => {
+function persistMeddpicc() {
     if (!activeOppId) return;
 
     if (!currentConfig.materials[activeOppId]) {
@@ -3377,9 +3363,8 @@ elements.saveMeddpiccBtn.onclick = async () => {
 
     currentConfig.materials[activeOppId].meddpicc = tempMeddData;
 
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast(getTranslation('toast_saved_success') || 'Guardado correctamente');
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
 
 // Notes
 window.openGeneralNotes = () => {
@@ -3504,7 +3489,8 @@ function updateAssessmentMaterialsFromUI() {
         };
     }
 
-    const answers = {};
+    // Start from saved answers: while the question filter is active only some questions are rendered
+    const answers = { ...(currentConfig.materials[activeOppId].assessment || {}) };
     elements.assessmentQuestList.querySelectorAll('.assessment-item').forEach(item => {
         const ta = item.querySelector('.assessment-answer');
         if (!ta) return;
@@ -3526,11 +3512,10 @@ function updateAssessmentMaterialsFromUI() {
     currentConfig.materials[activeOppId].assessmentGeneralNotes = elements.assessmentGeneralNotes ? elements.assessmentGeneralNotes.value : '';
 }
 
-elements.saveAssessmentBtn.onclick = async () => {
+function persistAssessment() {
     updateAssessmentMaterialsFromUI();
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast(getTranslation('toast_assessment_saved') || 'Assessment guardado correctamente');
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
 
 // Assessment Document Generation
 elements.generateAssessmentDocBtn.onclick = async () => {
@@ -3837,6 +3822,7 @@ elements.closeModalBtn.addEventListener('click', () => elements.notesModal.class
 
 // Consolidated Activities Modal
 window.openActivities = (oppId, initialTab = 'tab-assessment') => {
+    flushAutosaves();
     activeOppId = oppId;
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
@@ -3858,7 +3844,6 @@ window.openActivities = (oppId, initialTab = 'tab-assessment') => {
     else if (initialTab === 'tab-pocs') openPocs(oppId);
     else if (initialTab === 'tab-rfp') openRfp(oppId);
     else if (initialTab === 'tab-demo') openDemo(oppId);
-    else if (initialTab === 'tab-medpicc') openMedpicc(oppId);
 
     elements.activitiesModal.classList.remove('hidden');
 };
@@ -3909,6 +3894,7 @@ function renderPocsList() {
 }
 
 window.editPoc = (index) => {
+    flushAutosaves();
     activePocIndex = index;
     const mat = currentConfig.materials[activeOppId] || {};
     let poc = mat.pocs[index];
@@ -3972,6 +3958,7 @@ window.deletePoc = async (index) => {
 };
 
 elements.addPocRowBtn.onclick = () => {
+    flushAutosaves();
     activePocIndex = null;
     elements.pocDetailTitle.textContent = getTranslation('title_new_poc') || "Nueva Prueba de Concepto";
     elements.pocObjective.value = '';
@@ -3996,7 +3983,7 @@ elements.addPocRowBtn.onclick = () => {
     elements.pocDetailModal.classList.remove('hidden');
 };
 
-elements.savePocDetailBtn.onclick = async () => {
+function persistPoc() {
     const scopes = Array.from(elements.pocScopeContainer.querySelectorAll('.scope-item-row')).map(row => ({
         title: row.querySelector('.scope-title-input').value,
         description: row.querySelector('.scope-desc-input').value
@@ -4041,17 +4028,19 @@ elements.savePocDetailBtn.onclick = async () => {
     if (!currentConfig.materials[activeOppId]) currentConfig.materials[activeOppId] = {};
     if (!currentConfig.materials[activeOppId].pocs) currentConfig.materials[activeOppId].pocs = [];
 
+    // Don't create a new PoC until something has actually been filled in
+    const hasContent = Object.values(pocData).some(v => (Array.isArray(v) ? v.length : String(v || '').replace(/<[^>]*>/g, '').trim()));
+    if (activePocIndex === null && !hasContent) return;
+
     if (activePocIndex !== null) {
         currentConfig.materials[activeOppId].pocs[activePocIndex] = pocData;
     } else {
         currentConfig.materials[activeOppId].pocs.push(pocData);
+        activePocIndex = currentConfig.materials[activeOppId].pocs.length - 1;
     }
 
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast(getTranslation('toast_poc_saved'));
-    elements.pocDetailModal.classList.add('hidden');
-    renderPocsList();
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
 
 function renderPocSimpleList(container, items, type) {
     container.innerHTML = '';
@@ -4421,8 +4410,9 @@ function renderRfpActivities(activities) {
 }
 
 elements.addRfpActivityBtn.onclick = () => {
-    const mat = currentConfig.materials[activeOppId] || {};
+    const mat = ensureMaterials(activeOppId);
     if (!mat.rfp) mat.rfp = { url: '', activities: [] };
+    if (!mat.rfp.activities) mat.rfp.activities = [];
     mat.rfp.activities.push({ activity: '', responsible: '', comments: '' });
     renderRfpActivities(mat.rfp.activities);
 };
@@ -4432,29 +4422,44 @@ window.removeRfpActivity = (index) => {
     renderRfpActivities(currentConfig.materials[activeOppId].rfp.activities);
 };
 
-elements.saveRfpBtn.onclick = async () => {
+// Reads RFP/Demo activity rows. Empty rows are skipped; a row with content but no deadline gets
+// today's date written into its input, so repeated autosaves don't keep moving it.
+function collectActivityRows(container) {
     const activities = [];
-    elements.rfpActivitiesBody.querySelectorAll('.activity-row-grid').forEach(grid => {
+    container.querySelectorAll('.activity-row-grid').forEach(grid => {
+        const activity = grid.querySelector('.act').value;
         const resp = grid.querySelector('.resp').value;
-        const manualDate = grid.querySelector('.date-input').value;
+        const comments = grid.querySelector('.comm').value;
+        if (!activity && !resp && !comments) return;
+
+        const dateInput = grid.querySelector('.date-input');
+        if (!dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+        const startDate = grid.querySelector('.start-date-input').value || dateInput.value;
+
         saveResponsible(resp);
         activities.push({
-            activity: grid.querySelector('.act').value,
+            activity,
             responsible: resp,
-            comments: grid.querySelector('.comm').value,
-            date: manualDate ? new Date(manualDate).toISOString() : new Date().toISOString()
+            comments,
+            date: new Date(dateInput.value).toISOString(),
+            startDate: new Date(startDate).toISOString()
         });
     });
+    return activities;
+}
 
-    if (!currentConfig.materials[activeOppId]) currentConfig.materials[activeOppId] = {};
-    currentConfig.materials[activeOppId].rfp = {
+function ensureMaterials(oppId) {
+    if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
+    return currentConfig.materials[oppId];
+}
+
+function persistRfp() {
+    ensureMaterials(activeOppId).rfp = {
         url: elements.rfpUrl.value,
-        activities
+        activities: collectActivityRows(elements.rfpActivitiesBody)
     };
-
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast(getTranslation('toast_rfp_saved') || 'RFP guardado');
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+}
 
 // Demos Logic
 window.openDemo = (oppId) => {
@@ -4511,14 +4516,14 @@ window.removeWalkthroughStep = (type, index) => {
 };
 
 elements.addWalkthroughPrepBtn.onclick = () => {
-    const mat = currentConfig.materials[activeOppId] || {};
+    const mat = ensureMaterials(activeOppId);
     if (!mat.walkthrough) mat.walkthrough = { prep: [], flow: [] };
     mat.walkthrough.prep.push({ desc: '' });
     renderWalkthroughList(elements.walkthroughPrepBody, mat.walkthrough.prep, 'prep');
 };
 
 elements.addWalkthroughFlowBtn.onclick = () => {
-    const mat = currentConfig.materials[activeOppId] || {};
+    const mat = ensureMaterials(activeOppId);
     if (!mat.walkthrough) mat.walkthrough = { prep: [], flow: [] };
     mat.walkthrough.flow.push({ desc: '' });
     renderWalkthroughList(elements.walkthroughFlowBody, mat.walkthrough.flow, 'flow');
@@ -4529,8 +4534,9 @@ function renderDemoActivities(activities) {
 }
 
 elements.addDemoActivityBtn.onclick = () => {
-    const mat = currentConfig.materials[activeOppId] || {};
+    const mat = ensureMaterials(activeOppId);
     if (!mat.demo) mat.demo = { description: '', url: '', activities: [] };
+    if (!mat.demo.activities) mat.demo.activities = [];
     mat.demo.activities.push({ activity: '', responsible: '', comments: '' });
     renderDemoActivities(mat.demo.activities);
 };
@@ -4540,23 +4546,9 @@ window.removeDemoActivity = (index) => {
     renderDemoActivities(currentConfig.materials[activeOppId].demo.activities);
 };
 
-elements.saveDemoBtn.onclick = async () => {
-    const activities = [];
-    elements.demoActivitiesBody.querySelectorAll('.activity-row-grid').forEach(grid => {
-        const resp = grid.querySelector('.resp').value;
-        const manualDate = grid.querySelector('.date-input').value;
-        const startDate = grid.querySelector('.start-date-input').value;
-        saveResponsible(resp);
-        activities.push({
-            activity: grid.querySelector('.act').value,
-            responsible: resp,
-            comments: grid.querySelector('.comm').value,
-            date: manualDate ? new Date(manualDate).toISOString() : new Date().toISOString(),
-            startDate: startDate ? new Date(startDate).toISOString() : (manualDate ? new Date(manualDate).toISOString() : new Date().toISOString())
-        });
-    });
-
-    if (!currentConfig.materials[activeOppId]) currentConfig.materials[activeOppId] = {};
+function persistDemo() {
+    const activities = collectActivityRows(elements.demoActivitiesBody);
+    ensureMaterials(activeOppId);
 
     // Collect walkthrough
     const prep = Array.from(elements.walkthroughPrepBody.querySelectorAll('.step-desc')).map(i => ({ desc: i.value }));
@@ -4569,55 +4561,8 @@ elements.saveDemoBtn.onclick = async () => {
     };
     currentConfig.materials[activeOppId].walkthrough = { prep, flow };
 
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast(getTranslation('toast_demo_saved') || 'Demo guardada');
-};
-
-// MEDDPICC Logic
-window.openMedpicc = (oppId) => {
-    activeOppId = oppId;
-    const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
-    if (!opp) return;
-
-    elements.activitiesOppInfoMedpicc.textContent = `${opp['Opportunity Name']} (${oppId})`;
-
-    const mat = currentConfig.materials[oppId] || {};
-    const med = mat.medpicc || {};
-
-    elements.medMetrics.value = med.metrics || '';
-    elements.medBuyer.value = med.buyer || '';
-    elements.medCriteria.value = med.criteria || '';
-    elements.medProcess.value = med.process || '';
-    elements.medPaper.value = med.paper || '';
-    elements.medPain.value = med.pain || '';
-    elements.medChampion.value = med.champion || '';
-    elements.medCompetition.value = med.competition || '';
-};
-
-if (elements.saveMedpiccBtn) {
-    elements.saveMedpiccBtn.onclick = async () => {
-        if (!activeOppId) return;
-
-        if (!currentConfig.materials[activeOppId]) {
-            currentConfig.materials[activeOppId] = { pocs: [], rfp: { activities: [] }, demo: { activities: [] } };
-        }
-
-        currentConfig.materials[activeOppId].medpicc = {
-            metrics: elements.medMetrics.value.trim(),
-            buyer: elements.medBuyer.value.trim(),
-            criteria: elements.medCriteria.value.trim(),
-            process: elements.medProcess.value.trim(),
-            paper: elements.medPaper.value.trim(),
-            pain: elements.medPain.value.trim(),
-            champion: elements.medChampion.value.trim(),
-            competition: elements.medCompetition.value.trim()
-        };
-
-        await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-        showToast(getTranslation('toast_meddpicc_saved'));
-    };
+    return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
 }
-
 
 // Helper for generic Activity Inputs
 function renderActivityInputs(activities, container, removeFnName) {
@@ -4669,7 +4614,11 @@ function renderActivityInputs(activities, container, removeFnName) {
 
 // Deleted renderPocActivities as it's replaced by renderPocTimeline
 
-elements.closePocDetailModalBtn.onclick = () => elements.pocDetailModal.classList.add('hidden');
+elements.closePocDetailModalBtn.onclick = async () => {
+    elements.pocDetailModal.classList.add('hidden');
+    await flushAutosaves('poc');
+    renderPocsList();
+};
 
 
 // Front Office Integration Logic
@@ -5074,6 +5023,7 @@ let activeAccountId = null;
 let currentAttackPlanData = { licenses: [], activities: [], strategy: '' };
 
 window.openAttackPlan = (accountId) => { console.log("Abriendo Plan de Ataque", accountId);
+    flushAutosaves();
     activeAccountId = accountId;
     const account = currentConfig.accounts[accountId] || {};
     const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
@@ -5304,7 +5254,7 @@ elements.addAttackActivityBtn.onclick = () => {
     renderAttackTimelineChart();
 };
 
-elements.saveAttackPlanBtn.onclick = async () => {
+function persistAttackPlan() {
     if (!activeAccountId) return;
 
     if (!currentConfig.accounts[activeAccountId]) {
@@ -5315,17 +5265,14 @@ elements.saveAttackPlanBtn.onclick = async () => {
     currentAttackPlanData.currentOwner = elements.attackPlanOwner.value;
     currentConfig.accounts[activeAccountId].attackPlan = currentAttackPlanData;
 
-    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-    renderAccountsWithPlan(); // Refresh view to reflect group changes
-    showToast(getTranslation('toast_attack_plan_saved'));
-    elements.attackPlanModal.classList.add('hidden');
-    renderOpportunities();
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+}
 
 elements.resetAttackPlanBtn.onclick = async () => {
     if (!activeAccountId) return;
 
     if (confirm(getTranslation('confirm_delete_attack_plan'))) {
+        if (autosaves.attackPlan) autosaves.attackPlan.cancel(); // a pending save would recreate the plan
         if (currentConfig.accounts[activeAccountId]) {
             delete currentConfig.accounts[activeAccountId].attackPlan;
             await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
@@ -5340,14 +5287,18 @@ elements.resetAttackPlanBtn.onclick = async () => {
     }
 };
 
-elements.closeAttackPlanModalBtn.onclick = () => {
+elements.closeAttackPlanModalBtn.onclick = async () => {
     elements.attackPlanModal.classList.add('hidden');
+    await flushAutosaves('attackPlan');
+    renderAccountsWithPlan(); // plan may have changed its group
+    renderOpportunities();
 };
 
 // --- Account Contacts Management ---
 let currentContactsData = [];
 
 window.openAccountContacts = (accountId) => { console.log("Abriendo Contactos", accountId);
+    flushAutosaves();
     activeAccountId = accountId;
     const account = currentConfig.accounts[accountId] || {};
     const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
@@ -5399,7 +5350,7 @@ elements.addAccountContactBtn.onclick = () => {
     renderAccountContacts();
 };
 
-elements.saveAccountContactsBtn.onclick = async () => {
+function persistAccountContacts() {
     if (!activeAccountId) return;
 
     if (!currentConfig.accounts[activeAccountId]) {
@@ -5408,12 +5359,11 @@ elements.saveAccountContactsBtn.onclick = async () => {
 
     currentConfig.accounts[activeAccountId].contacts = currentContactsData;
 
-    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-    showToast(getTranslation('toast_contact_saved'));
-    elements.accountContactsModal.classList.add('hidden');
-};
+    return window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+}
 
 elements.closeAccountContactsModalBtn.onclick = () => {
+    flushAutosaves('accountContacts');
     elements.accountContactsModal.classList.add('hidden');
 };
 
@@ -5624,6 +5574,71 @@ elements.importDataBtn.onclick = async () => {
 };
 
 
+
+// --- Autosave ---
+// Forms save themselves: edits schedule a debounced save, closing the modal or opening another
+// record flushes it. persist functions read the form synchronously before their first await,
+// so a flush started right before re-rendering still captures the current values.
+const AUTOSAVE_DELAY_MS = 800;
+const autosaves = {};
+
+function setSaveStatus(state) {
+    let el = document.getElementById('save-status');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'save-status';
+        document.body.appendChild(el);
+    }
+    const labels = {
+        saving: getTranslation('status_saving'),
+        saved: getTranslation('status_saved'),
+        error: getTranslation('status_save_error')
+    };
+    el.textContent = labels[state];
+    el.className = `save-status visible ${state}`;
+    clearTimeout(el.hideTimer);
+    if (state === 'saved') el.hideTimer = setTimeout(() => el.classList.remove('visible'), 2000);
+}
+
+function registerAutosave(name, container, persist) {
+    if (!container) return;
+    let timer = null;
+    const run = async () => {
+        clearTimeout(timer);
+        timer = null;
+        setSaveStatus('saving');
+        try {
+            const result = await persist();
+            if (result && result.success === false) throw new Error(result.error);
+            setSaveStatus('saved');
+        } catch (err) {
+            console.error(`Autosave "${name}" failed:`, err);
+            setSaveStatus('error');
+        }
+    };
+    const schedule = () => {
+        clearTimeout(timer);
+        timer = setTimeout(run, AUTOSAVE_DELAY_MS);
+    };
+    container.addEventListener('input', schedule);
+    container.addEventListener('change', schedule);
+    // Adding/removing rows happens through buttons; closing and destructive buttons are excluded
+    container.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn && !btn.matches('.close-btn, .close-modal-btn, [data-no-autosave]')) schedule();
+    });
+    autosaves[name] = {
+        flush: () => (timer ? run() : Promise.resolve()),
+        cancel: () => { clearTimeout(timer); timer = null; }
+    };
+}
+
+function flushAutosaves(...names) {
+    const targets = names.length ? names : Object.keys(autosaves);
+    return Promise.all(targets.map(n => autosaves[n] && autosaves[n].flush()));
+}
+
+window.addEventListener('beforeunload', () => { flushAutosaves(); });
 
 function showToast(message) {
     const toast = document.createElement('div');
@@ -6168,6 +6183,15 @@ document.getElementById('luxe-insert-image-btn').onclick = () => {
 
 
 let newNoteEditor = null;
+
+registerAutosave('rfp', document.getElementById('tab-rfp'), persistRfp);
+registerAutosave('demo', document.getElementById('tab-demo'), persistDemo);
+registerAutosave('assessment', document.getElementById('tab-assessment'), persistAssessment);
+registerAutosave('oppDescription', document.getElementById('tab-general'), persistOppDescription);
+registerAutosave('meddpicc', document.getElementById('tab-meddpicc'), persistMeddpicc);
+registerAutosave('poc', elements.pocDetailModal, persistPoc);
+registerAutosave('attackPlan', elements.attackPlanModal, persistAttackPlan);
+registerAutosave('accountContacts', elements.accountContactsModal, persistAccountContacts);
 
 function initLuxeEditors() {
     console.log("Renderer: Inicializando LuxeEditors...");
