@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage, Menu }
 app.disableHardwareAcceleration();
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 
 if (require('electron-squirrel-startup')) return app.quit();
@@ -33,6 +33,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    minWidth: 900,
+    minHeight: 600,
     title: "Presales Integrity Ledger",
     icon: appIcon,
     frame: true, // Standard window frame
@@ -62,7 +64,10 @@ app.whenReady().then(() => {
   // Intercept headers to allow framing of Microsoft To-Do and login pages
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const headers = details.responseHeaders;
-    const url = details.url.toLowerCase();
+    let hostname = '';
+    try {
+      hostname = new URL(details.url).hostname.toLowerCase();
+    } catch (e) { /* non-standard URL, leave headers untouched */ }
 
     // Domains involved in To-Do and Microsoft Login
     const targetDomains = [
@@ -77,7 +82,7 @@ app.whenReady().then(() => {
       'spiff.com'
     ];
 
-    if (targetDomains.some(domain => url.includes(domain))) {
+    if (targetDomains.some(domain => hostname === domain || hostname.endsWith('.' + domain))) {
       Object.keys(headers).forEach(header => {
         const lowerHeader = header.toLowerCase();
         if (
@@ -140,6 +145,55 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+// Security: lock down embedded webviews (To-Do, Calendar, SPIFF) and keep the main window on local files
+const ALLOWED_WEBVIEW_HOSTS = ['to-do.office.com', 'outlook.office.com', 'spiff.com'];
+
+const isHostAllowed = (url, hosts) => {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return protocol === 'https:' && hosts.some(h => hostname === h || hostname.endsWith('.' + h));
+  } catch (e) {
+    return false;
+  }
+};
+
+const isWebUrl = (url) => {
+  try {
+    return ['http:', 'https:', 'mailto:'].includes(new URL(url).protocol);
+  } catch (e) {
+    return false;
+  }
+};
+
+app.on('web-contents-created', (event, contents) => {
+  contents.on('will-attach-webview', (e, webPreferences, params) => {
+    delete webPreferences.preload;
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+    if (!isHostAllowed(params.src, ALLOWED_WEBVIEW_HOSTS)) {
+      console.warn('Blocked webview with src:', params.src);
+      e.preventDefault();
+    }
+  });
+
+  // Popups (main window or webviews) open in the system browser instead of new Electron windows
+  contents.setWindowOpenHandler(({ url }) => {
+    if (contents.getType() === 'window' && url.startsWith('file://')) {
+      return { action: 'allow' }; // help.html
+    }
+    if (isWebUrl(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  if (contents.getType() === 'window') {
+    contents.on('will-navigate', (e, url) => {
+      if (url.startsWith('file://')) return;
+      e.preventDefault();
+      if (isWebUrl(url)) shell.openExternal(url); // plain links open in the system browser
+    });
+  }
 });
 
 app.on('window-all-closed', function () {
@@ -218,47 +272,37 @@ ipcMain.handle('migrate-files', async (event, { sourceDir, destDir }) => {
 });
 
 ipcMain.handle('open-external-url', async (event, url) => {
-  if (url) {
-    try {
-      let settings = {};
-      if (fs.existsSync(settingsPath)) {
-        settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      }
+  if (!url || !isWebUrl(url)) return { success: false };
 
-      if (settings.browserPath) {
-        // Platform-specific escaping and quoting
-        let command;
-        if (process.platform === 'win32') {
-          // On Windows, use double quotes for the path and the URL
-          // If browserPath contains spaces, it must be quoted
-          command = `"${settings.browserPath}" "${url}"`;
-        } else {
-          // On Linux/macOS, escape single quotes and wrap in single quotes
-          const safeUrl = url.replace(/'/g, "'\\''");
-          command = `${settings.browserPath} '${safeUrl}'`;
-        }
-
-        exec(command, (error) => {
-          if (error) {
-            console.error(`Error opening with custom browser (${process.platform}): ${error}`);
-            shell.openExternal(url); // Fallback to default
-          }
-        });
-        return { success: true };
-      }
-    } catch (e) {
-      console.error("Error reading settings for browser path:", e);
+  let browserPath = '';
+  try {
+    if (fs.existsSync(settingsPath)) {
+      browserPath = (JSON.parse(fs.readFileSync(settingsPath, 'utf8')).browserPath || '').trim();
     }
+  } catch (e) {
+    console.error("Error reading settings for browser path:", e);
+  }
 
-    await shell.openExternal(url);
+  if (browserPath) {
+    // No shell: a full path is used as-is (may contain spaces), otherwise "command --args" is split on whitespace
+    const [command, ...args] = fs.existsSync(browserPath) ? [browserPath] : browserPath.split(/\s+/);
+    const child = spawn(command, [...args, url], { detached: true, stdio: 'ignore' });
+    child.on('error', (error) => {
+      console.error(`Error opening with custom browser (${process.platform}): ${error}`);
+      shell.openExternal(url); // Fallback to default
+    });
+    child.unref();
     return { success: true };
   }
-  return { success: false };
+
+  await shell.openExternal(url);
+  return { success: true };
 });
 
+const isPlainFileName = (name) => typeof name === 'string' && name === path.basename(name) && name !== '..';
+
 ipcMain.handle('save-file', async (event, { directory, filename, data }) => {
-
-
+  if (!isPlainFileName(filename)) return { success: false, error: 'Invalid file name' };
   try {
     const filePath = path.join(directory, filename);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
@@ -269,6 +313,7 @@ ipcMain.handle('save-file', async (event, { directory, filename, data }) => {
 });
 
 ipcMain.handle('load-file', async (event, { directory, filename }) => {
+  if (!isPlainFileName(filename)) return null;
   try {
     const filePath = path.join(directory, filename);
     if (fs.existsSync(filePath)) {

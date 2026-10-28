@@ -1,3 +1,28 @@
+// Escape values interpolated into HTML templates (text and attribute values)
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[ch]));
+
+// Safe JS string literal for inline handlers: onclick="fn(${jsArg(id)})"
+const jsArg = (value) => escapeHtml(JSON.stringify(String(value ?? '')));
+
+// Rich text (LuxeEditor content) keeps its formatting but loses scripts, event handlers and unsafe URLs
+const BLOCKED_RICH_TAGS = 'script, style, iframe, frame, object, embed, link, meta, base, form, webview';
+const sanitizeHtml = (html) => {
+    const doc = new DOMParser().parseFromString(String(html ?? ''), 'text/html');
+    doc.body.querySelectorAll(BLOCKED_RICH_TAGS).forEach(el => el.remove());
+    doc.body.querySelectorAll('*').forEach(el => {
+        [...el.attributes].forEach(attr => {
+            const name = attr.name.toLowerCase();
+            const value = attr.value.trim().toLowerCase();
+            const isUnsafeUrl = ['href', 'src', 'xlink:href', 'action', 'formaction'].includes(name)
+                && !/^(https?:|mailto:|#|data:image\/(png|jpe?g|gif|webp|svg[^;]*);)/.test(value);
+            if (name.startsWith('on') || name === 'srcdoc' || isUnsafeUrl) el.removeAttribute(attr.name);
+        });
+    });
+    return doc.body.innerHTML;
+};
+
 const parseCustomDate = (dateStr) => {
     if (!dateStr) return null;
     dateStr = dateStr.toString().trim();
@@ -649,7 +674,7 @@ function renderDynamicFilters() {
         groupLabel.className = `nav-group-label ${isExpanded ? '' : 'collapsed'} ${isFullyActive ? 'active' : ''}`;
         groupLabel.id = `toggle-${filter.id}`;
         // Using common color for dynamic filters (Cyan/Blue)
-        groupLabel.innerHTML = `<span><i class="fas fa-filter" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span>${filter.label}</span></span><span class="toggle-icon">▾</span>`;
+        groupLabel.innerHTML = `<span><i class="fas fa-filter" style="margin-right: 0.5rem; color: #05b9f0;"></i> <span>${escapeHtml(filter.label)}</span></span><span class="toggle-icon">▾</span>`;
 
         const submenu = document.createElement('div');
         submenu.id = `submenu-${filter.id}`;
@@ -678,7 +703,7 @@ function renderDynamicFilters() {
                 <div style="min-width: 16px; height: 16px; border: 1px solid var(--glass-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; background: ${isActive ? 'var(--brand-orange)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;">
                     ${isActive ? '<span style="color: white; font-size: 0.7rem;">✓</span>' : ''}
                 </div>
-                <span style="${opt.isLogic ? 'font-weight: 600; font-style: italic;' : ''}">${opt.label}</span>
+                <span style="${opt.isLogic ? 'font-weight: 600; font-style: italic;' : ''}">${escapeHtml(opt.label)}</span>
             `;
             
             btn.onclick = () => {
@@ -722,8 +747,8 @@ function renderClassificationManager() {
         const div = document.createElement('div');
         div.className = 'category-item';
         div.innerHTML = `
-            <span>${cat}</span>
-            <button class="delete-cat-btn" onclick="deleteAccountCategory('${cat}')">${getTranslation('btn_delete')}</button>
+            <span>${escapeHtml(cat)}</span>
+            <button class="delete-cat-btn" onclick="deleteAccountCategory(${jsArg(cat)})">${getTranslation('btn_delete')}</button>
         `;
         elements.classificationManagerList.appendChild(div);
     });
@@ -816,7 +841,7 @@ function renderSidebarFilterManager() {
         card.className = `filter-manager-card ${isExpanded ? 'expanded' : 'collapsed'}`;
 
         let fieldsHtml = currentConfig.dataStructure.map(s =>
-            `<option value="${s.header}" ${filter.field === s.header ? 'selected' : ''}>${s.header}</option>`
+            `<option value="${escapeHtml(s.header)}" ${filter.field === s.header ? 'selected' : ''}>${escapeHtml(s.header)}</option>`
         ).join('');
         fieldsHtml = `<option value="accountCategory" ${filter.field === 'accountCategory' ? 'selected' : ''}>${getTranslation('label_account_category')}</option>` + fieldsHtml;
 
@@ -824,8 +849,8 @@ function renderSidebarFilterManager() {
             <div class="filter-manager-header">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span class="toggle-icon" style="transform: rotate(${isExpanded ? '0' : '-90'}deg)">▼</span>
-                    <strong>${filter.label || getTranslation('btn_new_group')}</strong>
-                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? getTranslation('type_formula') : getTranslation('mode_selection')}: ${filter.field})</span>
+                    <strong>${escapeHtml(filter.label || getTranslation('btn_new_group'))}</strong>
+                    <span style="font-size: 0.8rem; opacity: 0.6;">(${filter.mode === 'logic' ? getTranslation('type_formula') : getTranslation('mode_selection')}: ${escapeHtml(filter.field)})</span>
                 </div>
                 <button class="delete-cat-btn" onclick="event.stopPropagation(); deleteSidebarFilter(${fIdx})">${getTranslation('btn_delete')}</button>
             </div>
@@ -833,7 +858,7 @@ function renderSidebarFilterManager() {
             <div class="filter-manager-body" style="display: ${isExpanded ? 'block' : 'none'};">
                 <div class="form-group">
                     <label>${getTranslation('label_sidebar_tag')}</label>
-                    <input type="text" class="form-input" value="${filter.label}" 
+                    <input type="text" class="form-input" value="${escapeHtml(filter.label)}" 
                         onchange="updateFilterProp(${fIdx}, 'label', this.value)">
                 </div>
 
@@ -866,9 +891,9 @@ function renderSidebarFilterManager() {
                                 const currentAllowed = filter.allowedValues || [];
                                 return availableVals.length > 0 ? availableVals.map(v => `
                                     <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-secondary);">
-                                        <input type="checkbox" value="${v}" ${currentAllowed.includes(v) ? 'checked' : ''} 
+                                        <input type="checkbox" value="${escapeHtml(v)}" ${currentAllowed.includes(v) ? 'checked' : ''} 
                                             onchange="updateFilterAllowedValues(${fIdx}, this)" style="width: 14px; height: 14px; accent-color: var(--brand-orange);">
-                                        <span>${v}</span>
+                                        <span>${escapeHtml(v)}</span>
                                     </label>
                                 `).join('') : `<span style="font-size: 0.7rem; opacity: 0.5;">${getTranslation('label_no_values')}</span>`;
                             })()}
@@ -904,7 +929,7 @@ function renderSidebarFilterManager() {
                 groupDiv.className = 'filter-rule-group-card';
                 groupDiv.innerHTML = `
                     <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                        <input type="text" class="form-input" placeholder="${getTranslation('placeholder_btn_label')}" value="${rule.label}" 
+                        <input type="text" class="form-input" placeholder="${getTranslation('placeholder_btn_label')}" value="${escapeHtml(rule.label)}" 
                             onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'label', this.value)" style="font-weight: bold;">
                         <select class="form-input" onchange="updateRuleGroupProp(${fIdx}, ${rIdx}, 'matchType', this.value)" style="width: auto;">
                             <option value="AND" ${rule.matchType === 'AND' ? 'selected' : ''}>${getTranslation('opt_and') || 'Y (AND)'}</option>
@@ -923,9 +948,9 @@ function renderSidebarFilterManager() {
                     condDiv.className = 'filter-rule-item condition-item';
 
                     let colOptions = currentConfig.dataStructure.map(s =>
-                        `<option value="${s.header}" ${cond.field === s.header ? 'selected' : ''}>${s.header}</option>`
+                        `<option value="${escapeHtml(s.header)}" ${cond.field === s.header ? 'selected' : ''}>${escapeHtml(s.header)}</option>`
                     ).join('');
-                    colOptions = `<option value="" ${!cond.field ? 'selected' : ''}>[Default: ${filter.field}]</option>` + colOptions;
+                    colOptions = `<option value="" ${!cond.field ? 'selected' : ''}>[Default: ${escapeHtml(filter.field)}]</option>` + colOptions;
 
                     const isListOperator = cond.operator === 'in' || cond.operator === 'not_in';
                     const fieldForValues = cond.field || filter.field;
@@ -945,16 +970,16 @@ function renderSidebarFilterManager() {
                             <div class="multi-select-list" style="flex: 1; min-width: 150px; max-height: 120px; overflow-y: auto; border: 1px solid var(--glass-border); padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 4px;">
                                 ${availableValues.length > 0 ? availableValues.map(v => `
                                     <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-secondary); white-space: nowrap;">
-                                        <input type="checkbox" value="${v}" ${selectedValues.includes(v) ? 'checked' : ''} 
+                                        <input type="checkbox" value="${escapeHtml(v)}" ${selectedValues.includes(v) ? 'checked' : ''} 
                                             onchange="updateConditionListValue(${fIdx}, ${rIdx}, ${cIdx}, this)" style="width: 14px; height: 14px; accent-color: var(--brand-orange);">
-                                        <span>${v}</span>
+                                        <span>${escapeHtml(v)}</span>
                                     </label>
                                 `).join('') : '<span style="font-size: 0.7rem; opacity: 0.5;">No hay valores disponibles</span>'}
                             </div>
                         `;
                     } else {
                         valueControlHtml = `
-                            <input type="text" class="form-input" placeholder="Valor" value="${cond.value}" 
+                            <input type="text" class="form-input" placeholder="Valor" value="${escapeHtml(cond.value)}" 
                                 onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'value', this.value)" style="flex: 1;">
                         `;
                     }
@@ -1574,17 +1599,17 @@ function renderManagerView() {
         let docsHtml = (member.docs || []).map((doc, docIdx) => `
             <div class="member-doc-item" style="margin-bottom: 0.8rem;">
                 <div class="category-item" style="display: grid; grid-template-columns: 120px 1fr auto auto auto auto; gap: 0.5rem; align-items: center; margin-bottom: 0.2rem; background: rgba(255,255,255,0.05); padding: 4px 8px;">
-                    <input type="text" class="form-input" value="${doc.label}" 
+                    <input type="text" class="form-input" value="${escapeHtml(doc.label)}" 
                         onchange="updateMemberDoc(${memberIdx}, ${docIdx}, 'label', this.value)" 
                         style="height: 28px; padding: 2px 6px; font-size: 0.8rem; font-weight: 700; background: transparent; border: 1px solid transparent;"
                         onfocus="this.style.background='rgba(255,255,255,0.1)'; this.style.borderColor='var(--glass-border)'"
                         onblur="this.style.background='transparent'; this.style.borderColor='transparent'">
                     
-                    <span class="sub-text" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8;" title="${doc.path}">${doc.path}</span>
+                    <span class="sub-text" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8;" title="${escapeHtml(doc.path)}">${escapeHtml(doc.path)}</span>
                     
                     <button class="secondary-btn small" onclick="changeMemberDocPath(${memberIdx}, ${docIdx})" title="Cambiar ruta">...</button>
-                    <button class="secondary-btn small" onclick="exploreDir('${doc.path.replace(/\\/g, '\\\\')}', 'sub-list-${memberIdx}-${docIdx}')" title="Listar contenido">📂</button>
-                    <button class="secondary-btn small" onclick="openDocPath('${doc.path.replace(/\\/g, '\\\\')}')">Abrir</button>
+                    <button class="secondary-btn small" onclick="exploreDir(${jsArg(doc.path)}, 'sub-list-${memberIdx}-${docIdx}')" title="Listar contenido">📂</button>
+                    <button class="secondary-btn small" onclick="openDocPath(${jsArg(doc.path)})">Abrir</button>
                     <button class="delete-cat-btn" style="padding: 2px 8px;" onclick="removeMemberDoc(${memberIdx}, ${docIdx})">×</button>
                 </div>
                 <div id="sub-list-${memberIdx}-${docIdx}" class="sub-list-container" style="display: none; margin-left: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 4px; border-left: 2px solid var(--brand-orange);">
@@ -1597,7 +1622,7 @@ function renderManagerView() {
             <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleMemberCollapse(${memberIdx})">
                 <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
                     <span style="display: inline-block; transform: ${isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)'}; transition: transform 0.2s; font-size: 0.8rem; opacity: 0.6;">▼</span>
-                    <input type="text" value="${member.name}" 
+                    <input type="text" value="${escapeHtml(member.name)}" 
                         onclick="event.stopPropagation()" 
                         onchange="updateMemberName(${memberIdx}, this.value)"
                         title="Haz clic para editar el nombre"
@@ -1747,17 +1772,17 @@ window.exploreDir = async (basePath, containerId) => {
     });
 
     container.innerHTML = files.map(f => {
-        const fullPath = `${basePath}/${f.name}`.replace(/\\/g, '\\\\');
+        const fullPath = `${basePath}/${f.name}`;
         const icon = f.isDirectory ? '📁' : '📄';
         const color = f.isDirectory ? 'var(--brand-cyan)' : 'var(--text-secondary)';
 
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <span style="font-size: 0.85rem; color: ${color}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default;">
-                    ${icon} ${f.name}
+                    ${icon} ${escapeHtml(f.name)}
                 </span>
                 <button class="text-btn" style="font-size: 0.75rem; color: var(--brand-orange); padding: 2px 8px;" 
-                        onclick="openDocPath('${fullPath}')">Abrir</button>
+                        onclick="openDocPath(${jsArg(fullPath)})">Abrir</button>
             </div>
         `;
     }).join('');
@@ -1897,18 +1922,18 @@ function renderResources() {
 
         const tr = document.createElement('tr');
 
-        let displayContent = content;
+        let displayContent = sanitizeHtml(content); // resource content comes from the rich text editor
         if (content.startsWith('http')) {
-            displayContent = `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, '${content}')" style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${content}</a>`;
+            displayContent = `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, ${jsArg(content)})" style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${escapeHtml(content)}</a>`;
         } else if (content.includes('@')) {
-            displayContent = `<a href="mailto:${content}" class="dynamic-link" style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${content}</a>`;
+            displayContent = `<a href="mailto:${escapeHtml(content)}" class="dynamic-link" style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${escapeHtml(content)}</a>`;
         }
 
         const editTitle = getTranslation('btn_edit') || 'Editar';
         const deleteTitle = getTranslation('btn_delete') || 'Eliminar';
 
         tr.innerHTML = `
-            <td style="word-break: break-word; overflow-wrap: break-word;"><strong>${name}</strong></td>
+            <td style="word-break: break-word; overflow-wrap: break-word;"><strong>${escapeHtml(name)}</strong></td>
             <td style="word-break: break-all; overflow-wrap: anywhere; word-wrap: break-word;">${displayContent}</td>
             <td style="text-align: right; white-space: nowrap; width: 170px;">
                 <button type="button" class="secondary-btn small edit-res-btn" data-index="${index}" title="${editTitle}" style="margin-right: 0.4rem; padding: 0.3rem 0.6rem;">
@@ -2104,7 +2129,7 @@ function applyFormula(template, opp) {
         // Safe regex escape for the key and case-insensitive matching
         const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const regex = new RegExp(`\\{${safeKey}\\}`, 'gi');
-        result = result.replace(regex, formatted);
+        result = result.replace(regex, () => formatted);
     });
     return result;
 }
@@ -2112,9 +2137,9 @@ function applyFormula(template, opp) {
 function createLinkIfPossible(text, opp, type = 'opportunity') {
     const url = type === 'account' ? getAccountUrl(opp) : getOpportunityUrl(opp);
     if (url) {
-        return `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, '${url}')">${text}</a>`;
+        return `<a href="#" class="dynamic-link" onclick="handleExternalLink(event, ${jsArg(url)})">${escapeHtml(text)}</a>`;
     }
-    return text;
+    return escapeHtml(text);
 }
 
 window.handleExternalLink = (e, url) => {
@@ -2131,7 +2156,7 @@ elements.csvInput.addEventListener('change', async (e) => {
     if (!file) return;
 
     // Copy for record keeping
-    await window.electronAPI.copyFileToDir(file.path, currentConfig.directory);
+    await window.electronAPI.copyFileToDir(window.electronAPI.getPathForFile(file), currentConfig.directory);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -2175,12 +2200,12 @@ function showCsvMappingModal(csvHeaders, mandatoryFields) {
 
         tr.innerHTML = `
             <td style="font-weight: 500;">
-                ${field.header}${isMandatory ? ' <span style="color: var(--brand-orange)">*</span>' : ''}
+                ${escapeHtml(field.header)}${isMandatory ? ' <span style="color: var(--brand-orange)">*</span>' : ''}
             </td>
             <td>
-                <select class="form-input mapping-select" data-internal="${field.header}" data-mandatory="${isMandatory}">
+                <select class="form-input mapping-select" data-internal="${escapeHtml(field.header)}" data-mandatory="${isMandatory}">
                     <option value="">-- Ignorar este campo --</option>
-                    ${csvHeaders.map(h => `<option value="${h}" ${h === bestMatch ? 'selected' : ''}>${h}</option>`).join('')}
+                    ${csvHeaders.map(h => `<option value="${escapeHtml(h)}" ${h === bestMatch ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
                 </select>
             </td>
         `;
@@ -2286,10 +2311,10 @@ function renderStructureEditor() {
                 <div style="display: flex; gap: 0.2rem; align-items: center;">
                     <button class="order-btn small" onclick="moveStructureItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="${getTranslation('label_move_up')}">↑</button>
                     <button class="order-btn small" onclick="moveStructureItem(${index}, 1)" ${index === currentConfig.dataStructure.length - 1 ? 'disabled' : ''} title="${getTranslation('label_move_down')}">↓</button>
-                    <input type="text" value="${item.header}" class="struct-header" data-index="${index}" style="margin-left: 0.5rem;">
+                    <input type="text" value="${escapeHtml(item.header)}" class="struct-header" data-index="${index}" style="margin-left: 0.5rem;">
                 </div>
             </td>
-            <td><input type="text" value="${item.dummy}" class="struct-dummy" data-index="${index}"></td>
+            <td><input type="text" value="${escapeHtml(item.dummy)}" class="struct-dummy" data-index="${index}"></td>
             <td>
                 <select class="struct-type" data-index="${index}" onchange="currentConfig.dataStructure[${index}].type = this.value; renderStructureEditor();">
                     <option value="string" ${item.type === 'string' ? 'selected' : ''}>${getTranslation('type_text')}</option>
@@ -2301,7 +2326,7 @@ function renderStructureEditor() {
             </td>
             <td>
                 ${item.type === 'formula' ?
-                `<input type="text" value="${item.formula || ''}" class="struct-formula" placeholder="{Var1} {Var2}" data-index="${index}" onchange="currentConfig.dataStructure[${index}].formula = this.value">` :
+                `<input type="text" value="${escapeHtml(item.formula)}" class="struct-formula" placeholder="{Var1} {Var2}" data-index="${index}" onchange="currentConfig.dataStructure[${index}].formula = this.value">` :
                 ''}
                 </div>
             </td>
@@ -2442,6 +2467,39 @@ elements.resetStructureBtn.addEventListener('click', async () => {
     }
 });
 
+// Open the note / activity behind a History card and highlight it
+function openHistoryItem(item) {
+    const oppExists = item.oppId === 'global' || currentConfig.opportunities.some(o => o['Opportunity ID'] === item.oppId);
+    if (!oppExists) {
+        showToast(getTranslation('err_history_opp_missing') || 'La oportunidad de este registro ya no existe');
+        return;
+    }
+
+    if (item.type === 'note') {
+        if (item.oppId === 'global') openGeneralNotes();
+        else openNotes(item.oppId);
+        highlightHistoryTarget(document.getElementById(`note-item-${item.noteIndex}`));
+    } else if (item.type === 'poc') {
+        openActivities(item.oppId, 'tab-pocs');
+        editPoc(item.pocIndex);
+        if (item.rowIndex !== null) highlightHistoryTarget(elements.pocTimelineBody.querySelectorAll('tr')[item.rowIndex]);
+    } else {
+        openActivities(item.oppId, item.type === 'rfp' ? 'tab-rfp' : 'tab-demo');
+        const body = item.type === 'rfp' ? elements.rfpActivitiesBody : elements.demoActivitiesBody;
+        highlightHistoryTarget(body.querySelectorAll('tr')[item.rowIndex]);
+    }
+}
+
+function highlightHistoryTarget(el) {
+    if (!el) return;
+    // Wait for the modal to be laid out before scrolling to the target
+    requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('history-target');
+        setTimeout(() => el.classList.remove('history-target'), 2500);
+    });
+}
+
 function renderGlobalNotesHistory() {
     elements.historyWeek.innerHTML = '';
     elements.historyMonth.innerHTML = '';
@@ -2456,73 +2514,58 @@ function renderGlobalNotesHistory() {
         const name = isGlobal ? (getTranslation('btn_general_notes') || 'Notas Generales') : (opp ? opp['Opportunity Name'] : id);
         const account = isGlobal ? '-' : (opp ? opp['Account Name'] : '-');
 
-        notes.forEach(note => {
+        notes.forEach((note, noteIndex) => {
             allItems.push({
                 ...note,
                 type: 'note',
                 oppId: id,
                 oppName: name,
-                accountName: account
+                accountName: account,
+                noteIndex
             });
         });
     }
 
-    // Collect Activities
+    // Collect Activities (rowIndex = row of the activity in its editor, used to jump to it)
+    const activitySummary = (act) => [
+        act.activity,
+        act.responsible ? `(Resp: ${act.responsible})` : '',
+        act.comments
+    ].filter(Boolean).join(' - ');
+
     for (const oppId in currentConfig.materials) {
         const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
         const name = opp ? opp['Opportunity Name'] : 'Oportunidad Desconocida';
         const account = opp ? opp['Account Name'] : 'Sin Cuenta';
         const stage = opp ? opp['Stage'] : '';
         const mat = currentConfig.materials[oppId];
+        const base = { oppId, oppName: name, accountName: account, stage, isActivity: true };
 
-        // PoC Activities
+        // PoC milestones (timeline); legacy PoCs only have "activities", which editPoc
+        // migrates into the timeline after an initial "Inicio PoC" row
         if (mat.pocs) {
-            mat.pocs.forEach(poc => {
-                if (poc.activities) {
-                    poc.activities.forEach(act => {
-                        allItems.push({
-                            text: `${act.activity} (Resp: ${act.responsible}) - ${act.comments}`,
-                            date: act.date,
-                            type: 'poc',
-                            oppId,
-                            oppName: name,
-                            accountName: account,
-                            stage: stage
-                        });
+            mat.pocs.forEach((poc, pocIndex) => {
+                if (poc.timeline && poc.timeline.length) {
+                    poc.timeline.forEach((m, rowIndex) => {
+                        if (!m.activity && !m.date) return;
+                        allItems.push({ ...base, text: activitySummary(m), date: m.date, type: 'poc', pocIndex, rowIndex });
+                    });
+                } else if (poc.activities) {
+                    const isMigrated = poc.description && !poc.objective;
+                    poc.activities.forEach((act, actIndex) => {
+                        allItems.push({ ...base, text: activitySummary(act), date: act.date, type: 'poc', pocIndex, rowIndex: isMigrated ? actIndex + 1 : null });
                     });
                 }
             });
         }
 
-        // RFP Activities
-        if (mat.rfp && mat.rfp.activities) {
-            mat.rfp.activities.forEach(act => {
-                allItems.push({
-                    text: `${act.activity} (Resp: ${act.responsible}) - ${act.comments}`,
-                    date: act.date,
-                    type: 'rfp',
-                    oppId,
-                    oppName: name,
-                    accountName: account,
-                    stage: stage
-                });
+        // RFP and Demo Activities
+        [['rfp', mat.rfp], ['demo', mat.demo]].forEach(([type, section]) => {
+            if (!section || !section.activities) return;
+            section.activities.forEach((act, rowIndex) => {
+                allItems.push({ ...base, text: activitySummary(act), date: act.date, type, rowIndex });
             });
-        }
-
-        // Demo Activities
-        if (mat.demo && mat.demo.activities) {
-            mat.demo.activities.forEach(act => {
-                allItems.push({
-                    text: `${act.activity} (Resp: ${act.responsible}) - ${act.comments}`,
-                    date: act.date,
-                    type: 'demo',
-                    oppId,
-                    oppName: name,
-                    accountName: account,
-                    stage: stage
-                });
-            });
-        }
+        });
     }
 
     // Sort descending
@@ -2549,20 +2592,22 @@ function renderGlobalNotesHistory() {
         const typeInfo = getTypeLabel(item.type);
 
         const card = document.createElement('div');
-        card.className = 'history-card card';
+        card.className = 'history-card card clickable';
+        card.title = getTranslation('tooltip_open_history_item') || 'Abrir';
+        card.onclick = () => openHistoryItem(item);
         card.innerHTML = `
             <div class="history-card-header">
-                <strong class="opp-link" onclick="openDetails('${item.oppId}')">${item.oppName}</strong>
-                <span class="sub-text">${item.accountName || ''}</span>
+                <strong class="opp-link" onclick="event.stopPropagation(); openDetails(${jsArg(item.oppId)})">${escapeHtml(item.oppName)}</strong>
+                <span class="sub-text">${escapeHtml(item.accountName)}</span>
             </div>
             <div class="history-card-body">
                 <span class="note-type-badge ${typeInfo.class}">${typeInfo.label}</span>
-                <div style="margin-top: 0.5rem; word-break: break-all;">${item.text || item.activity || ''}</div>
-                <p class="sub-text" style="font-size: 0.8rem;">${item.comments || ''}</p>
+                <div style="margin-top: 0.5rem; word-break: break-all;">${item.isActivity ? escapeHtml(item.text) : sanitizeHtml(item.text)}</div>
+                <p class="sub-text" style="font-size: 0.8rem;">${escapeHtml(item.comments)}</p>
             </div>
             <div class="history-card-footer">
-                <span class="note-stage-badge">${item.stage || ''}</span>
-                <span class="sub-text">${formatToDDMMYYYY(item.date)}</span>
+                <span class="note-stage-badge">${escapeHtml(item.stage)}</span>
+                <span class="sub-text">${escapeHtml(formatToDDMMYYYY(item.date))}</span>
             </div>
         `;
 
@@ -2610,11 +2655,11 @@ function renderOpportunities() {
             sortIcon = ' <i class="fas fa-sort" style="opacity: 0.3;"></i>';
         }
         
-        th.innerHTML = `<span>${col.header}${sortIcon}</span>`;
+        th.innerHTML = `<span>${escapeHtml(col.header)}${sortIcon}</span>`;
         const isSorted = currentConfig.currentSort.field === col.header;
         th.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                <span>${col.header}</span>
+                <span>${escapeHtml(col.header)}</span>
                 <span class="sort-indicator" style="opacity: ${isSorted ? 1 : 0.2}; font-size: 0.7rem;">
                     ${isSorted ? (currentConfig.currentSort.direction === 'asc' ? '▲' : '▼') : '↕'}
                 </span>
@@ -2902,13 +2947,13 @@ function renderOpportunityGroups(opps, visibleCols) {
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="display: flex; align-items: center;">
                         <span class="toggle-icon">▾</span>
-                        🏢 ${accountName} <span class="sub-text" style="margin-left: 0.5rem;">(${accountId})</span>
-                        <button class="attack-plan-btn ${hasAttackPlan ? 'active' : ''}" onclick="event.stopPropagation(); openAttackPlan('${accountId}')" title="Plan de Ataque de Cuenta">🎯</button>
-                        <button class="account-contacts-btn" onclick="event.stopPropagation(); openAccountContacts('${accountId}')" title="Contactos de la Cuenta">👥</button>
+                        🏢 ${escapeHtml(accountName)} <span class="sub-text" style="margin-left: 0.5rem;">(${escapeHtml(accountId)})</span>
+                        <button class="attack-plan-btn ${hasAttackPlan ? 'active' : ''}" onclick="event.stopPropagation(); openAttackPlan(${jsArg(accountId)})" title="Plan de Ataque de Cuenta">🎯</button>
+                        <button class="account-contacts-btn" onclick="event.stopPropagation(); openAccountContacts(${jsArg(accountId)})" title="Contactos de la Cuenta">👥</button>
                     </span>
-                    <select class="account-category-select" data-account-id="${accountId}" onclick="event.stopPropagation()">
+                    <select class="account-category-select" data-account-id="${escapeHtml(accountId)}" onclick="event.stopPropagation()">
                         <option value="" disabled ${!currentCategory ? 'selected' : ''}>Categorizar cuenta...</option>
-                        ${options.filter(o => o).map(opt => `<option value="${opt}" ${currentCategory === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                        ${options.filter(o => o).map(opt => `<option value="${escapeHtml(opt)}" ${currentCategory === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
                     </select>
                 </div>
             </td>
@@ -2971,11 +3016,11 @@ function renderOpportunityGroups(opps, visibleCols) {
 
                     // Specific logic for certain columns
                     if (col.header === 'Opportunity ID') {
-                        colsHtml += `<td style="padding-left: 2rem;">• ${formatted}</td>`;
+                        colsHtml += `<td style="padding-left: 2rem;">• ${escapeHtml(formatted)}</td>`;
                     } else if (col.header === 'Opportunity Name') {
-                        colsHtml += `<td>${formatted || 'Sin Nombre'}</td>`;
+                        colsHtml += `<td>${escapeHtml(formatted || 'Sin Nombre')}</td>`;
                     } else {
-                        colsHtml += `<td>${formatted}</td>`;
+                        colsHtml += `<td>${escapeHtml(formatted)}</td>`;
                     }
                 });
 
@@ -2983,11 +3028,11 @@ function renderOpportunityGroups(opps, visibleCols) {
                 ${colsHtml}
                 <td>
                     <div style="display: flex; gap: 0.5rem; align-items: center;" onclick="event.stopPropagation()">
-                        <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite('${oppId}')" title="Marcar como favorito">
+                        <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite(${jsArg(oppId)})" title="Marcar como favorito">
                             ${currentConfig.favorites.includes(oppId) ? '★' : '☆'}
                         </button>
-                        <button class="primary-btn small" onclick="openNotes('${oppId}')" data-i18n="btn_notes">${getTranslation('btn_notes') || 'Notas'}</button>
-                        <button class="secondary-btn small" onclick="openActivities('${oppId}')" data-i18n="btn_activities">${getTranslation('btn_activities') || 'Actividades'}</button>
+                        <button class="primary-btn small" onclick="openNotes(${jsArg(oppId)})" data-i18n="btn_notes">${getTranslation('btn_notes') || 'Notas'}</button>
+                        <button class="secondary-btn small" onclick="openActivities(${jsArg(oppId)})" data-i18n="btn_activities">${getTranslation('btn_activities') || 'Actividades'}</button>
                     </div>
                 </td>
             `;
@@ -3030,13 +3075,13 @@ function renderMeddItems(type) {
 
         if (type === 'm') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${item.desc || ''}" placeholder="Descripción" onchange="updateMeddItem('m', ${idx}, 'desc', this.value)">
-                <input type="text" class="medd-row-input" value="${item.value || ''}" placeholder="Valor/Objetivo" onchange="updateMeddItem('m', ${idx}, 'value', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.desc)}" placeholder="Descripción" onchange="updateMeddItem('m', ${idx}, 'desc', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.value)}" placeholder="Valor/Objetivo" onchange="updateMeddItem('m', ${idx}, 'value', this.value)">
             `;
         } else if (type === 'd1') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${item.req || ''}" placeholder="Requerimiento" onchange="updateMeddItem('d1', ${idx}, 'req', this.value)">
-                <input type="number" min="1" max="5" class="medd-row-input" style="flex: 0 0 60px" value="${item.priority || 1}" onchange="updateMeddItem('d1', ${idx}, 'priority', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.req)}" placeholder="Requerimiento" onchange="updateMeddItem('d1', ${idx}, 'req', this.value)">
+                <input type="number" min="1" max="5" class="medd-row-input" style="flex: 0 0 60px" value="${escapeHtml(item.priority || 1)}" onchange="updateMeddItem('d1', ${idx}, 'priority', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('d1', ${idx}, 'status', this.value)">
                     <option value="Cumple" ${item.status === 'Cumple' ? 'selected' : ''}>Cumple</option>
                     <option value="Parcial" ${item.status === 'Parcial' ? 'selected' : ''}>Parcial</option>
@@ -3045,8 +3090,8 @@ function renderMeddItems(type) {
             `;
         } else if (type === 'd2') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${item.step || ''}" placeholder="Paso" onchange="updateMeddItem('d2', ${idx}, 'step', this.value)">
-                <input type="date" class="medd-row-input" value="${item.date || ''}" onchange="updateMeddItem('d2', ${idx}, 'date', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.step)}" placeholder="Paso" onchange="updateMeddItem('d2', ${idx}, 'step', this.value)">
+                <input type="date" class="medd-row-input" value="${escapeHtml(item.date)}" onchange="updateMeddItem('d2', ${idx}, 'date', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('d2', ${idx}, 'status', this.value)">
                     <option value="Planeado" ${item.status === 'Planeado' ? 'selected' : ''}>Planeado</option>
                     <option value="Completado" ${item.status === 'Completado' ? 'selected' : ''}>Completado</option>
@@ -3054,8 +3099,8 @@ function renderMeddItems(type) {
             `;
         } else if (type === 'p') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${item.stage || ''}" placeholder="Hito/Etapa" onchange="updateMeddItem('p', ${idx}, 'stage', this.value)">
-                <input type="text" class="medd-row-input" value="${item.owner || ''}" placeholder="Dueño" onchange="updateMeddItem('p', ${idx}, 'owner', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.stage)}" placeholder="Hito/Etapa" onchange="updateMeddItem('p', ${idx}, 'stage', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.owner)}" placeholder="Dueño" onchange="updateMeddItem('p', ${idx}, 'owner', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('p', ${idx}, 'status', this.value)">
                     <option value="Pendiente" ${item.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
                     <option value="En Proceso" ${item.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
@@ -3064,8 +3109,8 @@ function renderMeddItems(type) {
             `;
         } else if (type === 'i') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${item.pain || ''}" placeholder="Dolor" onchange="updateMeddItem('i', ${idx}, 'pain', this.value)">
-                <input type="text" class="medd-row-input" value="${item.impact || ''}" placeholder="Impacto" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.pain)}" placeholder="Dolor" onchange="updateMeddItem('i', ${idx}, 'pain', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.impact)}" placeholder="Impacto" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('i', ${idx}, 'urgency', this.value)">
                     <option value="Baja" ${item.urgency === 'Baja' ? 'selected' : ''}>Baja</option>
                     <option value="Medio" ${item.urgency === 'Medio' ? 'selected' : ''}>Medio</option>
@@ -3074,9 +3119,9 @@ function renderMeddItems(type) {
             `;
         } else if (type === 'c2') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${item.competitor || ''}" placeholder="Competidor" onchange="updateMeddItem('c2', ${idx}, 'competitor', this.value)">
-                <input type="text" class="medd-row-input" value="${item.advantage || ''}" placeholder="Nuestra Ventaja" onchange="updateMeddItem('c2', ${idx}, 'advantage', this.value)">
-                <input type="text" class="medd-row-input" value="${item.weakness || ''}" placeholder="Su Debilidad" onchange="updateMeddItem('c2', ${idx}, 'weakness', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.competitor)}" placeholder="Competidor" onchange="updateMeddItem('c2', ${idx}, 'competitor', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.advantage)}" placeholder="Nuestra Ventaja" onchange="updateMeddItem('c2', ${idx}, 'advantage', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.weakness)}" placeholder="Su Debilidad" onchange="updateMeddItem('c2', ${idx}, 'weakness', this.value)">
             `;
         }
 
@@ -3161,10 +3206,12 @@ window.openDetails = (oppId) => { console.log("Abriendo Detalles de Oportunidad"
             formattedValue = createLinkIfPossible(formattedValue, opp, 'opportunity');
         } else if (upperKey === 'ACCOUNT ID' || upperKey === 'ACCOUNT NAME') {
             formattedValue = createLinkIfPossible(formattedValue, opp, 'account');
+        } else {
+            formattedValue = escapeHtml(formattedValue);
         }
 
         item.innerHTML = `
-            <span class="details-label">${key}</span>
+            <span class="details-label">${escapeHtml(key)}</span>
             <span class="details-value">${formattedValue}</span>
         `;
         elements.detailsContent.appendChild(item);
@@ -3386,28 +3433,28 @@ function renderAssessmentQuestions(data) {
                     inputHtml = `
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
                             <label class="switch-container" style="flex-shrink: 0; margin-top: 5px;">
-                                <input type="checkbox" class="assessment-val-cb" data-id="${q.id}" ${savedValue.val === true ? 'checked' : ''}>
+                                <input type="checkbox" class="assessment-val-cb" data-id="${escapeHtml(q.id)}" ${savedValue.val === true ? 'checked' : ''}>
                                 <span class="slider"></span>
                             </label>
-                            <textarea class="assessment-answer" data-id="${q.id}" placeholder="Notas adicionales...">${savedValue.notes || ''}</textarea>
+                            <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="Notas adicionales...">${escapeHtml(savedValue.notes)}</textarea>
                         </div>
                     `;
                 } else if (q.type === 'quantity') {
                     inputHtml = `
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <input type="number" class="assessment-val-num form-input" data-id="${q.id}" style="width: 120px;" placeholder="Cantidad" value="${savedValue.val || ''}">
-                            <textarea class="assessment-answer" data-id="${q.id}" placeholder="Detalles...">${savedValue.notes || ''}</textarea>
+                            <input type="number" class="assessment-val-num form-input" data-id="${escapeHtml(q.id)}" style="width: 120px;" placeholder="Cantidad" value="${escapeHtml(savedValue.val)}">
+                            <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="Detalles...">${escapeHtml(savedValue.notes)}</textarea>
                         </div>
                     `;
                 } else {
                     // Default open
                     inputHtml = `
-                        <textarea class="assessment-answer" data-id="${q.id}" placeholder="Respuesta...">${typeof savedValue === 'string' ? savedValue : (savedValue.notes || '')}</textarea>
+                        <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="Respuesta...">${escapeHtml(typeof savedValue === 'string' ? savedValue : savedValue.notes)}</textarea>
                     `;
                 }
 
                 item.innerHTML = `
-                    <label class="assessment-question">${q.stage ? q.stage + ' - ' : ''}${q.question}</label>
+                    <label class="assessment-question">${escapeHtml(q.stage ? q.stage + ' - ' : '')}${escapeHtml(q.question)}</label>
                     ${inputHtml}
                 `;
                 elements.assessmentQuestList.appendChild(item);
@@ -3614,9 +3661,9 @@ function renderAssessmentStructureEditor() {
     currentConfig.assessmentStructure.forEach((q, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="text" class="activity-input" value="${q.stage || ''}" onchange="updateAssessmentStructItem(${idx}, 'stage', this.value)"></td>
-            <td><input type="text" class="activity-input" value="${q.area || ''}" onchange="updateAssessmentStructItem(${idx}, 'area', this.value)"></td>
-            <td><textarea class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'question', this.value)">${q.question || ''}</textarea></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(q.stage)}" onchange="updateAssessmentStructItem(${idx}, 'stage', this.value)"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(q.area)}" onchange="updateAssessmentStructItem(${idx}, 'area', this.value)"></td>
+            <td><textarea class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'question', this.value)">${escapeHtml(q.question)}</textarea></td>
             <td>
                 <select class="activity-input" onchange="updateAssessmentStructItem(${idx}, 'type', this.value)">
                     <option value="open" ${q.type === 'open' ? 'selected' : ''}>${getTranslation('opt_type_open') || 'Abierta'}</option>
@@ -3661,7 +3708,7 @@ function renderNotes() {
             const div = document.createElement('div');
             div.className = 'note-item';
             div.id = `note-item-${index}`;
-            const stageBadge = note.stage ? `<span class="note-stage-badge">${note.stage}</span>` : '';
+            const stageBadge = note.stage ? `<span class="note-stage-badge">${escapeHtml(note.stage)}</span>` : '';
 
             div.innerHTML = `
                 <div class="note-meta">
@@ -3674,7 +3721,7 @@ function renderNotes() {
                         <button class="delete-note-btn" onclick="deleteNote(${index})">${getTranslation('btn_delete') || 'Borrar'}</button>
                     </div>
                 </div>
-                <div class="note-content" id="note-content-${index}">${note.text}</div>
+                <div class="note-content" id="note-content-${index}">${sanitizeHtml(note.text)}</div>
             `;
             elements.notesList.appendChild(div);
         });
@@ -3692,7 +3739,7 @@ window.editNote = (index) => {
 
     noteContent.innerHTML = `
         <div class="note-edit-container">
-            <textarea class="note-edit-textarea" id="edit-textarea-${index}">${originalText}</textarea>
+            <textarea class="note-edit-textarea" id="edit-textarea-${index}">${escapeHtml(originalText)}</textarea>
             <div class="note-edit-actions" style="margin-top: 0.5rem;">
                 <button class="secondary-btn small" onclick="renderNotes()">Cancelar</button>
                 <button class="primary-btn small" onclick="saveEditedNote(${index})">Guardar</button>
@@ -3818,9 +3865,9 @@ function renderPocsList() {
     pocs.forEach((poc, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${poc.objective || 'Sin objetivo'}</td>
-            <td>${poc.timeline && poc.timeline[0] ? poc.timeline[0].date : '-'}</td>
-            <td>${poc.stakeholders && poc.stakeholders[0] ? poc.stakeholders[0].name : '-'}</td>
+            <td>${sanitizeHtml(poc.objective || 'Sin objetivo')}</td>
+            <td>${escapeHtml(poc.timeline && poc.timeline[0] ? poc.timeline[0].date : '-')}</td>
+            <td>${escapeHtml(poc.stakeholders && poc.stakeholders[0] ? poc.stakeholders[0].name : '-')}</td>
             <td style="text-align: right;">
                 <button class="text-btn" onclick="editPoc(${index})" style="color: var(--brand-orange);">Editar</button>
                 <button class="text-btn" onclick="deletePoc(${index})" style="color: #ff4d4d; margin-left: 0.5rem;">Borrar</button>
@@ -3986,10 +4033,10 @@ function renderPocSimpleList(container, items, type) {
             row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
             row.innerHTML = `
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="text" class="scope-title-input" value="${scopeItem.title.replace(/"/g, '&quot;')}" placeholder="Título del alcance..." style="flex: 1;">
+                    <input type="text" class="scope-title-input" value="${escapeHtml(scopeItem.title)}" placeholder="Título del alcance..." style="flex: 1;">
                     <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
                 </div>
-                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;">${scopeItem.description || ''}</textarea>
+                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;">${escapeHtml(scopeItem.description)}</textarea>
             `;
             container.appendChild(row);
         });
@@ -3999,7 +4046,7 @@ function renderPocSimpleList(container, items, type) {
             const row = document.createElement('div');
             row.className = 'list-item-row';
             row.innerHTML = `
-                <input type="text" value="${item}" placeholder="Agregar item...">
+                <input type="text" value="${escapeHtml(item)}" placeholder="Agregar item...">
                 <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
             `;
             container.appendChild(row);
@@ -4015,8 +4062,8 @@ function renderPocScopeList(container, items, type) {
         row.className = 'list-item-row';
         row.innerHTML = `
             <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
-                <input type="text" class="title-input" value="${item.title || ''}" placeholder="Título del Alcance">
-                <textarea class="desc-input" placeholder="Descripción detallada...">${item.description || ''}</textarea>
+                <input type="text" class="title-input" value="${escapeHtml(item.title)}" placeholder="Título del Alcance">
+                <textarea class="desc-input" placeholder="Descripción detallada...">${escapeHtml(item.description)}</textarea>
             </div>
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
@@ -4032,8 +4079,8 @@ function renderPocObjectList(container, items, type) {
         row.className = 'list-item-row';
         const datalist = type === 'squad' ? 'list="responsibles-list"' : '';
         row.innerHTML = `
-            <input type="text" class="name-input" value="${item.name || ''}" placeholder="${getTranslation('placeholder_name')}" ${datalist}>
-            <input type="text" class="role-input" value="${item.role || ''}" placeholder="${getTranslation('placeholder_responsibility')}">
+            <input type="text" class="name-input" value="${escapeHtml(item.name)}" placeholder="${getTranslation('placeholder_name')}" ${datalist}>
+            <input type="text" class="role-input" value="${escapeHtml(item.role)}" placeholder="${getTranslation('placeholder_responsibility')}">
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
         container.appendChild(row);
@@ -4049,10 +4096,10 @@ function renderPocTimeline(timeline) {
         const actStart = item.startDate || actDeadline;
         
         tr.innerHTML = `
-            <td><input type="text" class="activity-input act" value="${item.activity || ''}" placeholder="${getTranslation('placeholder_milestone')}" data-index="${index}"></td>
-            <td><input type="date" class="activity-input start-date" value="${actStart}" data-index="${index}"></td>
-            <td><input type="date" class="activity-input date" value="${actDeadline}" data-index="${index}"></td>
-            <td><input type="text" class="activity-input comm" value="${item.comments || ''}" placeholder="..." data-index="${index}"></td>
+            <td><input type="text" class="activity-input act" value="${escapeHtml(item.activity)}" placeholder="${getTranslation('placeholder_milestone')}" data-index="${index}"></td>
+            <td><input type="date" class="activity-input start-date" value="${escapeHtml(actStart)}" data-index="${index}"></td>
+            <td><input type="date" class="activity-input date" value="${escapeHtml(actDeadline)}" data-index="${index}"></td>
+            <td><input type="text" class="activity-input comm" value="${escapeHtml(item.comments)}" placeholder="..." data-index="${index}"></td>
             <td><button type="button" class="remove-item-btn" onclick="this.closest('tr').remove()">&times;</button></td>
         `;
 
@@ -4411,7 +4458,7 @@ function renderWalkthroughList(container, steps, type) {
         div.className = 'list-item-row';
         div.style.marginBottom = '0.5rem';
         div.innerHTML = `
-            <input type="text" class="step-desc" placeholder="${getTranslation('placeholder_step_desc') || 'Descripción del paso...'}" value="${step.desc || ''}" style="flex: 1;">
+            <input type="text" class="step-desc" placeholder="${getTranslation('placeholder_step_desc') || 'Descripción del paso...'}" value="${escapeHtml(step.desc)}" style="flex: 1;">
             <button class="delete-row-btn" onclick="removeWalkthroughStep('${type}', ${index})">&times;</button>
         `;
         
@@ -4556,17 +4603,17 @@ function renderActivityInputs(activities, container, removeFnName) {
                         <div style="display: flex; gap: 0.5rem; margin-bottom: 0.2rem;">
                             <div style="flex: 1;">
                                 <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">${getTranslation('label_start_date')}:</div>
-                                <input type="date" class="activity-input start-date-input" value="${actStart}" data-index="${index}" title="${getTranslation('label_start_date')}" style="width: 100%;">
+                                <input type="date" class="activity-input start-date-input" value="${escapeHtml(actStart)}" data-index="${index}" title="${getTranslation('label_start_date')}" style="width: 100%;">
                             </div>
                             <div style="flex: 1;">
                                 <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">${getTranslation('label_deadline')}:</div>
-                                <input type="date" class="activity-input date-input" value="${actDeadline}" data-index="${index}" title="${getTranslation('label_deadline')}" style="width: 100%;">
+                                <input type="date" class="activity-input date-input" value="${escapeHtml(actDeadline)}" data-index="${index}" title="${getTranslation('label_deadline')}" style="width: 100%;">
                             </div>
                         </div>
-                        <input type="text" class="activity-input act" placeholder="${getTranslation('placeholder_activity')}" value="${act.activity || ''}" data-index="${index}">
-                        <input type="text" class="activity-input resp" placeholder="${getTranslation('placeholder_resp')}" list="responsibles-list" value="${act.responsible || ''}" data-index="${index}">
+                        <input type="text" class="activity-input act" placeholder="${getTranslation('placeholder_activity')}" value="${escapeHtml(act.activity)}" data-index="${index}">
+                        <input type="text" class="activity-input resp" placeholder="${getTranslation('placeholder_resp')}" list="responsibles-list" value="${escapeHtml(act.responsible)}" data-index="${index}">
                     </div>
-                    <textarea class="activity-input comm" placeholder="${getTranslation('placeholder_comments')}" rows="3" data-index="${index}">${act.comments || ''}</textarea>
+                    <textarea class="activity-input comm" placeholder="${getTranslation('placeholder_comments')}" rows="3" data-index="${index}">${escapeHtml(act.comments)}</textarea>
                     <button class="delete-row-btn" style="margin-top: 0.5rem;" onclick="${removeFnName}(${index})">&times;</button>
                 </div>
             </td>
@@ -4870,13 +4917,13 @@ function renderDayAgenda(year, month, day) {
     `;
 
     const activitiesHtml = dayActivities.map(act => `
-        <div class="agenda-activity-row" onclick="openDetails('${act.oppId}')">
+        <div class="agenda-activity-row" onclick="openDetails(${jsArg(act.oppId)})">
             <div class="agenda-dot-col">
-                <span class="agenda-dot dot-${act.type}"></span>
+                <span class="agenda-dot dot-${escapeHtml(act.type)}"></span>
             </div>
             <span class="agenda-time">Todo el día</span>
-            <span class="agenda-title">${act.activity}</span>
-            <span class="agenda-opp-name">${act.oppName}</span>
+            <span class="agenda-title">${escapeHtml(act.activity)}</span>
+            <span class="agenda-opp-name">${escapeHtml(act.oppName)}</span>
         </div>
     `).join('');
 
@@ -5073,17 +5120,17 @@ function renderAttackPlanLicenses() {
         const div = document.createElement('div');
         div.className = 'list-item-row';
         div.innerHTML = `
-            <input type="text" placeholder="${licNamePlaceholder}" value="${lic.name || ''}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
+            <input type="text" placeholder="${licNamePlaceholder}" value="${escapeHtml(lic.name)}" onchange="updateAttackLicense(${idx}, 'name', this.value)" style="flex: 2;">
             
             <div style="display: flex; flex-direction: column; gap: 2px; flex: 1.5;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="number" step="any" placeholder="${volPlaceholder}" value="${lic.volume || ''}" 
+                    <input type="number" step="any" placeholder="${volPlaceholder}" value="${escapeHtml(lic.volume)}" 
                         oninput="updateAttackLicense(${idx}, 'volume', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('vol-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${thousandStr}' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${millionStr}';" 
                         style="max-width: 100px; flex: 1;">
                     <span id="vol-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--text-primary); font-size: 0.75rem; white-space: nowrap;">${legend}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="number" step="any" placeholder="${conPlaceholder}" value="${lic.consumo || ''}" 
+                    <input type="number" step="any" placeholder="${conPlaceholder}" value="${escapeHtml(lic.consumo)}" 
                         oninput="updateAttackLicense(${idx}, 'consumo', this.value); const val = parseFloat(this.value) || 0; const loc = getAppLocale(); document.getElementById('con-legend-${idx}').textContent = (val > 0 && val < 1) ? (val * 1000).toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${thousandStr}' : val.toLocaleString(loc, { maximumFractionDigits: 3 }) + ' ${millionStr}';" 
                         style="max-width: 100px; flex: 1;">
                     <span id="con-legend-${idx}" class="sub-text" style="font-weight: 600; color: var(--brand-orange); font-size: 0.75rem; white-space: nowrap;">${legendC}</span>
@@ -5116,10 +5163,10 @@ function renderAttackPlanActivities() {
     currentAttackPlanData.activities.forEach((act, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="text" class="activity-input" value="${act.name || ''}" onchange="updateAttackActivity(${idx}, 'name', this.value)" placeholder="Hito/Actividad"></td>
-            <td><input type="date" class="activity-input" value="${act.startDate || act.date || ''}" onchange="updateAttackActivity(${idx}, 'startDate', this.value)"></td>
-            <td><input type="date" class="activity-input" value="${act.endDate || ''}" onchange="updateAttackActivity(${idx}, 'endDate', this.value)"></td>
-            <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="Comentarios...">${act.comments || ''}</textarea></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(act.name)}" onchange="updateAttackActivity(${idx}, 'name', this.value)" placeholder="Hito/Actividad"></td>
+            <td><input type="date" class="activity-input" value="${escapeHtml(act.startDate || act.date)}" onchange="updateAttackActivity(${idx}, 'startDate', this.value)"></td>
+            <td><input type="date" class="activity-input" value="${escapeHtml(act.endDate)}" onchange="updateAttackActivity(${idx}, 'endDate', this.value)"></td>
+            <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="Comentarios...">${escapeHtml(act.comments)}</textarea></td>
             <td style="white-space: nowrap;">
                 <button class="order-btn" onclick="moveAttackActivity(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Subir">▲</button>
                 <button class="order-btn" onclick="moveAttackActivity(${idx}, 1)" ${idx === currentAttackPlanData.activities.length - 1 ? 'disabled' : ''} title="Bajar">▼</button>
@@ -5192,11 +5239,11 @@ function renderAttackTimelineChart() {
 
         milestone.innerHTML = `
             <div class="milestone-content">
-                <div class="milestone-date">${displayDate}</div>
-                <h5>${act.name || 'Hito'}</h5>
-                <div class="milestone-desc">${act.comments || ''}</div>
+                <div class="milestone-date">${escapeHtml(displayDate)}</div>
+                <h5>${escapeHtml(act.name || 'Hito')}</h5>
+                <div class="milestone-desc">${escapeHtml(act.comments)}</div>
             </div>
-            <div class="milestone-dot" title="${act.name}: ${startDateStr}${endDateStr ? ' al ' + endDateStr : ''}"></div>
+            <div class="milestone-dot" title="${escapeHtml(`${act.name}: ${startDateStr}${endDateStr ? ' al ' + endDateStr : ''}`)}"></div>
         `;
 
         elements.attackPlanTimelineChart.appendChild(milestone);
@@ -5288,10 +5335,10 @@ function renderAccountContacts() {
     currentContactsData.forEach((contact, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="text" class="activity-input" value="${contact.name || ''}" onchange="updateAccountContact(${idx}, 'name', this.value)" placeholder="Nombre"></td>
-            <td><input type="text" class="activity-input" value="${contact.position || ''}" onchange="updateAccountContact(${idx}, 'position', this.value)" placeholder="Posición"></td>
-            <td><input type="email" class="activity-input" value="${contact.email || ''}" onchange="updateAccountContact(${idx}, 'email', this.value)" placeholder="Email"></td>
-            <td><input type="text" class="activity-input" value="${contact.phone || ''}" onchange="updateAccountContact(${idx}, 'phone', this.value)" placeholder="Teléfono"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(contact.name)}" onchange="updateAccountContact(${idx}, 'name', this.value)" placeholder="Nombre"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(contact.position)}" onchange="updateAccountContact(${idx}, 'position', this.value)" placeholder="Posición"></td>
+            <td><input type="email" class="activity-input" value="${escapeHtml(contact.email)}" onchange="updateAccountContact(${idx}, 'email', this.value)" placeholder="Email"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(contact.phone)}" onchange="updateAccountContact(${idx}, 'phone', this.value)" placeholder="Teléfono"></td>
             <td>
                 <select class="activity-input" onchange="updateAccountContact(${idx}, 'influence', this.value)">
                     <option value="Bajo" ${contact.influence === 'Bajo' ? 'selected' : ''}>Bajo</option>
@@ -5300,7 +5347,7 @@ function renderAccountContacts() {
                     <option value="Crítico" ${contact.influence === 'Crítico' ? 'selected' : ''}>Crítico</option>
                 </select>
             </td>
-            <td><textarea class="activity-input" onchange="updateAccountContact(${idx}, 'notes', this.value)" placeholder="Notas...">${contact.notes || ''}</textarea></td>
+            <td><textarea class="activity-input" onchange="updateAccountContact(${idx}, 'notes', this.value)" placeholder="Notas...">${escapeHtml(contact.notes)}</textarea></td>
             <td><button class="remove-item-btn" onclick="removeAccountContact(${idx})">&times;</button></td>
         `;
         elements.accountContactsBody.appendChild(tr);
@@ -5366,13 +5413,13 @@ function renderGlobalContacts() {
     allContacts.forEach(contact => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${contact.name || ''}</td>
-            <td>${contact.position || ''}</td>
-            <td>${contact.email || ''}</td>
-            <td>${contact.phone || ''}</td>
-            <td><span class="badge badge-${(contact.influence || 'Medio').toLowerCase()}">${getTranslation('label_influence_' + (contact.influence || 'Medium').toLowerCase())}</span></td>
-            <td><strong>${contact.accountName}</strong></td>
-            <td>${contact.notes || ''}</td>
+            <td>${escapeHtml(contact.name)}</td>
+            <td>${escapeHtml(contact.position)}</td>
+            <td>${escapeHtml(contact.email)}</td>
+            <td>${escapeHtml(contact.phone)}</td>
+            <td><span class="badge badge-${escapeHtml((contact.influence || 'Medio').toLowerCase())}">${getTranslation('label_influence_' + (contact.influence || 'Medium').toLowerCase())}</span></td>
+            <td><strong>${escapeHtml(contact.accountName)}</strong></td>
+            <td>${escapeHtml(contact.notes)}</td>
         `;
         elements.globalContactsBody.appendChild(tr);
     });
@@ -5447,7 +5494,7 @@ function renderAccountsWithPlan() {
             groupSection.style.marginBottom = '2.5rem';
             groupSection.innerHTML = `
                 <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; color: var(--brand-orange);">
-                    📂 ${groupName} <span class="sub-text">(${items.length})</span>
+                    📂 ${escapeHtml(groupName)} <span class="sub-text">(${items.length})</span>
                 </h3>
                 <div class="opp-groups-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                 </div>
@@ -5473,20 +5520,20 @@ function createAccountPlanCard(accountId, account) {
     card.style.padding = '1.5rem';
     card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-            <h3 style="margin: 0; cursor: pointer; color: var(--brand-orange);" onclick="goToAccount('${accountId}')" title="Ver oportunidades de esta cuenta">
-                🏢 ${accountName}
+            <h3 style="margin: 0; cursor: pointer; color: var(--brand-orange);" onclick="goToAccount(${jsArg(accountId)})" title="Ver oportunidades de esta cuenta">
+                🏢 ${escapeHtml(accountName)}
             </h3>
-            <button class="primary-btn small" onclick="openAttackPlan('${accountId}')">Ver Plan</button>
+            <button class="primary-btn small" onclick="openAttackPlan(${jsArg(accountId)})">Ver Plan</button>
         </div>
         <div class="sub-text" style="margin-bottom: 0.5rem;">
-            <strong>Responsable:</strong> ${account.attackPlan.currentOwner || 'No definido'}
+            <strong>Responsable:</strong> ${escapeHtml(account.attackPlan.currentOwner || 'No definido')}
         </div>
         <div class="sub-text" style="margin-bottom: 1rem;">
-            <strong>Estrategia:</strong> ${account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida'}
+            <strong>Estrategia:</strong> ${escapeHtml(account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida')}
         </div>
         ${lastAct ? `
             <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
-                <strong>Última/Próxima Actividad:</strong> ${lastAct.name} (${lastAct.startDate || lastAct.date || 'Sin fecha'})
+                <strong>Última/Próxima Actividad:</strong> ${escapeHtml(lastAct.name)} (${escapeHtml(lastAct.startDate || lastAct.date || 'Sin fecha')})
             </div>
         ` : ''}
     `;
@@ -5795,13 +5842,13 @@ async function renderGlobalContacts() {
     contacts.forEach((contact, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${contact.name || ''}</td>
-            <td>${contact.role || ''}</td>
-            <td>${contact.email || ''}</td>
-            <td>${contact.phone || ''}</td>
-            <td>${contact.influence || ''}</td>
-            <td>${contact.account || ''}</td>
-            <td>${contact.notes || ''}</td>
+            <td>${escapeHtml(contact.name)}</td>
+            <td>${escapeHtml(contact.role)}</td>
+            <td>${escapeHtml(contact.email)}</td>
+            <td>${escapeHtml(contact.phone)}</td>
+            <td>${escapeHtml(contact.influence)}</td>
+            <td>${escapeHtml(contact.account)}</td>
+            <td>${escapeHtml(contact.notes)}</td>
             <td>
                 <button class="remove-item-btn" onclick="deleteGlobalContact(${idx})">&times;</button>
             </td>
@@ -5880,7 +5927,7 @@ class LuxeEditor {
 
         // Replace textarea if it is one
         if (this.target.tagName === 'TEXTAREA') {
-            this.editor.innerHTML = this.target.value || '';
+            this.editor.innerHTML = sanitizeHtml(this.target.value);
             this.target.style.display = 'none';
             this.target.parentNode.insertBefore(this.container, this.target.nextSibling);
             // Sync back to textarea on change
@@ -6037,7 +6084,7 @@ document.getElementById('luxe-save-link-btn').onclick = () => {
             window.currentLuxeLinkNode.href = url;
             window.currentLuxeLinkNode.innerText = text;
         } else {
-            document.execCommand('insertHTML', false, `<a href="${url}" target="_blank">${text || url}</a>`);
+            document.execCommand('insertHTML', false, `<a href="${escapeHtml(url)}" target="_blank">${escapeHtml(text || url)}</a>`);
         }
     }
     window.closeLuxeLinkModal();
@@ -6078,7 +6125,7 @@ document.getElementById('luxe-insert-image-btn').onclick = () => {
     const src = base64 || urlInput;
     if (editor && src) {
         editor.editor.focus();
-        document.execCommand('insertHTML', false, `<img src="${src}" class="align-center">`);
+        document.execCommand('insertHTML', false, `<img src="${escapeHtml(src)}" class="align-center">`);
     }
     window.pendingLuxeImage = null;
     document.getElementById('luxe-image-file-name').textContent = '';

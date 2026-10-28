@@ -250,7 +250,7 @@ main {
 
 .main-layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 260px minmax(0, 1fr);
     height: 100%;
     min-height: 0;
     gap: 1.5rem;
@@ -260,7 +260,7 @@ main {
 }
 
 .main-layout.collapsed {
-    grid-template-columns: 0px 1fr;
+    grid-template-columns: 0px minmax(0, 1fr);
 }
 
 .main-layout.collapsed .sidebar {
@@ -701,7 +701,7 @@ main {
     display: none;
     height: 100%;
     padding: 2rem 2rem 3rem 2rem;
-    overflow-y: auto;
+    overflow: auto;
 }
 
 .view.active {
@@ -746,6 +746,7 @@ main {
 
 .toolbar {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
@@ -779,7 +780,7 @@ main {
     background: var(--card-bg);
     border-radius: 16px;
     border: 1px solid var(--glass-border);
-    overflow: hidden;
+    overflow-x: auto;
     margin-bottom: 2rem;
 }
 
@@ -969,6 +970,33 @@ tr:hover {
 }
 
 /* Modal */
+/* Opportunities: the table fills the view and scrolls on both axes, so the
+   horizontal scrollbar stays visible instead of sitting below every row */
+#opp-list-view.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#opp-list-view .table-container {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    margin-bottom: 0;
+}
+
+#opp-list-view th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    /* Same layered tone as before, but opaque so rows don't show through */
+    background:
+        linear-gradient(var(--table-header), var(--table-header)),
+        linear-gradient(var(--card-bg), var(--card-bg)),
+        linear-gradient(var(--card-bg), var(--card-bg)),
+        var(--bg-color);
+}
+
 .table-container.small {
     max-height: 300px;
     overflow-y: auto;
@@ -1146,6 +1174,8 @@ tr:hover {
 /* Advanced Materials */
 .toolbar-inline {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
@@ -1684,6 +1714,28 @@ input:checked+.slider:before {
     gap: 0.8rem;
     padding: 1.2rem !important;
     background: var(--card-bg) !important;
+}
+
+.history-card.clickable {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.history-card.clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+/* Note / activity row reached from History */
+.history-target {
+    outline: 2px solid var(--brand-orange);
+    outline-offset: 2px;
+    border-radius: 8px;
+    animation: historyTargetPulse 0.8s ease-in-out 3;
+}
+
+@keyframes historyTargetPulse {
+    50% { box-shadow: 0 0 0 6px rgba(255, 66, 0, 0.25); }
 }
 
 .history-card-header {
@@ -2278,6 +2330,8 @@ body {
 
 .toolbar-inline {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
