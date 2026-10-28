@@ -2992,6 +2992,13 @@ input:checked+.slider:before {
     line-height: 1.5;
 }
 
+.luxe-editor-content:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-secondary);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 .luxe-editor-content img {
     max-width: 100%;
     height: auto;

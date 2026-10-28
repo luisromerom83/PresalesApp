@@ -94,7 +94,7 @@
             <section id="main-screen" class="screen main-screen">
                 <div id="main-layout-container" class="main-layout">
                     <aside class="sidebar">
-                        <button id="toggle-sidebar-btn" class="sidebar-toggle" title="Ocultar Sidebar">
+                        <button id="toggle-sidebar-btn" class="sidebar-toggle" title="Ocultar Sidebar" data-i18n="title_hide_sidebar" data-i18n-prop="title">
                             <span class="toggle-icon-arrow">&lsaquo;</span>
                         </button>
                         <div class="sidebar-scrollable">
@@ -240,9 +240,9 @@
                                     </tbody>
                                 </table>
                                 <div id="opp-pagination" class="pagination-container hidden" style="display: flex; justify-content: center; align-items: center; gap: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-top: 1px solid var(--glass-border);">
-                                    <button id="opp-prev-btn" class="secondary-btn small">&larr; Anterior</button>
+                                    <button id="opp-prev-btn" class="secondary-btn small">&larr; <span data-i18n="btn_previous">Anterior</span></button>
                                     <span id="opp-page-info" class="sub-text" style="font-size: 0.85rem; font-weight: 600;">Página 1 de 1</span>
-                                    <button id="opp-next-btn" class="secondary-btn small">Siguiente &rarr;</button>
+                                    <button id="opp-next-btn" class="secondary-btn small"><span data-i18n="btn_next">Siguiente</span> &rarr;</button>
                                 </div>
                             </div>
                         </div>
@@ -324,10 +324,10 @@
                                 <h2 data-i18n="view_title_account_plans">Cuentas con Plan de Ataque</h2>
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <label for="accounts-groupby-select" class="sub-text"
-                                        style="margin: 0; font-weight: 600;">Agrupar por:</label>
+                                        style="margin: 0; font-weight: 600;" data-i18n="label_group_by">Agrupar por:</label>
                                     <select id="accounts-groupby-select" class="form-input"
                                         style="width: auto; min-width: 150px;">
-                                        <option value="none">Ninguno</option>
+                                        <option value="none" data-i18n="opt_none">Ninguno</option>
                                     </select>
                                 </div>
                             </div>
@@ -678,7 +678,7 @@
                     <div class="modal-body">
                         <div id="modal-opp-details-grid" class="opp-details-grid">
                             <div><strong>ID:</strong> <span id="modal-opp-id" class="dynamic-link"></span></div>
-                            <div><strong>Account:</strong> <span id="modal-opp-account"></span></div>
+                            <div><strong data-i18n="label_account_colon">Cuenta:</strong> <span id="modal-opp-account"></span></div>
                         </div>
 
                         <div class="notes-section">
@@ -688,9 +688,9 @@
                             </div>
 
                             <div class="add-note">
-                                <div id="new-note-input" class="rich-text-editor" contenteditable="true"
-                                    placeholder="Escribe una nueva nota..."></div>
-                                <button id="add-note-btn" class="primary-btn">Agregar Nota</button>
+                                <textarea id="new-note-input" placeholder="Escribe una nueva nota..."
+                                    data-i18n="placeholder_new_note" data-i18n-prop="placeholder"></textarea>
+                                <button id="add-note-btn" class="primary-btn" data-i18n="btn_add_note">Agregar Nota</button>
                             </div>
                         </div>
                     </div>
@@ -1086,13 +1086,13 @@
             <div id="migration-modal" class="modal hidden">
                 <div class="modal-content small">
                     <div class="modal-header">
-                        <h3>Migrar Datos</h3>
+                        <h3 data-i18n="title_migrate_data">Migrar Datos</h3>
                     </div>
                     <div class="modal-body">
-                        <p>¿Deseas copiar todos los archivos de configuración existentes a la nueva carpeta?</p>
+                        <p data-i18n="msg_migrate_question">¿Deseas copiar todos los archivos de configuración existentes a la nueva carpeta?</p>
                         <div class="form-actions">
-                            <button id="no-migrate-btn" class="secondary-btn">No, empezar de cero</button>
-                            <button id="yes-migrate-btn" class="primary-btn">Sí, copiar archivos</button>
+                            <button id="no-migrate-btn" class="secondary-btn" data-i18n="btn_no_migrate">No, empezar de cero</button>
+                            <button id="yes-migrate-btn" class="primary-btn" data-i18n="btn_yes_migrate">Sí, copiar archivos</button>
                         </div>
                     </div>
                 </div>
@@ -1120,7 +1120,7 @@
                             <div class="opportunity-overview">
                                 <h4 data-i18n="label_opp_explanation">Explicación de la Oportunidad</h4>
                                 <textarea id="opp-description"
-                                    placeholder="Escribe aquí de qué trata esta oportunidad..."></textarea>
+                                    placeholder="Escribe aquí de qué trata esta oportunidad..." data-i18n="placeholder_opp_explanation" data-i18n-prop="placeholder"></textarea>
                                 <div class="form-actions">
                                     <button id="save-opp-description-btn" class="primary-btn small"
                                         data-i18n="btn_save_explanation">Guardar
@@ -1274,15 +1274,15 @@
             <div id="update-modal" class="modal hidden">
                 <div class="modal-content small">
                     <div class="modal-header">
-                        <h3>Actualización de Software</h3>
+                        <h3 data-i18n="title_software_update">Actualización de Software</h3>
                         <button id="close-update-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-body">
                         <p id="update-message">Una nueva versión está disponible. ¿Deseas descargarla e instalarla
                             ahora?</p>
                         <div class="form-actions" style="margin-top: 1.5rem;">
-                            <button id="cancel-update-btn" class="secondary-btn">Más tarde</button>
-                            <button id="confirm-update-btn" class="primary-btn">Actualizar Ahora</button>
+                            <button id="cancel-update-btn" class="secondary-btn" data-i18n="btn_later">Más tarde</button>
+                            <button id="confirm-update-btn" class="primary-btn" data-i18n="btn_update_now">Actualizar Ahora</button>
                         </div>
                     </div>
                 </div>
@@ -1373,17 +1373,17 @@
                     </div>
                     <div class="modal-body">
                         <div class="poc-form-section">
-                            <h4>Listado de Contactos</h4>
+                            <h4 data-i18n="title_contacts_list">Listado de Contactos</h4>
                             <div class="table-container small">
                                 <table>
                                     <thead>
                                         <tr>
-                                            <th>Nombre</th>
-                                            <th>Posición</th>
+                                            <th data-i18n="placeholder_name">Nombre</th>
+                                            <th data-i18n="label_contact_pos">Posición</th>
                                             <th>Email</th>
-                                            <th>Teléfono</th>
-                                            <th>Influencia</th>
-                                            <th>Comentarios</th>
+                                            <th data-i18n="label_contact_phone">Teléfono</th>
+                                            <th data-i18n="label_influence">Influencia</th>
+                                            <th data-i18n="label_comments">Comentarios</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -1393,11 +1393,11 @@
                                 </table>
                             </div>
                             <button id="add-account-contact-btn" class="secondary-btn small" style="margin-top: 1rem;">+
-                                Agregar Contacto</button>
+                                <span data-i18n="btn_add_contact">Agregar Contacto</span></button>
                         </div>
 
                         <div class="form-actions" style="margin-top: 2rem;">
-                            <button id="save-account-contacts-btn" class="primary-btn">Guardar Contactos</button>
+                            <button id="save-account-contacts-btn" class="primary-btn" data-i18n="btn_save_contacts">Guardar Contactos</button>
                         </div>
                     </div>
                 </div>
@@ -1455,21 +1455,20 @@
             <div id="csv-mapping-modal" class="modal hidden">
                 <div class="modal-content large" style="max-height: 90vh; display: flex; flex-direction: column;">
                     <div class="modal-header">
-                        <h3>Mapeo de Columnas CSV</h3>
+                        <h3 data-i18n="title_csv_mapping">Mapeo de Columnas CSV</h3>
                         <button id="close-csv-mapping-modal-btn" class="close-btn">&times;</button>
                     </div>
                     <div class="modal-body" style="flex: 1; overflow-y: auto;">
                         <p class="sub-text" style="margin-bottom: 1.5rem;">
-                            Algunos encabezados de tu CSV no coinciden. Por favor, asocia las columnas de tu archivo con
-                            los campos del sistema.
-                            <strong>Los marcados con (*) son obligatorios.</strong>
+                            <span data-i18n="msg_csv_mapping_desc">Algunos encabezados de tu CSV no coinciden. Por favor, asocia las columnas de tu archivo con los campos del sistema.</span>
+                            <strong data-i18n="msg_csv_mandatory">Los marcados con (*) son obligatorios.</strong>
                         </p>
                         <div class="table-container small">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Campo del Sistema</th>
-                                        <th>Columna en tu CSV</th>
+                                        <th data-i18n="header_system_field">Campo del Sistema</th>
+                                        <th data-i18n="header_csv_column">Columna en tu CSV</th>
                                     </tr>
                                 </thead>
                                 <tbody id="csv-mapping-body">
@@ -1478,7 +1477,7 @@
                             </table>
                         </div>
                         <div class="form-actions" style="margin-top: 2rem;">
-                            <button id="confirm-csv-mapping-btn" class="primary-btn">Importar con este Mapeo</button>
+                            <button id="confirm-csv-mapping-btn" class="primary-btn" data-i18n="btn_import_mapping">Importar con este Mapeo</button>
                         </div>
                     </div>
                 </div>
@@ -1497,21 +1496,21 @@
     <div id="luxe-link-modal" class="modal hidden">
         <div class="modal-content small">
             <div class="modal-header">
-                <h3>Insertar/Editar Enlace</h3>
+                <h3 data-i18n="title_insert_link">Insertar/Editar Enlace</h3>
                 <button class="close-btn" onclick="closeLuxeLinkModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Texto a mostrar</label>
-                    <input type="text" id="luxe-link-text" class="form-input" placeholder="Ej. Mi Enlace">
+                    <label data-i18n="label_link_text">Texto a mostrar</label>
+                    <input type="text" id="luxe-link-text" class="form-input" placeholder="Ej. Mi Enlace" data-i18n="placeholder_link_text" data-i18n-prop="placeholder">
                 </div>
                 <div class="form-group">
-                    <label>URL (Enlace)</label>
+                    <label data-i18n="label_link_url">URL (Enlace)</label>
                     <input type="text" id="luxe-link-url" class="form-input" placeholder="https://...">
                 </div>
                 <div class="form-actions">
-                    <button id="luxe-remove-link-btn" class="secondary-btn small hidden" style="background: rgba(214, 8, 77, 0.1); color: var(--brand-magenta);">Quitar Enlace</button>
-                    <button id="luxe-save-link-btn" class="primary-btn small">Guardar</button>
+                    <button id="luxe-remove-link-btn" class="secondary-btn small hidden" style="background: rgba(214, 8, 77, 0.1); color: var(--brand-magenta);" data-i18n="btn_remove_link">Quitar Enlace</button>
+                    <button id="luxe-save-link-btn" class="primary-btn small" data-i18n="btn_save">Guardar</button>
                 </div>
             </div>
         </div>
@@ -1520,29 +1519,29 @@
     <div id="luxe-image-modal" class="modal hidden">
         <div class="modal-content small">
             <div class="modal-header">
-                <h3>Insertar Imagen</h3>
+                <h3 data-i18n="title_insert_image">Insertar Imagen</h3>
                 <button class="close-btn" onclick="closeLuxeImageModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="tabs-mini">
                     <button class="tab-mini-btn active" data-tab="luxe-img-url">URL</button>
-                    <button class="tab-mini-btn" data-tab="luxe-img-file">Archivo Local</button>
+                    <button class="tab-mini-btn" data-tab="luxe-img-file" data-i18n="btn_local_file">Archivo Local</button>
                 </div>
                 <div id="luxe-img-url" class="tab-mini-content active">
                     <div class="form-group">
-                        <label>URL de la Imagen</label>
+                        <label data-i18n="label_image_url">URL de la Imagen</label>
                         <input type="text" id="luxe-image-url-input" class="form-input" placeholder="https://...">
                     </div>
                 </div>
                 <div id="luxe-img-file" class="tab-mini-content">
                     <div class="form-group">
-                        <label>Seleccionar archivo</label>
-                        <button id="luxe-select-image-btn" class="secondary-btn small">Elegir Imagen...</button>
+                        <label data-i18n="label_select_file">Seleccionar archivo</label>
+                        <button id="luxe-select-image-btn" class="secondary-btn small" data-i18n="btn_choose_image">Elegir Imagen...</button>
                         <p id="luxe-image-file-name" class="sub-text" style="margin-top: 0.5rem;"></p>
                     </div>
                 </div>
                 <div class="form-actions">
-                    <button id="luxe-insert-image-btn" class="primary-btn small">Insertar</button>
+                    <button id="luxe-insert-image-btn" class="primary-btn small" data-i18n="btn_insert">Insertar</button>
                 </div>
             </div>
         </div>

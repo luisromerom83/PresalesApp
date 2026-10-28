@@ -23,6 +23,14 @@ const sanitizeHtml = (html) => {
     return doc.body.innerHTML;
 };
 
+// Older notes were saved with the whole editor (toolbar included) around the text; keep only the text
+const unwrapEditorMarkup = (html) => {
+    if (typeof html !== 'string' || !html.includes('luxe-editor-container')) return html;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const content = doc.querySelector('.luxe-editor-content');
+    return content ? content.innerHTML : html;
+};
+
 const parseCustomDate = (dateStr) => {
     if (!dateStr) return null;
     dateStr = dateStr.toString().trim();
@@ -358,10 +366,10 @@ if (elements.toggleSidebarBtn) {
         elements.mainLayout.classList.toggle('collapsed');
         const icon = elements.toggleSidebarBtn.querySelector('.toggle-icon-arrow');
         if (elements.mainLayout.classList.contains('collapsed')) {
-            elements.toggleSidebarBtn.title = "Mostrar Sidebar";
+            elements.toggleSidebarBtn.title = getTranslation('title_show_sidebar');
             if (icon) icon.innerHTML = '&rsaquo;';
         } else {
-            elements.toggleSidebarBtn.title = "Ocultar Sidebar";
+            elements.toggleSidebarBtn.title = getTranslation('title_hide_sidebar');
             if (icon) icon.innerHTML = '&lsaquo;';
         }
     };
@@ -471,6 +479,18 @@ window.goToAccount = (accountId) => {
 
 
 document.addEventListener('keydown', (e) => {
+    // Esc -> close the topmost open modal through its own close button (runs its cleanup)
+    if (e.key === 'Escape') {
+        const openModals = [...document.querySelectorAll('.modal:not(.hidden)')];
+        const topModal = openModals[openModals.length - 1]; // later in the DOM = rendered on top
+        const closeBtn = topModal && [...topModal.querySelectorAll('.close-btn, .close-modal-btn')]
+            .find(btn => btn.closest('.modal') === topModal);
+        if (closeBtn) {
+            e.preventDefault();
+            closeBtn.click();
+        }
+        return;
+    }
     // Ctrl+F -> Search
     if (e.ctrlKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
@@ -974,12 +994,12 @@ function renderSidebarFilterManager() {
                                             onchange="updateConditionListValue(${fIdx}, ${rIdx}, ${cIdx}, this)" style="width: 14px; height: 14px; accent-color: var(--brand-orange);">
                                         <span>${escapeHtml(v)}</span>
                                     </label>
-                                `).join('') : '<span style="font-size: 0.7rem; opacity: 0.5;">No hay valores disponibles</span>'}
+                                `).join('') : `<span style="font-size: 0.7rem; opacity: 0.5;">${getTranslation('msg_no_values')}</span>`}
                             </div>
                         `;
                     } else {
                         valueControlHtml = `
-                            <input type="text" class="form-input" placeholder="Valor" value="${escapeHtml(cond.value)}" 
+                            <input type="text" class="form-input" placeholder="${getTranslation('placeholder_value')}" value="${escapeHtml(cond.value)}" 
                                 onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'value', this.value)" style="flex: 1;">
                         `;
                     }
@@ -989,9 +1009,9 @@ function renderSidebarFilterManager() {
                             ${colOptions}
                         </select>
                         <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'type', this.value); renderSidebarFilterManager();" style="width: auto;">
-                            <option value="text" ${cond.type === 'text' ? 'selected' : ''}>Texto</option>
-                            <option value="numeric" ${cond.type === 'numeric' ? 'selected' : ''}>Numérico</option>
-                            <option value="boolean" ${cond.type === 'boolean' ? 'selected' : ''}>Bool</option>
+                            <option value="text" ${cond.type === 'text' ? 'selected' : ''}>${getTranslation('opt_type_text')}</option>
+                            <option value="numeric" ${cond.type === 'numeric' ? 'selected' : ''}>${getTranslation('opt_type_numeric')}</option>
+                            <option value="boolean" ${cond.type === 'boolean' ? 'selected' : ''}>${getTranslation('opt_type_bool')}</option>
                         </select>
                         <select class="form-input" onchange="updateConditionProp(${fIdx}, ${rIdx}, ${cIdx}, 'operator', this.value); renderSidebarFilterManager();" style="width: auto;">
                             <option value="eq" ${cond.operator === 'eq' ? 'selected' : ''}>==</option>
@@ -1000,8 +1020,8 @@ function renderSidebarFilterManager() {
                             <option value="gte" ${cond.operator === 'gte' ? 'selected' : ''}>>=</option>
                             <option value="lt" ${cond.operator === 'lt' ? 'selected' : ''}><</option>
                             <option value="lte" ${cond.operator === 'lte' ? 'selected' : ''}><=</option>
-                            <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>Contiene</option>
-                            <option value="not_contains" ${cond.operator === 'not_contains' ? 'selected' : ''}>No Contiene</option>
+                            <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>${getTranslation('opt_contains')}</option>
+                            <option value="not_contains" ${cond.operator === 'not_contains' ? 'selected' : ''}>${getTranslation('opt_not_contains')}</option>
                         </select>
                         ${valueControlHtml}
                         <button class="delete-cat-btn" onclick="deleteCondition(${fIdx}, ${rIdx}, ${cIdx})">×</button>
@@ -1185,19 +1205,19 @@ async function init() {
             elements.updateBadge.classList.remove('hidden');
             elements.updateBadge.title = `Nueva versión v${info.version} disponible`;
             elements.updateBadge.onclick = () => {
-                elements.updateMessage.textContent = `Hay una nueva versión disponible (v${info.version}). ¿Deseas descargarla ahora?`;
+                elements.updateMessage.textContent = getTranslation('msg_update_available_version', { version: info.version });
                 elements.confirmUpdateBtn.classList.remove('hidden');
-                elements.confirmUpdateBtn.textContent = "Descargar";
+                elements.confirmUpdateBtn.textContent = getTranslation('btn_download');
                 elements.confirmUpdateBtn.onclick = async () => {
                     try {
-                        elements.confirmUpdateBtn.textContent = "Iniciando...";
+                        elements.confirmUpdateBtn.textContent = getTranslation('btn_starting');
                         elements.confirmUpdateBtn.disabled = true;
                         await window.electronAPI.downloadUpdate();
                     } catch (err) {
                         console.error("Renderer: downloadUpdate failed", err);
-                        showToast(`No se pudo iniciar la descarga: ${err.message}`, 'error');
+                        showToast(getTranslation('toast_download_start_failed', { error: err.message }), 'error');
                         elements.confirmUpdateBtn.disabled = false;
-                        elements.confirmUpdateBtn.textContent = "Reintentar";
+                        elements.confirmUpdateBtn.textContent = getTranslation('btn_retry');
                     }
                 };
                 elements.updateModal.classList.remove('hidden');
@@ -1219,7 +1239,7 @@ async function init() {
             elements.updateBadge.title = "Actualización descargada y lista para instalar";
 
             const showInstallPrompt = () => {
-                elements.updateMessage.textContent = "La actualización ya se descargó. ¿Deseas reiniciar la aplicación para instalar?";
+                elements.updateMessage.textContent = getTranslation('msg_update_downloaded_restart');
                 elements.confirmUpdateBtn.classList.remove('hidden');
                 elements.confirmUpdateBtn.disabled = false;
                 elements.confirmUpdateBtn.textContent = (getTranslation('btn_restart_install') || "Reiniciar e Instalar");
@@ -1235,14 +1255,14 @@ async function init() {
             if (!elements.updateModal.classList.contains('hidden')) {
                 showInstallPrompt();
             }
-            showToast('Actualización lista para instalar');
+            showToast(getTranslation('toast_update_ready'));
         });
     }
 
     if (window.electronAPI.onUpdateError) {
         window.electronAPI.onUpdateError((err) => {
             console.error("Update error:", err);
-            showToast(`Error al actualizar: ${err}`);
+            showToast(getTranslation('toast_update_error', { error: err }));
             elements.updateModal.classList.add('hidden');
             elements.confirmUpdateBtn.disabled = false;
             elements.confirmUpdateBtn.textContent = (getTranslation('btn_retry') || "Reintentar");
@@ -1348,6 +1368,9 @@ async function loadAllData(dir) {
 
         const notes = await window.electronAPI.loadFile(dir, 'notes.json');
         currentConfig.notes = notes || {};
+        Object.values(currentConfig.notes).forEach(list => (list || []).forEach(note => {
+            note.text = unwrapEditorMarkup(note.text);
+        }));
 
         const materials = await window.electronAPI.loadFile(dir, 'materials.json');
         currentConfig.materials = materials || {};
@@ -1528,7 +1551,7 @@ async function handleNewDirectory(dir) {
 // Migration
 elements.yesMigrateBtn.addEventListener('click', async () => {
     const result = await window.electronAPI.migrateFiles(currentConfig.directory, pendingNewDir);
-    if (result.success) showToast(`Migrados ${result.count} archivos`);
+    if (result.success) showToast(getTranslation('toast_files_migrated', { count: result.count }));
     finalizeDirChange();
 });
 
@@ -1607,13 +1630,13 @@ function renderManagerView() {
                     
                     <span class="sub-text" style="font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8;" title="${escapeHtml(doc.path)}">${escapeHtml(doc.path)}</span>
                     
-                    <button class="secondary-btn small" onclick="changeMemberDocPath(${memberIdx}, ${docIdx})" title="Cambiar ruta">...</button>
-                    <button class="secondary-btn small" onclick="exploreDir(${jsArg(doc.path)}, 'sub-list-${memberIdx}-${docIdx}')" title="Listar contenido">📂</button>
-                    <button class="secondary-btn small" onclick="openDocPath(${jsArg(doc.path)})">Abrir</button>
+                    <button class="secondary-btn small" onclick="changeMemberDocPath(${memberIdx}, ${docIdx})" title="${getTranslation('title_change_path')}">...</button>
+                    <button class="secondary-btn small" onclick="exploreDir(${jsArg(doc.path)}, 'sub-list-${memberIdx}-${docIdx}')" title="${getTranslation('title_list_contents')}">📂</button>
+                    <button class="secondary-btn small" onclick="openDocPath(${jsArg(doc.path)})">${getTranslation('btn_open')}</button>
                     <button class="delete-cat-btn" style="padding: 2px 8px;" onclick="removeMemberDoc(${memberIdx}, ${docIdx})">×</button>
                 </div>
                 <div id="sub-list-${memberIdx}-${docIdx}" class="sub-list-container" style="display: none; margin-left: 1.5rem; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 4px; border-left: 2px solid var(--brand-orange);">
-                    <div class="loading-text" style="font-size: 0.8rem; color: var(--text-secondary);">Cargando contenido...</div>
+                    <div class="loading-text" style="font-size: 0.8rem; color: var(--text-secondary);">${getTranslation('msg_loading_contents')}</div>
                 </div>
             </div>
         `).join('');
@@ -1625,26 +1648,26 @@ function renderManagerView() {
                     <input type="text" value="${escapeHtml(member.name)}" 
                         onclick="event.stopPropagation()" 
                         onchange="updateMemberName(${memberIdx}, this.value)"
-                        title="Haz clic para editar el nombre"
+                        title="${getTranslation('title_click_to_edit_name')}"
                         style="background: transparent; border: none; border-bottom: 1px solid transparent; color: var(--brand-orange); font-size: ${isCollapsed ? '1rem' : '1.15rem'}; font-weight: 700; padding: 2px 4px; width: 100%; transition: all 0.2s; outline: none;"
                         onfocus="this.style.borderBottomColor='var(--brand-orange)'; this.style.background='rgba(255,255,255,0.05)'"
                         onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
                 </div>
-                <button class="delete-cat-btn" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 1rem;" onclick="event.stopPropagation(); removeTeamMember(${memberIdx})">Eliminar</button>
+                <button class="delete-cat-btn" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 1rem;" onclick="event.stopPropagation(); removeTeamMember(${memberIdx})">${getTranslation('btn_delete')}</button>
             </div>
             
             <div id="member-content-${memberIdx}" style="display: ${isCollapsed ? 'none' : 'block'}; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
                 <div id="member-docs-${memberIdx}" style="margin-bottom: 1.5rem;">
-                    ${docsHtml || '<p class="sub-text" style="text-align: center;">Sin documentos asignados</p>'}
+                    ${docsHtml || `<p class="sub-text" style="text-align: center;">${getTranslation('msg_no_docs_assigned')}</p>`}
                 </div>
 
                 <div class="form-group" style="border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                    <label style="font-size: 0.8rem; margin-bottom: 0.5rem; display: block;">Asignar nuevo documento ó directorio:</label>
+                    <label style="font-size: 0.8rem; margin-bottom: 0.5rem; display: block;">${getTranslation('label_assign_doc')}</label>
                     <div style="display: grid; grid-template-columns: 1fr 2fr auto auto; gap: 0.5rem;">
-                        <input type="text" id="new-doc-label-${memberIdx}" class="form-input" placeholder="Etiqueta (ej. Guías)">
-                        <input type="text" id="new-doc-path-${memberIdx}" class="form-input" placeholder="Ruta de carpeta o archivo..." readonly>
+                        <input type="text" id="new-doc-label-${memberIdx}" class="form-input" placeholder="${getTranslation('placeholder_doc_label')}">
+                        <input type="text" id="new-doc-path-${memberIdx}" class="form-input" placeholder="${getTranslation('placeholder_doc_path')}" readonly>
                         <button class="secondary-btn small" onclick="selectMemberDocPath(${memberIdx})">...</button>
-                        <button class="primary-btn small" onclick="addMemberDoc(${memberIdx})">Añadir</button>
+                        <button class="primary-btn small" onclick="addMemberDoc(${memberIdx})">${getTranslation('btn_add')}</button>
                     </div>
                 </div>
             </div>
@@ -1663,7 +1686,7 @@ window.updateMemberName = async (idx, newName) => {
     if (newName.trim()) {
         currentConfig.managerSettings.team[idx].name = newName.trim();
         await autoSaveManager();
-        showToast('Nombre actualizado');
+        showToast(getTranslation('toast_name_updated'));
     }
 };
 
@@ -1671,7 +1694,7 @@ window.updateMemberDoc = async (mIdx, dIdx, field, value) => {
     if (value.trim()) {
         currentConfig.managerSettings.team[mIdx].docs[dIdx][field] = value.trim();
         await autoSaveManager();
-        if (field === 'label') showToast('Etiqueta actualizada');
+        if (field === 'label') showToast(getTranslation('toast_label_updated'));
     }
 };
 
@@ -1681,7 +1704,7 @@ window.changeMemberDocPath = async (mIdx, dIdx) => {
         currentConfig.managerSettings.team[mIdx].docs[dIdx].path = result;
         renderManagerView();
         await autoSaveManager();
-        showToast('Ruta actualizada');
+        showToast(getTranslation('toast_path_updated'));
     }
 };
 
@@ -1710,7 +1733,7 @@ if (elements.addMemberBtn) {
 }
 
 window.removeTeamMember = async (idx) => {
-    if (confirm('¿Estás seguro de eliminar a este miembro y sus documentos?')) {
+    if (confirm(getTranslation('confirm_delete_member'))) {
         currentConfig.managerSettings.team.splice(idx, 1);
         renderManagerView();
         await autoSaveManager();
@@ -1739,7 +1762,7 @@ window.addMemberDoc = async (memberIdx) => {
         await autoSaveManager();
         showToast(getTranslation('toast_doc_added'));
     } else {
-        showToast('Completa etiqueta y ruta');
+        showToast(getTranslation('toast_fill_label_path'));
     }
 };
 
@@ -1761,7 +1784,7 @@ window.exploreDir = async (basePath, containerId) => {
     const files = await window.electronAPI.listFiles(basePath);
 
     if (files.length === 0) {
-        container.innerHTML = '<p class="sub-text" style="font-size: 0.8rem; margin: 0;">Directorio vacío o ilegible</p>';
+        container.innerHTML = `<p class="sub-text" style="font-size: 0.8rem; margin: 0;">${getTranslation('msg_dir_empty')}</p>`;
         return;
     }
 
@@ -1782,7 +1805,7 @@ window.exploreDir = async (basePath, containerId) => {
                     ${icon} ${escapeHtml(f.name)}
                 </span>
                 <button class="text-btn" style="font-size: 0.75rem; color: var(--brand-orange); padding: 2px 8px;" 
-                        onclick="openDocPath(${jsArg(fullPath)})">Abrir</button>
+                        onclick="openDocPath(${jsArg(fullPath)})">${getTranslation('btn_open')}</button>
             </div>
         `;
     }).join('');
@@ -1854,7 +1877,7 @@ elements.saveSettingsBtn.addEventListener('click', async () => {
     }
 
     renderOpportunities();
-    showToast('Ajustes guardados');
+    showToast(getTranslation('toast_settings_saved'));
 });
 
 function applyTheme(theme) {
@@ -1911,7 +1934,7 @@ function renderResources() {
     }
 
     currentConfig.resources.forEach((res, index) => {
-        const name = typeof res === 'object' ? (res.name || res.title || res.header || 'Recurso') : String(res);
+        const name = typeof res === 'object' ? (res.name || res.title || res.header || getTranslation('label_resource_default')) : String(res);
         const content = typeof res === 'object' ? (res.content || res.url || res.link || res.value || '') : String(res);
 
         if (query) {
@@ -2042,7 +2065,9 @@ function applyLanguage(langCode) {
         const key = el.getAttribute('data-i18n');
         const prop = el.getAttribute('data-i18n-prop') || 'textContent';
         if (langStrings[key]) {
-            el[prop] = langStrings[key];
+            // Properties like textContent/placeholder on inputs; plain attributes otherwise (e.g. placeholder on a contenteditable div)
+            if (prop in el) el[prop] = langStrings[key];
+            else el.setAttribute(prop, langStrings[key]);
         }
     });
 
@@ -2052,11 +2077,15 @@ function applyLanguage(langCode) {
     }
 }
 
-function getTranslation(key) {
+// getTranslation('toast_x', { name: 'Acme' }) fills {name} placeholders.
+// Missing keys fall back to Spanish (the most complete language) before showing the raw key.
+function getTranslation(key, params) {
     if (typeof translations === 'undefined') return key;
     const lang = (elements && elements.languageSelect) ? elements.languageSelect.value : 'es_MX';
     const langStrings = translations[lang] || translations['es_MX'];
-    return langStrings[key] || key;
+    const text = langStrings[key] || translations['es_MX'][key] || key;
+    if (!params) return text;
+    return text.replace(/\{(\w+)\}/g, (match, name) => (name in params ? params[name] : match));
 }
 
 elements.closeDetailsBtn.addEventListener('click', () => {
@@ -2294,7 +2323,7 @@ async function processCsvImport(data, mappings) {
     await window.electronAPI.saveFile(currentConfig.directory, 'opportunities.json', currentConfig.opportunities);
     updateStageSubmenu();
     renderOpportunities();
-    showToast('CSV importado correctamente');
+    showToast(getTranslation('toast_csv_imported'));
     elements.csvInput.value = '';
 }
 
@@ -2360,7 +2389,7 @@ window.moveStructureItem = async (index, direction) => {
     // Auto-save structure
     if (currentConfig.directory) {
         await window.electronAPI.saveFile(currentConfig.directory, 'structure.json', currentConfig.dataStructure);
-        showToast('Orden guardado');
+        showToast(getTranslation('toast_order_saved'));
     }
 };
 
@@ -2396,7 +2425,7 @@ elements.saveStructureBtn.addEventListener('click', async () => {
 
     currentConfig.dataStructure = newStructure;
     await window.electronAPI.saveFile(currentConfig.directory, 'structure.json', newStructure);
-    showToast('Estructura de datos guardada');
+    showToast(getTranslation('toast_structure_saved'));
     renderOpportunities();
 });
 
@@ -2460,10 +2489,10 @@ function formatValue(value, type, opp) {
 }
 
 elements.resetStructureBtn.addEventListener('click', async () => {
-    if (confirm('¿Estás seguro de que deseas restablecer la estructura a los 15 campos estándar? Se perderán tus cambios personalizados no guardados.')) {
+    if (confirm(getTranslation('confirm_reset_structure'))) {
         currentConfig.dataStructure = JSON.parse(JSON.stringify(STANDARD_STRUCTURE));
         renderStructureEditor();
-        showToast('Estructura estándar aplicada (pulsa Guardar para confirmar)');
+        showToast(getTranslation('toast_structure_reset'));
     }
 });
 
@@ -2535,8 +2564,8 @@ function renderGlobalNotesHistory() {
 
     for (const oppId in currentConfig.materials) {
         const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
-        const name = opp ? opp['Opportunity Name'] : 'Oportunidad Desconocida';
-        const account = opp ? opp['Account Name'] : 'Sin Cuenta';
+        const name = opp ? opp['Opportunity Name'] : getTranslation('label_unknown_opp');
+        const account = opp ? opp['Account Name'] : getTranslation('label_no_account');
         const stage = opp ? opp['Stage'] : '';
         const mat = currentConfig.materials[oppId];
         const base = { oppId, oppName: name, accountName: account, stage, isActivity: true };
@@ -2620,9 +2649,9 @@ function renderGlobalNotesHistory() {
         }
     });
 
-    if (!elements.historyWeek.children.length) elements.historyWeek.innerHTML = '<p class="sub-text" style="padding: 1rem;">No hay actividad esta semana.</p>';
-    if (!elements.historyMonth.children.length) elements.historyMonth.innerHTML = '<p class="sub-text" style="padding: 1rem;">No hay actividad este mes.</p>';
-    if (!elements.historyYear.children.length) elements.historyYear.innerHTML = '<p class="sub-text" style="padding: 1rem;">No hay actividad este año.</p>';
+    if (!elements.historyWeek.children.length) elements.historyWeek.innerHTML = `<p class="sub-text" style="padding: 1rem;">${getTranslation('msg_no_activity_week')}</p>`;
+    if (!elements.historyMonth.children.length) elements.historyMonth.innerHTML = `<p class="sub-text" style="padding: 1rem;">${getTranslation('msg_no_activity_month')}</p>`;
+    if (!elements.historyYear.children.length) elements.historyYear.innerHTML = `<p class="sub-text" style="padding: 1rem;">${getTranslation('msg_no_activity_year')}</p>`;
 }
 
 function toggleSort(header) {
@@ -2739,7 +2768,7 @@ function renderOpportunities() {
 
     if (!currentConfig.opportunities || currentConfig.opportunities.length === 0) {
         console.warn("Renderer: No opportunities to render.");
-        elements.oppListBody.innerHTML = `<tr><td colspan="100" style="text-align:center; padding: 2rem; opacity: 0.5;">No hay oportunidades cargadas. Por favor, importa un archivo CSV o selecciona un directorio válido.</td></tr>`;
+        elements.oppListBody.innerHTML = `<tr><td colspan="100" style="text-align:center; padding: 2rem; opacity: 0.5;">${getTranslation('msg_no_opps_loaded')}</td></tr>`;
         return;
     }
 
@@ -2907,7 +2936,7 @@ function renderOpportunities() {
         const startIdx = (currentConfig.currentPage - 1) * itemsPerPage;
         const paginatedOpps = filteredOpps.slice(startIdx, startIdx + itemsPerPage);
         
-        elements.oppPageInfo.textContent = `Página ${currentConfig.currentPage} de ${totalPages} (${totalItems} total)`;
+        elements.oppPageInfo.textContent = getTranslation('label_page_info', { page: currentConfig.currentPage, pages: totalPages, total: totalItems });
         elements.oppPrevBtn.disabled = currentConfig.currentPage === 1;
         elements.oppNextBtn.disabled = currentConfig.currentPage === totalPages;
 
@@ -2924,7 +2953,7 @@ function renderOpportunityGroups(opps, visibleCols) {
     
     // Group filtered opportunities by Account ID
     const groups = opps.reduce((acc, opp) => {
-        const accountId = opp['Account ID'] || 'Sin Account ID';
+        const accountId = opp['Account ID'] || getTranslation('label_no_account_id');
         if (!acc[accountId]) acc[accountId] = [];
         acc[accountId].push(opp);
         return acc;
@@ -2932,7 +2961,7 @@ function renderOpportunityGroups(opps, visibleCols) {
 
     Object.keys(groups).forEach(accountId => {
         const group = groups[accountId];
-        const accountName = group[0]['Account Name'] || 'Sin Nombre de Cuenta';
+        const accountName = group[0]['Account Name'] || getTranslation('label_no_account_name');
 
         // Render Account Header Row
         const headerTr = document.createElement('tr');
@@ -2948,11 +2977,11 @@ function renderOpportunityGroups(opps, visibleCols) {
                     <span style="display: flex; align-items: center;">
                         <span class="toggle-icon">▾</span>
                         🏢 ${escapeHtml(accountName)} <span class="sub-text" style="margin-left: 0.5rem;">(${escapeHtml(accountId)})</span>
-                        <button class="attack-plan-btn ${hasAttackPlan ? 'active' : ''}" onclick="event.stopPropagation(); openAttackPlan(${jsArg(accountId)})" title="Plan de Ataque de Cuenta">🎯</button>
-                        <button class="account-contacts-btn" onclick="event.stopPropagation(); openAccountContacts(${jsArg(accountId)})" title="Contactos de la Cuenta">👥</button>
+                        <button class="attack-plan-btn ${hasAttackPlan ? 'active' : ''}" onclick="event.stopPropagation(); openAttackPlan(${jsArg(accountId)})" title="${getTranslation('title_attack_plan')}">🎯</button>
+                        <button class="account-contacts-btn" onclick="event.stopPropagation(); openAccountContacts(${jsArg(accountId)})" title="${getTranslation('title_account_contacts')}">👥</button>
                     </span>
                     <select class="account-category-select" data-account-id="${escapeHtml(accountId)}" onclick="event.stopPropagation()">
-                        <option value="" disabled ${!currentCategory ? 'selected' : ''}>Categorizar cuenta...</option>
+                        <option value="" disabled ${!currentCategory ? 'selected' : ''}>${getTranslation('placeholder_categorize_account')}</option>
                         ${options.filter(o => o).map(opt => `<option value="${escapeHtml(opt)}" ${currentCategory === opt ? 'selected' : ''}>${escapeHtml(opt)}</option>`).join('')}
                     </select>
                 </div>
@@ -2977,7 +3006,7 @@ function renderOpportunityGroups(opps, visibleCols) {
                 lastUpdated: new Date().toISOString()
             };
             await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-            showToast(`Cuenta ${accountId} marcada como ${newCategory}`);
+            showToast(getTranslation('toast_account_categorized', { account: accountId, category: newCategory }));
             renderOpportunities();
         };
 
@@ -3018,7 +3047,7 @@ function renderOpportunityGroups(opps, visibleCols) {
                     if (col.header === 'Opportunity ID') {
                         colsHtml += `<td style="padding-left: 2rem;">• ${escapeHtml(formatted)}</td>`;
                     } else if (col.header === 'Opportunity Name') {
-                        colsHtml += `<td>${escapeHtml(formatted || 'Sin Nombre')}</td>`;
+                        colsHtml += `<td>${escapeHtml(formatted || getTranslation('label_no_name'))}</td>`;
                     } else {
                         colsHtml += `<td>${escapeHtml(formatted)}</td>`;
                     }
@@ -3028,7 +3057,7 @@ function renderOpportunityGroups(opps, visibleCols) {
                 ${colsHtml}
                 <td>
                     <div style="display: flex; gap: 0.5rem; align-items: center;" onclick="event.stopPropagation()">
-                        <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite(${jsArg(oppId)})" title="Marcar como favorito">
+                        <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite(${jsArg(oppId)})" title="${getTranslation('title_mark_favorite')}">
                             ${currentConfig.favorites.includes(oppId) ? '★' : '☆'}
                         </button>
                         <button class="primary-btn small" onclick="openNotes(${jsArg(oppId)})" data-i18n="btn_notes">${getTranslation('btn_notes') || 'Notas'}</button>
@@ -3075,53 +3104,53 @@ function renderMeddItems(type) {
 
         if (type === 'm') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.desc)}" placeholder="Descripción" onchange="updateMeddItem('m', ${idx}, 'desc', this.value)">
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.value)}" placeholder="Valor/Objetivo" onchange="updateMeddItem('m', ${idx}, 'value', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.desc)}" placeholder="${getTranslation('label_description')}" onchange="updateMeddItem('m', ${idx}, 'desc', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.value)}" placeholder="${getTranslation('placeholder_target_value')}" onchange="updateMeddItem('m', ${idx}, 'value', this.value)">
             `;
         } else if (type === 'd1') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.req)}" placeholder="Requerimiento" onchange="updateMeddItem('d1', ${idx}, 'req', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.req)}" placeholder="${getTranslation('placeholder_requirement')}" onchange="updateMeddItem('d1', ${idx}, 'req', this.value)">
                 <input type="number" min="1" max="5" class="medd-row-input" style="flex: 0 0 60px" value="${escapeHtml(item.priority || 1)}" onchange="updateMeddItem('d1', ${idx}, 'priority', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('d1', ${idx}, 'status', this.value)">
-                    <option value="Cumple" ${item.status === 'Cumple' ? 'selected' : ''}>Cumple</option>
-                    <option value="Parcial" ${item.status === 'Parcial' ? 'selected' : ''}>Parcial</option>
-                    <option value="No Cumple" ${item.status === 'No Cumple' ? 'selected' : ''}>No Cumple</option>
+                    <option value="Cumple" ${item.status === 'Cumple' ? 'selected' : ''}>${getTranslation('opt_met')}</option>
+                    <option value="Parcial" ${item.status === 'Parcial' ? 'selected' : ''}>${getTranslation('opt_partial')}</option>
+                    <option value="No Cumple" ${item.status === 'No Cumple' ? 'selected' : ''}>${getTranslation('opt_not_met')}</option>
                 </select>
             `;
         } else if (type === 'd2') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.step)}" placeholder="Paso" onchange="updateMeddItem('d2', ${idx}, 'step', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.step)}" placeholder="${getTranslation('placeholder_step')}" onchange="updateMeddItem('d2', ${idx}, 'step', this.value)">
                 <input type="date" class="medd-row-input" value="${escapeHtml(item.date)}" onchange="updateMeddItem('d2', ${idx}, 'date', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('d2', ${idx}, 'status', this.value)">
-                    <option value="Planeado" ${item.status === 'Planeado' ? 'selected' : ''}>Planeado</option>
-                    <option value="Completado" ${item.status === 'Completado' ? 'selected' : ''}>Completado</option>
+                    <option value="Planeado" ${item.status === 'Planeado' ? 'selected' : ''}>${getTranslation('opt_planned')}</option>
+                    <option value="Completado" ${item.status === 'Completado' ? 'selected' : ''}>${getTranslation('opt_done')}</option>
                 </select>
             `;
         } else if (type === 'p') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.stage)}" placeholder="Hito/Etapa" onchange="updateMeddItem('p', ${idx}, 'stage', this.value)">
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.owner)}" placeholder="Dueño" onchange="updateMeddItem('p', ${idx}, 'owner', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.stage)}" placeholder="${getTranslation('placeholder_milestone_stage')}" onchange="updateMeddItem('p', ${idx}, 'stage', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.owner)}" placeholder="${getTranslation('placeholder_owner')}" onchange="updateMeddItem('p', ${idx}, 'owner', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('p', ${idx}, 'status', this.value)">
-                    <option value="Pendiente" ${item.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                    <option value="En Proceso" ${item.status === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
-                    <option value="Firmado" ${item.status === 'Firmado' ? 'selected' : ''}>Firmado</option>
+                    <option value="Pendiente" ${item.status === 'Pendiente' ? 'selected' : ''}>${getTranslation('opt_pending')}</option>
+                    <option value="En Proceso" ${item.status === 'En Proceso' ? 'selected' : ''}>${getTranslation('opt_in_progress')}</option>
+                    <option value="Firmado" ${item.status === 'Firmado' ? 'selected' : ''}>${getTranslation('opt_signed')}</option>
                 </select>
             `;
         } else if (type === 'i') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.pain)}" placeholder="Dolor" onchange="updateMeddItem('i', ${idx}, 'pain', this.value)">
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.impact)}" placeholder="Impacto" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.pain)}" placeholder="${getTranslation('placeholder_pain')}" onchange="updateMeddItem('i', ${idx}, 'pain', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.impact)}" placeholder="${getTranslation('placeholder_impact')}" onchange="updateMeddItem('i', ${idx}, 'impact', this.value)">
                 <select class="medd-row-select" onchange="updateMeddItem('i', ${idx}, 'urgency', this.value)">
-                    <option value="Baja" ${item.urgency === 'Baja' ? 'selected' : ''}>Baja</option>
-                    <option value="Medio" ${item.urgency === 'Medio' ? 'selected' : ''}>Medio</option>
-                    <option value="Alta" ${item.urgency === 'Alta' ? 'selected' : ''}>Alta</option>
+                    <option value="Baja" ${item.urgency === 'Baja' ? 'selected' : ''}>${getTranslation('opt_low')}</option>
+                    <option value="Medio" ${item.urgency === 'Medio' ? 'selected' : ''}>${getTranslation('opt_medium_f')}</option>
+                    <option value="Alta" ${item.urgency === 'Alta' ? 'selected' : ''}>${getTranslation('opt_high')}</option>
                 </select>
             `;
         } else if (type === 'c2') {
             row.innerHTML = `
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.competitor)}" placeholder="Competidor" onchange="updateMeddItem('c2', ${idx}, 'competitor', this.value)">
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.advantage)}" placeholder="Nuestra Ventaja" onchange="updateMeddItem('c2', ${idx}, 'advantage', this.value)">
-                <input type="text" class="medd-row-input" value="${escapeHtml(item.weakness)}" placeholder="Su Debilidad" onchange="updateMeddItem('c2', ${idx}, 'weakness', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.competitor)}" placeholder="${getTranslation('placeholder_competitor')}" onchange="updateMeddItem('c2', ${idx}, 'competitor', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.advantage)}" placeholder="${getTranslation('placeholder_our_advantage')}" onchange="updateMeddItem('c2', ${idx}, 'advantage', this.value)">
+                <input type="text" class="medd-row-input" value="${escapeHtml(item.weakness)}" placeholder="${getTranslation('placeholder_their_weakness')}" onchange="updateMeddItem('c2', ${idx}, 'weakness', this.value)">
             `;
         }
 
@@ -3317,7 +3346,7 @@ elements.saveOppDescriptionBtn.onclick = async () => {
     currentConfig.materials[activeOppId].description = elements.oppDescription.value.trim();
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast('Explicación guardada correctamente');
+    showToast(getTranslation('toast_explanation_saved'));
 };
 
 // Save MEDDPICC
@@ -3436,20 +3465,20 @@ function renderAssessmentQuestions(data) {
                                 <input type="checkbox" class="assessment-val-cb" data-id="${escapeHtml(q.id)}" ${savedValue.val === true ? 'checked' : ''}>
                                 <span class="slider"></span>
                             </label>
-                            <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="Notas adicionales...">${escapeHtml(savedValue.notes)}</textarea>
+                            <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="${getTranslation('placeholder_additional_notes')}">${escapeHtml(savedValue.notes)}</textarea>
                         </div>
                     `;
                 } else if (q.type === 'quantity') {
                     inputHtml = `
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <input type="number" class="assessment-val-num form-input" data-id="${escapeHtml(q.id)}" style="width: 120px;" placeholder="Cantidad" value="${escapeHtml(savedValue.val)}">
-                            <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="Detalles...">${escapeHtml(savedValue.notes)}</textarea>
+                            <input type="number" class="assessment-val-num form-input" data-id="${escapeHtml(q.id)}" style="width: 120px;" placeholder="${getTranslation('placeholder_quantity')}" value="${escapeHtml(savedValue.val)}">
+                            <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="${getTranslation('placeholder_details')}">${escapeHtml(savedValue.notes)}</textarea>
                         </div>
                     `;
                 } else {
                     // Default open
                     inputHtml = `
-                        <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="Respuesta...">${escapeHtml(typeof savedValue === 'string' ? savedValue : savedValue.notes)}</textarea>
+                        <textarea class="assessment-answer" data-id="${escapeHtml(q.id)}" placeholder="${getTranslation('placeholder_answer')}">${escapeHtml(typeof savedValue === 'string' ? savedValue : savedValue.notes)}</textarea>
                     `;
                 }
 
@@ -3605,12 +3634,12 @@ elements.generateAssessmentDocBtn.onclick = async () => {
 
     try {
         elements.generateAssessmentDocBtn.disabled = true;
-        elements.generateAssessmentDocBtn.textContent = 'Generando...';
+        elements.generateAssessmentDocBtn.textContent = getTranslation('btn_generating');
 
         // 1. PDF
         const pdfBlob = await generateDoc('PDF');
         const pdfUrl = URL.createObjectURL(pdfBlob);
-        showToast('Documento Assessment generado');
+        showToast(getTranslation('toast_assessment_doc_generated'));
 
         elements.viewAssessmentPdfBtn.classList.remove('hidden');
         elements.downloadAssessmentDocxBtn.classList.remove('hidden');
@@ -3646,10 +3675,10 @@ elements.generateAssessmentDocBtn.onclick = async () => {
 
         elements.viewAssessmentPdfBtn.click();
     } catch (error) {
-        showToast(`Error: ${error.message}`, 'error');
+        showToast(getTranslation('toast_error', { error: error.message }), 'error');
     } finally {
         elements.generateAssessmentDocBtn.disabled = false;
-        elements.generateAssessmentDocBtn.textContent = 'Generar Documento';
+        elements.generateAssessmentDocBtn.textContent = getTranslation('btn_generate_doc');
     }
 };
 
@@ -3741,8 +3770,8 @@ window.editNote = (index) => {
         <div class="note-edit-container">
             <textarea class="note-edit-textarea" id="edit-textarea-${index}">${escapeHtml(originalText)}</textarea>
             <div class="note-edit-actions" style="margin-top: 0.5rem;">
-                <button class="secondary-btn small" onclick="renderNotes()">Cancelar</button>
-                <button class="primary-btn small" onclick="saveEditedNote(${index})">Guardar</button>
+                <button class="secondary-btn small" onclick="renderNotes()">${getTranslation('btn_cancel')}</button>
+                <button class="primary-btn small" onclick="saveEditedNote(${index})">${getTranslation('btn_save')}</button>
             </div>
         </div>
     `;
@@ -3764,7 +3793,7 @@ window.saveEditedNote = async (index) => {
     history[index].updatedAt = new Date().toISOString();
 
     await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
-    showToast('Nota actualizada');
+    showToast(getTranslation('toast_note_updated'));
     renderNotes();
 };
 
@@ -3772,19 +3801,20 @@ window.deleteNote = async (index) => {
     const history = currentConfig.notes[activeOppId];
     if (!history || !history[index]) return;
 
-    if (confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
+    if (confirm(getTranslation('confirm_delete_note'))) {
         history.splice(index, 1);
         if (history.length === 0) delete currentConfig.notes[activeOppId];
 
         await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
-        showToast('Nota eliminada');
+        showToast(getTranslation('toast_note_deleted'));
         renderNotes();
     }
 };
 
 elements.addNoteBtn.addEventListener('click', async () => {
-    const text = elements.newNoteInput.innerHTML.trim();
-    if (!text || text === '<br>') return;
+    const text = elements.newNoteInput.value.trim(); // kept in sync by the LuxeEditor
+    const hasContent = newNoteEditor && (newNoteEditor.editor.textContent.trim() || newNoteEditor.editor.querySelector('img'));
+    if (!text || !hasContent) return;
 
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === activeOppId);
     const currentStage = activeOppId === 'global' ? '-' : (opp ? opp['Stage'] : 'N/A');
@@ -3797,7 +3827,8 @@ elements.addNoteBtn.addEventListener('click', async () => {
     });
 
     await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
-    elements.newNoteInput.innerHTML = '';
+    elements.newNoteInput.value = '';
+    newNoteEditor.editor.innerHTML = '';
     renderNotes();
 });
 
@@ -3810,7 +3841,7 @@ window.openActivities = (oppId, initialTab = 'tab-assessment') => {
     const opp = currentConfig.opportunities.find(o => o['Opportunity ID'] === oppId);
     if (!opp) return;
 
-    elements.activitiesModalTitle.textContent = `Actividades: ${opp['Opportunity Name'] || oppId}`;
+    elements.activitiesModalTitle.textContent = getTranslation('title_activities_for', { name: opp['Opportunity Name'] || oppId });
 
     // Set active tab
     elements.activitiesModal.querySelectorAll('.tab-btn').forEach(b => {
@@ -3848,10 +3879,10 @@ window.toggleFavorite = async (oppId) => {
     const index = currentConfig.favorites.indexOf(oppId);
     if (index > -1) {
         currentConfig.favorites.splice(index, 1);
-        showToast('Eliminado de favoritos');
+        showToast(getTranslation('toast_favorite_removed'));
     } else {
         currentConfig.favorites.push(oppId);
-        showToast('Agregado a favoritos ⭐');
+        showToast(getTranslation('toast_favorite_added'));
     }
     await window.electronAPI.saveFile(currentConfig.directory, 'favorites.json', currentConfig.favorites);
     renderOpportunities();
@@ -3865,12 +3896,12 @@ function renderPocsList() {
     pocs.forEach((poc, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${sanitizeHtml(poc.objective || 'Sin objetivo')}</td>
+            <td>${sanitizeHtml(poc.objective || escapeHtml(getTranslation('label_no_objective')))}</td>
             <td>${escapeHtml(poc.timeline && poc.timeline[0] ? poc.timeline[0].date : '-')}</td>
             <td>${escapeHtml(poc.stakeholders && poc.stakeholders[0] ? poc.stakeholders[0].name : '-')}</td>
             <td style="text-align: right;">
-                <button class="text-btn" onclick="editPoc(${index})" style="color: var(--brand-orange);">Editar</button>
-                <button class="text-btn" onclick="deletePoc(${index})" style="color: #ff4d4d; margin-left: 0.5rem;">Borrar</button>
+                <button class="text-btn" onclick="editPoc(${index})" style="color: var(--brand-orange);">${getTranslation('btn_edit')}</button>
+                <button class="text-btn" onclick="deletePoc(${index})" style="color: #ff4d4d; margin-left: 0.5rem;">${getTranslation('btn_delete')}</button>
             </td>
         `;
         elements.pocsListBody.appendChild(tr);
@@ -3934,7 +3965,7 @@ window.editPoc = (index) => {
 };
 
 window.deletePoc = async (index) => {
-    if (!confirm('¿Seguro que deseas eliminar esta PoC?')) return;
+    if (!confirm(getTranslation('confirm_delete_poc'))) return;
     currentConfig.materials[activeOppId].pocs.splice(index, 1);
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
     renderPocsList();
@@ -4017,7 +4048,7 @@ elements.savePocDetailBtn.onclick = async () => {
     }
 
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-    showToast('PoC guardada');
+    showToast(getTranslation('toast_poc_saved'));
     elements.pocDetailModal.classList.add('hidden');
     renderPocsList();
 };
@@ -4033,10 +4064,10 @@ function renderPocSimpleList(container, items, type) {
             row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
             row.innerHTML = `
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="text" class="scope-title-input" value="${escapeHtml(scopeItem.title)}" placeholder="Título del alcance..." style="flex: 1;">
+                    <input type="text" class="scope-title-input" value="${escapeHtml(scopeItem.title)}" placeholder="${getTranslation('placeholder_scope_title')}" style="flex: 1;">
                     <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
                 </div>
-                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;">${escapeHtml(scopeItem.description)}</textarea>
+                <textarea class="scope-desc-input" placeholder="${getTranslation('placeholder_scope_desc')}" rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;">${escapeHtml(scopeItem.description)}</textarea>
             `;
             container.appendChild(row);
         });
@@ -4046,7 +4077,7 @@ function renderPocSimpleList(container, items, type) {
             const row = document.createElement('div');
             row.className = 'list-item-row';
             row.innerHTML = `
-                <input type="text" value="${escapeHtml(item)}" placeholder="Agregar item...">
+                <input type="text" value="${escapeHtml(item)}" placeholder="${getTranslation('placeholder_add_item')}">
                 <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
             `;
             container.appendChild(row);
@@ -4062,8 +4093,8 @@ function renderPocScopeList(container, items, type) {
         row.className = 'list-item-row';
         row.innerHTML = `
             <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
-                <input type="text" class="title-input" value="${escapeHtml(item.title)}" placeholder="Título del Alcance">
-                <textarea class="desc-input" placeholder="Descripción detallada...">${escapeHtml(item.description)}</textarea>
+                <input type="text" class="title-input" value="${escapeHtml(item.title)}" placeholder="${getTranslation('placeholder_scope_title')}">
+                <textarea class="desc-input" placeholder="${getTranslation('placeholder_detailed_desc')}">${escapeHtml(item.description)}</textarea>
             </div>
             <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
         `;
@@ -4139,10 +4170,10 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
             row.style.cssText = 'display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.6rem;';
             row.innerHTML = `
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="text" class="scope-title-input" placeholder="Título del alcance..." style="flex: 1;">
+                    <input type="text" class="scope-title-input" placeholder="${getTranslation('placeholder_scope_title')}" style="flex: 1;">
                     <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
                 </div>
-                <textarea class="scope-desc-input" placeholder="Descripción del alcance..." rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;"></textarea>
+                <textarea class="scope-desc-input" placeholder="${getTranslation('placeholder_scope_desc')}" rows="2" style="width: 100%; resize: vertical; font-size: 0.85rem;"></textarea>
             `;
             container.appendChild(row);
         } else if (type === 'resources') {
@@ -4150,8 +4181,8 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
             row.className = 'list-item-row';
             row.innerHTML = `
                 <div style="display: flex; flex-direction: column; width: 100%; gap: 0.5rem;">
-                    <input type="text" class="title-input" placeholder="Título del Alcance">
-                    <textarea class="desc-input" placeholder="Descripción detallada..."></textarea>
+                    <input type="text" class="title-input" placeholder="${getTranslation('placeholder_scope_title')}">
+                    <textarea class="desc-input" placeholder="${getTranslation('placeholder_detailed_desc')}"></textarea>
                 </div>
                 <button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>
             `;
@@ -4159,13 +4190,13 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
         } else if (type === 'resources') {
             const row = document.createElement('div');
             row.className = 'list-item-row';
-            row.innerHTML = `<input type="text" placeholder="Agregar recurso..."><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
+            row.innerHTML = `<input type="text" placeholder="${getTranslation('placeholder_add_resource')}"><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
             container.appendChild(row);
         } else {
             const row = document.createElement('div');
             row.className = 'list-item-row';
             const datalist = type === 'squad' ? 'list="responsibles-list"' : '';
-            row.innerHTML = `<input type="text" class="name-input" placeholder="Nombre" ${datalist}><input type="text" class="role-input" placeholder="Responsabilidad"><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
+            row.innerHTML = `<input type="text" class="name-input" placeholder="${getTranslation('placeholder_name')}" ${datalist}><input type="text" class="role-input" placeholder="${getTranslation('placeholder_responsibility')}"><button type="button" class="remove-item-btn" onclick="removePocListItem(this, '${type}')">&times;</button>`;
             container.appendChild(row);
         }
     };
@@ -4174,7 +4205,7 @@ document.querySelectorAll('.add-list-item').forEach(btn => {
 elements.addPocTimelineBtn.onclick = () => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-        <td><input type="text" class="activity-input act" placeholder="Milestone"></td>
+        <td><input type="text" class="activity-input act" placeholder="${getTranslation('placeholder_milestone_short')}"></td>
         <td><input type="date" class="activity-input start-date"></td>
         <td><input type="date" class="activity-input date"></td>
         <td><input type="text" class="activity-input comm" placeholder="..."></td>
@@ -4280,7 +4311,7 @@ elements.generateFoTicketBtn.onclick = async () => {
 
         // 1. First, generate PDF for preview
         const pdfBlob = await generateDocument('PDF');
-        showToast('Documento generado exitosamente');
+        showToast(getTranslation('toast_doc_generated'));
 
         const pdfUrl = URL.createObjectURL(pdfBlob);
 
@@ -4289,7 +4320,7 @@ elements.generateFoTicketBtn.onclick = async () => {
 
         elements.viewFoTicketBtn.onclick = () => {
             elements.ticketIframe.src = pdfUrl;
-            elements.ticketViewTitle.textContent = "Previsualización PDF";
+            elements.ticketViewTitle.textContent = getTranslation('title_pdf_preview');
             elements.ticketViewUrl.textContent = `PoC_${activeOppId}.pdf`;
             elements.ticketViewModal.classList.remove('hidden');
             elements.ticketIframe.classList.remove('hidden');
@@ -4326,7 +4357,7 @@ elements.generateFoTicketBtn.onclick = async () => {
 
     } catch (error) {
         console.error("FO API Error:", error);
-        showToast(`Error: ${error.message}`, 'error');
+        showToast(getTranslation('toast_error', { error: error.message }), 'error');
     } finally {
         elements.generateFoTicketBtn.disabled = false;
         elements.generateFoTicketBtn.innerHTML = `<i class="fas fa-sync"></i> ${getTranslation('btn_generate_document')}`;
@@ -4355,7 +4386,7 @@ window.addEventListener("message", (event) => {
         if (eventData.type === "closed") {
             elements.ticketViewModal.classList.add('hidden');
             elements.ticketIframe.src = 'about:blank';
-            showToast(`Ticket ${eventData.ticketId || ''} cerrado`);
+            showToast(getTranslation('toast_ticket_closed', { id: eventData.ticketId || '' }));
         }
     }
 });
@@ -4583,7 +4614,7 @@ if (elements.saveMedpiccBtn) {
         };
 
         await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-        showToast('Calificación (MEDDPICC) guardada');
+        showToast(getTranslation('toast_meddpicc_saved'));
     };
 }
 
@@ -4734,11 +4765,11 @@ elements.generateFoTicketBtn.onclick = async () => {
 
     try {
         elements.generateFoTicketBtn.disabled = true;
-        elements.generateFoTicketBtn.textContent = 'Generando...';
+        elements.generateFoTicketBtn.textContent = getTranslation('btn_generating');
 
         // 1. First, generate PDF for preview
         const pdfBlob = await generateDocument('PDF');
-        showToast('Documento generado exitosamente');
+        showToast(getTranslation('toast_doc_generated'));
 
         const pdfUrl = URL.createObjectURL(pdfBlob);
 
@@ -4747,7 +4778,7 @@ elements.generateFoTicketBtn.onclick = async () => {
 
         elements.viewFoTicketBtn.onclick = () => {
             elements.ticketIframe.src = pdfUrl;
-            elements.ticketViewTitle.textContent = "Previsualización PDF";
+            elements.ticketViewTitle.textContent = getTranslation('title_pdf_preview');
             elements.ticketViewUrl.textContent = `PoC_${activeOppId}.pdf`;
             elements.ticketViewModal.classList.remove('hidden');
             elements.ticketIframe.classList.remove('hidden');
@@ -4784,10 +4815,10 @@ elements.generateFoTicketBtn.onclick = async () => {
 
     } catch (error) {
         console.error("FO API Error:", error);
-        showToast(`Error: ${error.message}`, 'error');
+        showToast(getTranslation('toast_error', { error: error.message }), 'error');
     } finally {
         elements.generateFoTicketBtn.disabled = false;
-        elements.generateFoTicketBtn.textContent = 'Generar Documento';
+        elements.generateFoTicketBtn.textContent = getTranslation('btn_generate_doc');
     }
 };
 
@@ -4921,7 +4952,7 @@ function renderDayAgenda(year, month, day) {
             <div class="agenda-dot-col">
                 <span class="agenda-dot dot-${escapeHtml(act.type)}"></span>
             </div>
-            <span class="agenda-time">Todo el día</span>
+            <span class="agenda-time">${getTranslation('label_all_day')}</span>
             <span class="agenda-title">${escapeHtml(act.activity)}</span>
             <span class="agenda-opp-name">${escapeHtml(act.oppName)}</span>
         </div>
@@ -5163,15 +5194,15 @@ function renderAttackPlanActivities() {
     currentAttackPlanData.activities.forEach((act, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="text" class="activity-input" value="${escapeHtml(act.name)}" onchange="updateAttackActivity(${idx}, 'name', this.value)" placeholder="Hito/Actividad"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(act.name)}" onchange="updateAttackActivity(${idx}, 'name', this.value)" placeholder="${getTranslation('placeholder_milestone_activity')}"></td>
             <td><input type="date" class="activity-input" value="${escapeHtml(act.startDate || act.date)}" onchange="updateAttackActivity(${idx}, 'startDate', this.value)"></td>
             <td><input type="date" class="activity-input" value="${escapeHtml(act.endDate)}" onchange="updateAttackActivity(${idx}, 'endDate', this.value)"></td>
-            <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="Comentarios...">${escapeHtml(act.comments)}</textarea></td>
+            <td><textarea class="activity-input" onchange="updateAttackActivity(${idx}, 'comments', this.value)" placeholder="${getTranslation('placeholder_comments')}">${escapeHtml(act.comments)}</textarea></td>
             <td style="white-space: nowrap;">
-                <button class="order-btn" onclick="moveAttackActivity(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Subir">▲</button>
-                <button class="order-btn" onclick="moveAttackActivity(${idx}, 1)" ${idx === currentAttackPlanData.activities.length - 1 ? 'disabled' : ''} title="Bajar">▼</button>
-                <button class="add-item-btn-inline" onclick="insertAttackActivity(${idx})" title="Insertar arriba">+</button>
-                <button class="remove-item-btn" onclick="removeAttackActivity(${idx})" title="Eliminar">&times;</button>
+                <button class="order-btn" onclick="moveAttackActivity(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="${getTranslation('btn_up')}">▲</button>
+                <button class="order-btn" onclick="moveAttackActivity(${idx}, 1)" ${idx === currentAttackPlanData.activities.length - 1 ? 'disabled' : ''} title="${getTranslation('btn_down')}">▼</button>
+                <button class="add-item-btn-inline" onclick="insertAttackActivity(${idx})" title="${getTranslation('title_insert_above')}">+</button>
+                <button class="remove-item-btn" onclick="removeAttackActivity(${idx})" title="${getTranslation('btn_delete')}">&times;</button>
             </td>
         `;
         elements.attackPlanActivitiesBody.appendChild(tr);
@@ -5240,7 +5271,7 @@ function renderAttackTimelineChart() {
         milestone.innerHTML = `
             <div class="milestone-content">
                 <div class="milestone-date">${escapeHtml(displayDate)}</div>
-                <h5>${escapeHtml(act.name || 'Hito')}</h5>
+                <h5>${escapeHtml(act.name || getTranslation('placeholder_milestone_short'))}</h5>
                 <div class="milestone-desc">${escapeHtml(act.comments)}</div>
             </div>
             <div class="milestone-dot" title="${escapeHtml(`${act.name}: ${startDateStr}${endDateStr ? ' al ' + endDateStr : ''}`)}"></div>
@@ -5286,7 +5317,7 @@ elements.saveAttackPlanBtn.onclick = async () => {
 
     await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
     renderAccountsWithPlan(); // Refresh view to reflect group changes
-    showToast('Plan de Ataque guardado correctamente');
+    showToast(getTranslation('toast_attack_plan_saved'));
     elements.attackPlanModal.classList.add('hidden');
     renderOpportunities();
 };
@@ -5294,11 +5325,11 @@ elements.saveAttackPlanBtn.onclick = async () => {
 elements.resetAttackPlanBtn.onclick = async () => {
     if (!activeAccountId) return;
 
-    if (confirm('¿Estás seguro de que deseas borrar todos los datos de este Plan de Ataque? Esto hará que la cuenta ya no aparezca en la sección "Planes de Cuenta".')) {
+    if (confirm(getTranslation('confirm_delete_attack_plan'))) {
         if (currentConfig.accounts[activeAccountId]) {
             delete currentConfig.accounts[activeAccountId].attackPlan;
             await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-            showToast('Plan de Ataque eliminado');
+            showToast(getTranslation('toast_attack_plan_deleted'));
             elements.attackPlanModal.classList.add('hidden');
             renderOpportunities();
             // If we are in the attack plans view, refresh it
@@ -5321,7 +5352,7 @@ window.openAccountContacts = (accountId) => { console.log("Abriendo Contactos", 
     const account = currentConfig.accounts[accountId] || {};
     const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
 
-    elements.accountContactsModalTitle.textContent = `Contactos: ${accountName}`;
+    elements.accountContactsModalTitle.textContent = getTranslation('title_contacts_for', { name: accountName });
 
     // Load existing data or initialize
     currentContactsData = account.contacts ? JSON.parse(JSON.stringify(account.contacts)) : [];
@@ -5335,19 +5366,19 @@ function renderAccountContacts() {
     currentContactsData.forEach((contact, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><input type="text" class="activity-input" value="${escapeHtml(contact.name)}" onchange="updateAccountContact(${idx}, 'name', this.value)" placeholder="Nombre"></td>
-            <td><input type="text" class="activity-input" value="${escapeHtml(contact.position)}" onchange="updateAccountContact(${idx}, 'position', this.value)" placeholder="Posición"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(contact.name)}" onchange="updateAccountContact(${idx}, 'name', this.value)" placeholder="${getTranslation('placeholder_name')}"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(contact.position)}" onchange="updateAccountContact(${idx}, 'position', this.value)" placeholder="${getTranslation('label_contact_pos')}"></td>
             <td><input type="email" class="activity-input" value="${escapeHtml(contact.email)}" onchange="updateAccountContact(${idx}, 'email', this.value)" placeholder="Email"></td>
-            <td><input type="text" class="activity-input" value="${escapeHtml(contact.phone)}" onchange="updateAccountContact(${idx}, 'phone', this.value)" placeholder="Teléfono"></td>
+            <td><input type="text" class="activity-input" value="${escapeHtml(contact.phone)}" onchange="updateAccountContact(${idx}, 'phone', this.value)" placeholder="${getTranslation('label_contact_phone')}"></td>
             <td>
                 <select class="activity-input" onchange="updateAccountContact(${idx}, 'influence', this.value)">
-                    <option value="Bajo" ${contact.influence === 'Bajo' ? 'selected' : ''}>Bajo</option>
-                    <option value="Medio" ${contact.influence === 'Medio' ? 'selected' : ''}>Medio</option>
-                    <option value="Alto" ${contact.influence === 'Alto' ? 'selected' : ''}>Alto</option>
-                    <option value="Crítico" ${contact.influence === 'Crítico' ? 'selected' : ''}>Crítico</option>
+                    <option value="Bajo" ${contact.influence === 'Bajo' ? 'selected' : ''}>${getTranslation('label_influence_low')}</option>
+                    <option value="Medio" ${contact.influence === 'Medio' ? 'selected' : ''}>${getTranslation('label_influence_medium')}</option>
+                    <option value="Alto" ${contact.influence === 'Alto' ? 'selected' : ''}>${getTranslation('label_influence_high')}</option>
+                    <option value="Crítico" ${contact.influence === 'Crítico' ? 'selected' : ''}>${getTranslation('label_influence_critical')}</option>
                 </select>
             </td>
-            <td><textarea class="activity-input" onchange="updateAccountContact(${idx}, 'notes', this.value)" placeholder="Notas...">${escapeHtml(contact.notes)}</textarea></td>
+            <td><textarea class="activity-input" onchange="updateAccountContact(${idx}, 'notes', this.value)" placeholder="${getTranslation('placeholder_notes')}">${escapeHtml(contact.notes)}</textarea></td>
             <td><button class="remove-item-btn" onclick="removeAccountContact(${idx})">&times;</button></td>
         `;
         elements.accountContactsBody.appendChild(tr);
@@ -5433,7 +5464,7 @@ function renderAccountsWithPlan() {
     const accountsWithPlan = Object.entries(currentConfig.accounts).filter(([id, acc]) => acc.attackPlan);
 
     if (accountsWithPlan.length === 0) {
-        elements.accountsWithPlanList.innerHTML = '<p class="sub-text">No hay cuentas con plan de ataque definido.</p>';
+        elements.accountsWithPlanList.innerHTML = `<p class="sub-text">${getTranslation('msg_no_attack_plans')}</p>`;
         return;
     }
 
@@ -5464,7 +5495,7 @@ function renderAccountsWithPlan() {
         const groups = {};
         accountsWithPlan.forEach(([accountId, account]) => {
             const opp = currentConfig.opportunities.find(o => o['Account ID'] === accountId);
-            let groupValue = 'Sin asignar';
+            let groupValue = getTranslation('label_unassigned');
 
             // Prioritize attackPlan.currentOwner if grouping by "Opportunity Owner" or similar
             const isOwnerField = groupBy.toLowerCase().includes('owner');
@@ -5481,7 +5512,7 @@ function renderAccountsWithPlan() {
                         const dateB = parseCustomDate(b['Close Date']) || new Date(0);
                         return dateB - dateA;
                     });
-                    groupValue = accountOpps[0][groupBy] || 'Sin asignar';
+                    groupValue = accountOpps[0][groupBy] || getTranslation('label_unassigned');
                 }
             }
 
@@ -5520,20 +5551,20 @@ function createAccountPlanCard(accountId, account) {
     card.style.padding = '1.5rem';
     card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-            <h3 style="margin: 0; cursor: pointer; color: var(--brand-orange);" onclick="goToAccount(${jsArg(accountId)})" title="Ver oportunidades de esta cuenta">
+            <h3 style="margin: 0; cursor: pointer; color: var(--brand-orange);" onclick="goToAccount(${jsArg(accountId)})" title="${getTranslation('title_view_account_opps')}">
                 🏢 ${escapeHtml(accountName)}
             </h3>
-            <button class="primary-btn small" onclick="openAttackPlan(${jsArg(accountId)})">Ver Plan</button>
+            <button class="primary-btn small" onclick="openAttackPlan(${jsArg(accountId)})">${getTranslation('btn_view_plan')}</button>
         </div>
         <div class="sub-text" style="margin-bottom: 0.5rem;">
-            <strong>Responsable:</strong> ${escapeHtml(account.attackPlan.currentOwner || 'No definido')}
+            <strong>${getTranslation('label_responsible')}</strong> ${escapeHtml(account.attackPlan.currentOwner || getTranslation('label_not_defined'))}
         </div>
         <div class="sub-text" style="margin-bottom: 1rem;">
-            <strong>Estrategia:</strong> ${escapeHtml(account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : 'Sin estrategia definida')}
+            <strong>${getTranslation('label_strategy')}</strong> ${escapeHtml(account.attackPlan.strategy ? account.attackPlan.strategy.substring(0, 100) + '...' : getTranslation('label_no_strategy'))}
         </div>
         ${lastAct ? `
             <div style="font-size: 0.8rem; border-top: 1px solid var(--glass-border); padding-top: 0.5rem;">
-                <strong>Última/Próxima Actividad:</strong> ${escapeHtml(lastAct.name)} (${escapeHtml(lastAct.startDate || lastAct.date || 'Sin fecha')})
+                <strong>${getTranslation('label_last_next_activity')}</strong> ${escapeHtml(lastAct.name)} (${escapeHtml(lastAct.startDate || lastAct.date || getTranslation('label_no_date'))})
             </div>
         ` : ''}
     `;
@@ -5566,7 +5597,7 @@ async function renderHandoverTab(oppId) {
 
 elements.generateHandoverDocBtn.onclick = async () => {
     // Logic to consolidate everything into a PDF/DOCX handover
-    showToast('Generando Handover Document...');
+    showToast(getTranslation('toast_generating_handover'));
     // Real implementation would gather assessment + poC success + demo notes
 };
 
@@ -5589,7 +5620,7 @@ elements.exportDataBtn.onclick = async () => {
 
 elements.importDataBtn.onclick = async () => {
     // Implementation for JSON import
-    showToast('Funcionalidad de importación próxima...');
+    showToast(getTranslation('toast_import_coming_soon'));
 };
 
 
@@ -5630,7 +5661,7 @@ if (window.electronAPI && window.electronAPI.onUpdateAvailable) {
         console.log("Renderer: Update available", info);
         if (elements.updateBadge) elements.updateBadge.classList.remove('hidden');
         if (elements.updateMessage) {
-            elements.updateMessage.textContent = `Una nueva versión (${info.version}) está disponible. ¿Deseas descargarla ahora?`;
+            elements.updateMessage.textContent = getTranslation('msg_update_available_version', { version: info.version });
         }
         if (elements.confirmUpdateBtn) elements.confirmUpdateBtn.textContent = getTranslation('btn_download') || 'Descargar';
         if (elements.updateModal) elements.updateModal.classList.remove('hidden');
@@ -5646,7 +5677,7 @@ if (window.electronAPI && window.electronAPI.onUpdateDownloaded) {
             elements.updateBadge.classList.remove('hidden');
         }
         if (elements.updateMessage) {
-            elements.updateMessage.textContent = `La versión ${info.version} ha sido descargada. Reinicia para aplicar los cambios.`;
+            elements.updateMessage.textContent = getTranslation('msg_update_downloaded_version', { version: info.version });
         }
         if (elements.confirmUpdateBtn) elements.confirmUpdateBtn.classList.add('hidden');
         if (elements.installUpdateBtn) elements.installUpdateBtn.classList.remove('hidden');
@@ -5673,7 +5704,7 @@ if (window.electronAPI && window.electronAPI.onUpdateError) {
 if (elements.confirmUpdateBtn) {
     elements.confirmUpdateBtn.onclick = () => {
         window.electronAPI.downloadUpdate();
-        showToast('Iniciando descarga...');
+        showToast(getTranslation('toast_download_starting'));
         elements.confirmUpdateBtn.disabled = true;
     };
 }
@@ -5928,6 +5959,7 @@ class LuxeEditor {
         // Replace textarea if it is one
         if (this.target.tagName === 'TEXTAREA') {
             this.editor.innerHTML = sanitizeHtml(this.target.value);
+            this.editor.dataset.placeholder = this.target.getAttribute('placeholder') || '';
             this.target.style.display = 'none';
             this.target.parentNode.insertBefore(this.container, this.target.nextSibling);
             // Sync back to textarea on change
@@ -6061,7 +6093,7 @@ class LuxeEditor {
     }
 
     showImageOptions(img) {
-        const align = prompt('Alineación (left, center, right):', 'left');
+        const align = prompt(getTranslation('prompt_image_align'), 'left');
         if (align) {
             img.className = 'align-' + align;
         }
@@ -6113,7 +6145,7 @@ document.getElementById('luxe-select-image-btn').onclick = async () => {
     const base64 = await window.electronAPI.selectImage();
     if (base64) {
         window.pendingLuxeImage = base64;
-        document.getElementById('luxe-image-file-name').textContent = 'Imagen seleccionada';
+        document.getElementById('luxe-image-file-name').textContent = getTranslation('msg_image_selected');
     }
 };
 
@@ -6135,9 +6167,11 @@ document.getElementById('luxe-insert-image-btn').onclick = () => {
 
 
 
+let newNoteEditor = null;
+
 function initLuxeEditors() {
     console.log("Renderer: Inicializando LuxeEditors...");
-    new LuxeEditor('new-note-input');
+    newNoteEditor = new LuxeEditor('new-note-input');
     new LuxeEditor('opp-description');
     new LuxeEditor('poc-objective');
     new LuxeEditor('poc-use-case');
