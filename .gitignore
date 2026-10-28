@@ -15,3 +15,6 @@ structure.json
 !package.json
 !package-lock.json
 screen.png
+
+# Salesforce exports / customer data - never commit
+*.csv

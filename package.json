@@ -82,9 +82,14 @@
       ]
     },
     "files": [
-      "**/*",
-      "!dist/*",
-      "!dist/**/*"
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "translations.js",
+      "index.html",
+      "help.html",
+      "style.css",
+      "assets/**/*"
     ],
     "cscLink": null,
     "nsis": {
