@@ -3011,6 +3011,7 @@ input:checked+.slider:before {
 
 /* LuxeEditor Styles */
 .luxe-editor-container {
+    position: relative; /* anchors the floating image options */
     border: 1px solid var(--glass-border, rgba(255,255,255,0.2));
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.15);
@@ -3090,6 +3091,72 @@ input:checked+.slider:before {
 .luxe-editor-content ul, .luxe-editor-content ol {
     margin-left: 1.5rem;
     margin-bottom: 1rem;
+}
+
+.luxe-editor-content h3 {
+    font-size: 1.15rem;
+    margin: 0.6rem 0 0.4rem;
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem !important;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.result-count {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-left: 0.4rem;
+}
+
+.shortcuts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.shortcut-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    align-items: center;
+    gap: 1rem;
+}
+
+kbd {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--glass-border);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.luxe-image-options {
+    position: absolute;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--brand-grey);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+.luxe-image-options .luxe-tool-btn.active {
+    color: var(--brand-orange);
+    background: rgba(255, 66, 0, 0.12);
 }
 
 .align-left {

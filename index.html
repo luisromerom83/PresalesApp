@@ -218,7 +218,7 @@
                         <!-- Opportunities View -->
                         <div id="opp-list-view" class="view active">
                             <div class="toolbar">
-                                <h2 id="opp-view-title" data-i18n="view_title_opps">Oportunidades</h2>
+                                <h2><span id="opp-view-title" data-i18n="view_title_opps">Oportunidades</span> <span id="opp-result-count" class="sub-text result-count"></span></h2>
                                 <div class="search-container" style="display: flex; align-items: center; gap: 1rem;">
                                     <input type="text" id="opp-search-input"
                                         placeholder="Buscar por nombre, ID o cuenta..."
@@ -265,9 +265,9 @@
                                             data-i18n="cal_btn_month">Mes</button>
                                     </div>
                                     <div class="calendar-nav">
-                                        <button id="prev-month-btn" class="secondary-btn small">&larr;</button>
+                                        <button id="prev-month-btn" class="secondary-btn small" title="Anterior" data-i18n="btn_prev_period" data-i18n-prop="title">&larr;</button>
                                         <h3 id="current-month-display">Mes Año</h3>
-                                        <button id="next-month-btn" class="secondary-btn small">&rarr;</button>
+                                        <button id="next-month-btn" class="secondary-btn small" title="Siguiente" data-i18n="btn_next_period" data-i18n-prop="title">&rarr;</button>
                                     </div>
                                 </div>
                             </div>
@@ -481,7 +481,7 @@
                                             <button id="export-data-btn" class="secondary-btn small"><i
                                                     class="fas fa-file-export"></i> <span
                                                     data-i18n="btn_export_data">Exportar Mis Datos</span></button>
-                                            <button id="import-data-btn" class="secondary-btn small"><i
+                                            <button id="import-data-btn" class="secondary-btn small" disabled title="Próximamente" data-i18n="label_coming_soon" data-i18n-prop="title"><i
                                                     class="fas fa-file-import"></i> <span
                                                     data-i18n="btn_import_data">Importar Datos</span></button>
                                         </div>
@@ -890,7 +890,7 @@
                                     lo trabajado para el equipo
                                     de ventas o implementación.</p>
                                 <div class="form-actions" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                                    <button id="generate-handover-doc-btn" class="primary-btn">
+                                    <button id="generate-handover-doc-btn" class="primary-btn" disabled title="Próximamente" data-i18n="label_coming_soon" data-i18n-prop="title">
                                         <i class="fas fa-file-invoice"></i> <span
                                             data-i18n="btn_generate_handover">Generar Resumen Ejecutivo</span>
                                     </button>
@@ -1517,6 +1517,27 @@
                 </div>
                 <div class="form-actions">
                     <button id="luxe-insert-image-btn" class="primary-btn small" data-i18n="btn_insert">Insertar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Keyboard shortcuts (press ?) -->
+    <div id="shortcuts-modal" class="modal hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3 data-i18n="title_shortcuts">Atajos de teclado</h3>
+                <button id="close-shortcuts-modal-btn" class="close-btn" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-list">
+                    <div class="shortcut-row"><kbd>Ctrl + F</kbd><span data-i18n="shortcut_search">Buscar oportunidades</span></div>
+                    <div class="shortcut-row"><kbd>Ctrl + H</kbd><span data-i18n="shortcut_history">Abrir historial</span></div>
+                    <div class="shortcut-row"><kbd>Ctrl + T</kbd><span data-i18n="shortcut_todo">Abrir Microsoft To-Do</span></div>
+                    <div class="shortcut-row"><kbd>Ctrl + S</kbd><span data-i18n="shortcut_save">Guardar ahora (los formularios ya se guardan solos)</span></div>
+                    <div class="shortcut-row"><kbd>Ctrl + Enter</kbd><span data-i18n="shortcut_add_note">Agregar la nota que estás escribiendo</span></div>
+                    <div class="shortcut-row"><kbd>Esc</kbd><span data-i18n="shortcut_close">Cerrar la ventana abierta</span></div>
+                    <div class="shortcut-row"><kbd>F5</kbd><span data-i18n="shortcut_reload">Recargar la aplicación</span></div>
+                    <div class="shortcut-row"><kbd>?</kbd><span data-i18n="shortcut_help">Mostrar esta lista</span></div>
                 </div>
             </div>
         </div>

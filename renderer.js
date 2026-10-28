@@ -473,6 +473,27 @@ document.addEventListener('keydown', (e) => {
         }
         return;
     }
+    const typing = e.target.closest('input, textarea, select, [contenteditable="true"]');
+
+    // Ctrl+S -> save pending autosaves now (the forms already save on their own)
+    if (e.ctrlKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (Object.values(autosaves).some(a => a.isPending())) flushAutosaves();
+        else setSaveStatus('saved'); // nothing pending: confirm everything is already saved
+        return;
+    }
+    // Ctrl+Enter in the new-note editor -> add the note
+    if (e.ctrlKey && e.key === 'Enter' && e.target.closest('#notes-modal .add-note')) {
+        e.preventDefault();
+        elements.addNoteBtn.click();
+        return;
+    }
+    // ? -> keyboard shortcuts
+    if (e.key === '?' && !typing) {
+        e.preventDefault();
+        document.getElementById('shortcuts-modal').classList.remove('hidden');
+        return;
+    }
     // Ctrl+F -> Search
     if (e.ctrlKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
@@ -494,6 +515,10 @@ document.addEventListener('keydown', (e) => {
         location.reload();
     }
 });
+
+document.getElementById('close-shortcuts-modal-btn').onclick = () => {
+    document.getElementById('shortcuts-modal').classList.add('hidden');
+};
 
 // Sidebar Groups Toggles
 const setupSidebarToggle = (toggleId, submenuId) => {
@@ -628,7 +653,7 @@ elements.activitiesModal.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 elements.closeActivitiesModalBtn.onclick = () => {
-    flushAutosaves('rfp', 'demo', 'assessment');
+    flushAutosaves('rfp', 'demo', 'assessment', 'handover');
     elements.activitiesModal.classList.add('hidden');
 };
 
@@ -1959,6 +1984,10 @@ function renderResources() {
         elements.resourcesBody.appendChild(tr);
     });
 
+    if (!elements.resourcesBody.children.length) {
+        elements.resourcesBody.innerHTML = `<tr><td colspan="100" class="empty-state">${getTranslation(query ? 'msg_no_matches' : 'msg_no_resources_yet')}</td></tr>`;
+    }
+
     elements.resourcesBody.querySelectorAll('.edit-res-btn').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -2062,11 +2091,45 @@ function applyLanguage(langCode) {
         }
     });
 
+    labelIconButtons(document, true);
+
     // Restore dynamic values if they exist
     if (currentConfig.user) {
         updateHeaderInfo();
     }
 }
+
+// Icon-only buttons (×, ▲, 🎯…) get a tooltip and an accessible name. Generic close/delete
+// buttons are labelled here instead of in every template; buttons with a title reuse it.
+const ICON_BUTTON_LABELS = [
+    ['.close-btn, .close-modal-btn', 'btn_close'],
+    ['.remove-item-btn, .delete-row-btn', 'btn_delete']
+];
+
+function labelIconButtons(root, relabel = false) {
+    if (!root.querySelectorAll) return;
+    ICON_BUTTON_LABELS.forEach(([selector, key]) => {
+        const matches = [...root.querySelectorAll(selector)];
+        if (root.matches && root.matches(selector)) matches.push(root);
+        matches.forEach(btn => {
+            if (btn.title && !(relabel && btn.dataset.autoLabel)) return;
+            btn.title = getTranslation(key);
+            btn.dataset.autoLabel = 'true';
+        });
+    });
+    const titled = [...root.querySelectorAll('button[title]')];
+    if (root.matches && root.matches('button[title]')) titled.push(root);
+    titled.forEach(btn => {
+        if (relabel || !btn.hasAttribute('aria-label')) btn.setAttribute('aria-label', btn.title);
+    });
+}
+
+new MutationObserver(mutations => {
+    mutations.forEach(m => m.addedNodes.forEach(node => {
+        if (node.nodeType === Node.ELEMENT_NODE) labelIconButtons(node);
+    }));
+}).observe(document.body, { childList: true, subtree: true });
+labelIconButtons(document);
 
 // getTranslation('toast_x', { name: 'Acme' }) fills {name} placeholders.
 // Missing keys fall back to Spanish (the most complete language) before showing the raw key.
@@ -2918,6 +2981,17 @@ function renderOpportunities() {
 
     // Phase 4: Pagination
     const totalItems = filteredOpps.length;
+    const resultCount = document.getElementById('opp-result-count');
+    if (resultCount) {
+        resultCount.textContent = totalItems === currentConfig.opportunities.length
+            ? `(${totalItems.toLocaleString(getAppLocale())})`
+            : getTranslation('label_result_count', { shown: totalItems.toLocaleString(getAppLocale()), total: currentConfig.opportunities.length.toLocaleString(getAppLocale()) });
+    }
+    if (totalItems === 0) {
+        elements.oppPagination.classList.add('hidden');
+        elements.oppListBody.innerHTML = `<tr><td colspan="100" class="empty-state">${getTranslation('msg_no_opps_match')}</td></tr>`;
+        return;
+    }
     const itemsPerPage = currentConfig.itemsPerPage || 50;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -5420,6 +5494,10 @@ function renderGlobalContacts() {
         `;
         elements.globalContactsBody.appendChild(tr);
     });
+
+    if (allContacts.length === 0) {
+        elements.globalContactsBody.innerHTML = `<tr><td colspan="100" class="empty-state">${getTranslation(query ? 'msg_no_matches' : 'msg_no_contacts_yet')}</td></tr>`;
+    }
 }
 
 elements.globalContactsSearchInput.addEventListener('input', renderGlobalContacts);
@@ -5549,15 +5627,12 @@ async function renderHandoverTab(oppId) {
     elements.isReferenceCaseCheckbox.checked = !!mat.isReferenceCase;
     elements.referenceKeywords.value = mat.referenceKeywords || '';
 
+    // Saved by the 'handover' autosave registered on the tab
     elements.isReferenceCaseCheckbox.onchange = (e) => {
-        if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
-        currentConfig.materials[oppId].isReferenceCase = e.target.checked;
-        saveMaterials();
+        ensureMaterials(oppId).isReferenceCase = e.target.checked;
     };
     elements.referenceKeywords.oninput = (e) => {
-        if (!currentConfig.materials[oppId]) currentConfig.materials[oppId] = {};
-        currentConfig.materials[oppId].referenceKeywords = e.target.value;
-        debounce(() => saveMaterials(), 1000)();
+        ensureMaterials(oppId).referenceKeywords = e.target.value;
     };
 }
 
@@ -5644,6 +5719,7 @@ function registerAutosave(name, container, persist) {
         if (btn && !btn.matches('.close-btn, .close-modal-btn, [data-no-autosave]')) schedule();
     });
     autosaves[name] = {
+        isPending: () => timer !== null,
         flush: () => (timer ? run() : Promise.resolve()),
         cancel: () => { clearTimeout(timer); timer = null; }
     };
@@ -5955,7 +6031,7 @@ class LuxeEditor {
         toolbar.className = 'luxe-toolbar';
 
         const groups = [
-            ['bold', 'italic', 'underline'],
+            ['bold', 'italic', 'underline', 'heading'],
             ['increaseFontSize', 'decreaseFontSize'],
             ['justifyLeft', 'justifyCenter', 'justifyRight'],
             ['insertUnorderedList', 'insertOrderedList'],
@@ -5963,7 +6039,7 @@ class LuxeEditor {
         ];
 
         const icons = {
-            bold: '<b>B</b>', italic: '<i>I</i>', underline: '<u>U</u>',
+            bold: '<b>B</b>', italic: '<i>I</i>', underline: '<u>U</u>', heading: '<b>H</b>',
             increaseFontSize: 'A+', decreaseFontSize: 'A-',
             justifyLeft: '⇐', justifyCenter: '⇔', justifyRight: '⇒',
             insertUnorderedList: '•', insertOrderedList: '1.',
@@ -5978,7 +6054,8 @@ class LuxeEditor {
                 btn.className = 'luxe-tool-btn';
                 btn.innerHTML = icons[cmd];
                 btn.type = 'button';
-                btn.title = cmd;
+                btn.title = getTranslation(`luxe_${cmd}`);
+                btn.setAttribute('aria-label', btn.title);
                 btn.onclick = (e) => {
                     e.preventDefault();
                     this.handleCommand(cmd);
@@ -6015,6 +6092,10 @@ class LuxeEditor {
             this.openLinkModal();
         } else if (cmd === 'insertImage') {
             this.openImageModal();
+        } else if (cmd === 'heading') {
+            // Toggle between a heading and a normal paragraph
+            const isHeading = String(document.queryCommandValue('formatBlock')).toLowerCase() === 'h3';
+            document.execCommand('formatBlock', false, isHeading ? 'p' : 'h3');
         } else if (cmd === 'increaseFontSize' || cmd === 'decreaseFontSize') {
             let currentSize = parseInt(document.queryCommandValue('fontSize')) || 3;
             if (cmd === 'increaseFontSize') {
@@ -6068,11 +6149,59 @@ class LuxeEditor {
         document.getElementById('luxe-image-modal').classList.remove('hidden');
     }
 
+    // Small floating toolbar over the clicked image: align left/center/right or remove it
     showImageOptions(img) {
-        const align = prompt(getTranslation('prompt_image_align'), 'left');
-        if (align) {
-            img.className = 'align-' + align;
-        }
+        this.hideImageOptions();
+        const bar = document.createElement('div');
+        bar.className = 'luxe-image-options';
+        const actions = [
+            ['left', '⇤', 'luxe_image_left'],
+            ['center', '⇔', 'luxe_image_center'],
+            ['right', '⇥', 'luxe_image_right'],
+            ['remove', '🗑', 'luxe_image_remove']
+        ];
+        actions.forEach(([action, icon, labelKey]) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'luxe-tool-btn';
+            btn.textContent = icon;
+            btn.title = getTranslation(labelKey);
+            btn.setAttribute('aria-label', btn.title);
+            if (img.classList.contains(`align-${action}`)) btn.classList.add('active');
+            btn.onmousedown = (e) => e.preventDefault(); // keep the editor selection
+            btn.onclick = () => {
+                if (action === 'remove') img.remove();
+                else img.className = `align-${action}`;
+                this.hideImageOptions();
+                // Sync the hidden textarea and trigger autosave like a normal edit
+                this.editor.dispatchEvent(new Event('input', { bubbles: true }));
+            };
+            bar.appendChild(btn);
+        });
+
+        // Position the bar above the image, inside the editor container
+        const containerRect = this.container.getBoundingClientRect();
+        const imgRect = img.getBoundingClientRect();
+        bar.style.top = `${Math.max(0, imgRect.top - containerRect.top - 40)}px`;
+        bar.style.left = `${Math.max(0, imgRect.left - containerRect.left)}px`;
+        this.container.appendChild(bar);
+        this.imageOptions = bar;
+
+        // Close on the next click elsewhere or when typing
+        setTimeout(() => {
+            this.outsideClickHandler = (e) => {
+                if (!bar.contains(e.target) && e.target !== img) this.hideImageOptions();
+            };
+            document.addEventListener('mousedown', this.outsideClickHandler);
+            this.editor.addEventListener('keydown', () => this.hideImageOptions(), { once: true });
+        });
+    }
+
+    hideImageOptions() {
+        if (this.imageOptions) this.imageOptions.remove();
+        this.imageOptions = null;
+        if (this.outsideClickHandler) document.removeEventListener('mousedown', this.outsideClickHandler);
+        this.outsideClickHandler = null;
     }
 }
 
@@ -6148,6 +6277,7 @@ let newNoteEditor = null;
 registerAutosave('rfp', document.getElementById('tab-rfp'), persistRfp);
 registerAutosave('demo', document.getElementById('tab-demo'), persistDemo);
 registerAutosave('assessment', document.getElementById('tab-assessment'), persistAssessment);
+registerAutosave('handover', document.getElementById('tab-handover'), saveMaterials);
 registerAutosave('oppDescription', document.getElementById('tab-general'), persistOppDescription);
 registerAutosave('meddpicc', document.getElementById('tab-meddpicc'), persistMeddpicc);
 registerAutosave('poc', elements.pocDetailModal, persistPoc);
