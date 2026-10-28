@@ -622,7 +622,9 @@ const translations = {
         "sidebar_email": "Email",
         "status_saving": "Guardando…",
         "status_saved": "Guardado ✓",
-        "status_save_error": "Error al guardar"
+        "status_save_error": "Error al guardar",
+        "btn_undo": "Deshacer",
+        "toast_poc_deleted": "PoC eliminada"
     },
     "pt_BR": {
         "app_title": "Presales Integrity Ledger",
@@ -1247,7 +1249,9 @@ const translations = {
         "sidebar_email": "E-mail",
         "status_saving": "Salvando…",
         "status_saved": "Salvo ✓",
-        "status_save_error": "Erro ao salvar"
+        "status_save_error": "Erro ao salvar",
+        "btn_undo": "Desfazer",
+        "toast_poc_deleted": "PoC excluída"
     },
     "en_US": {
         "app_title": "Presales Integrity Ledger",
@@ -1872,7 +1876,9 @@ const translations = {
         "sidebar_email": "Email",
         "status_saving": "Saving…",
         "status_saved": "Saved ✓",
-        "status_save_error": "Save failed"
+        "status_save_error": "Save failed",
+        "btn_undo": "Undo",
+        "toast_poc_deleted": "PoC deleted"
     }
 };
 

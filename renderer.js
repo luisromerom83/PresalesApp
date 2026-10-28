@@ -558,9 +558,10 @@ document.addEventListener('click', (e) => {
 });
 
 // Search Logic
+const renderOpportunitiesDebounced = debounce(renderOpportunities, 150);
 elements.oppSearchInput.addEventListener('input', (e) => {
     currentConfig.currentSearchQuery = e.target.value.toLowerCase().trim();
-    renderOpportunities();
+    renderOpportunitiesDebounced();
 });
 
 // Calendar Navigation
@@ -1718,12 +1719,15 @@ if (elements.addMemberBtn) {
 }
 
 window.removeTeamMember = async (idx) => {
-    if (confirm(getTranslation('confirm_delete_member'))) {
-        currentConfig.managerSettings.team.splice(idx, 1);
+    const team = currentConfig.managerSettings.team;
+    const [member] = team.splice(idx, 1);
+    renderManagerView();
+    await autoSaveManager();
+    showUndoToast(getTranslation('toast_member_deleted'), async () => {
+        team.splice(idx, 0, member);
         renderManagerView();
         await autoSaveManager();
-        showToast(getTranslation('toast_member_deleted'));
-    }
+    });
 };
 
 window.selectMemberDocPath = async (memberIdx) => {
@@ -1994,12 +1998,14 @@ function openResourceModal(index = null) {
 }
 
 async function deleteResource(index) {
-    if (confirm(getTranslation('confirm_delete') || '¿Eliminar este recurso?')) {
-        currentConfig.resources.splice(index, 1);
+    const [resource] = currentConfig.resources.splice(index, 1);
+    await window.electronAPI.saveFile(currentConfig.directory, 'resources.json', currentConfig.resources);
+    renderResources();
+    showUndoToast(getTranslation('toast_resource_deleted'), async () => {
+        currentConfig.resources.splice(index, 0, resource);
         await window.electronAPI.saveFile(currentConfig.directory, 'resources.json', currentConfig.resources);
-        showToast(getTranslation('toast_resource_deleted') || 'Recurso eliminado');
         renderResources();
-    }
+    });
 }
 
 if (elements.addResourceBtn) {
@@ -3786,14 +3792,18 @@ window.deleteNote = async (index) => {
     const history = currentConfig.notes[activeOppId];
     if (!history || !history[index]) return;
 
-    if (confirm(getTranslation('confirm_delete_note'))) {
-        history.splice(index, 1);
-        if (history.length === 0) delete currentConfig.notes[activeOppId];
+    const oppId = activeOppId;
+    const [note] = history.splice(index, 1);
+    if (history.length === 0) delete currentConfig.notes[oppId];
 
+    await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
+    renderNotes();
+    showUndoToast(getTranslation('toast_note_deleted'), async () => {
+        if (!currentConfig.notes[oppId]) currentConfig.notes[oppId] = [];
+        currentConfig.notes[oppId].splice(index, 0, note);
         await window.electronAPI.saveFile(currentConfig.directory, 'notes.json', currentConfig.notes);
-        showToast(getTranslation('toast_note_deleted'));
-        renderNotes();
-    }
+        if (activeOppId === oppId) renderNotes();
+    });
 };
 
 elements.addNoteBtn.addEventListener('click', async () => {
@@ -3951,10 +3961,16 @@ window.editPoc = (index) => {
 };
 
 window.deletePoc = async (index) => {
-    if (!confirm(getTranslation('confirm_delete_poc'))) return;
-    currentConfig.materials[activeOppId].pocs.splice(index, 1);
+    const oppId = activeOppId;
+    const pocs = currentConfig.materials[oppId].pocs;
+    const [poc] = pocs.splice(index, 1);
     await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
     renderPocsList();
+    showUndoToast(getTranslation('toast_poc_deleted'), async () => {
+        pocs.splice(index, 0, poc);
+        await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
+        if (activeOppId === oppId) renderPocsList();
+    });
 };
 
 elements.addPocRowBtn.onclick = () => {
@@ -5640,18 +5656,44 @@ function flushAutosaves(...names) {
 
 window.addEventListener('beforeunload', () => { flushAutosaves(); });
 
-function showToast(message) {
+// showToast(msg, 'error' | 'success' | 'info', { actionLabel, onAction, duration })
+function showToast(message, type = 'info', { actionLabel, onAction, duration } = {}) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
     const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }, 100);
+    toast.className = `toast toast-${type}`;
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.appendChild(text);
+
+    const dismiss = () => {
+        toast.classList.add('leaving');
+        setTimeout(() => toast.remove(), 250);
+    };
+
+    if (actionLabel && onAction) {
+        const btn = document.createElement('button');
+        btn.className = 'toast-action';
+        btn.textContent = actionLabel;
+        btn.onclick = () => {
+            dismiss();
+            onAction();
+        };
+        toast.appendChild(btn);
+    }
+
+    container.appendChild(toast);
+    setTimeout(dismiss, duration || (type === 'error' ? 6000 : 3000));
+}
+
+// Deletes right away and offers "Undo" instead of asking for confirmation first
+function showUndoToast(message, onUndo) {
+    showToast(message, 'info', { actionLabel: getTranslation('btn_undo'), onAction: onUndo, duration: 6000 });
 }
 
 function debounce(func, wait) {
@@ -5805,11 +5847,6 @@ function initUrlField(target) {
 /**
  * Saves the current materials data to the directory.
  */
-async function saveMaterials() {
-    if (!currentConfig.directory) return;
-    await window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
-}
-
 // --- Utility Functions ---
 
 function updateResponsiblesList() {
@@ -5877,82 +5914,6 @@ if (window.electronAPI.onUpdateDownloaded) {
         showToast(getTranslation('update_downloaded') || 'Actualización descargada. Se instalará al reiniciar.', 'success');
     });
 }
-
-// --- Contacts and Attack Plan Management ---
-
-async function renderGlobalContacts() {
-    if (!elements.globalContactsBody) return;
-    const contacts = currentConfig.contacts || [];
-    elements.globalContactsBody.innerHTML = '';
-    
-    contacts.forEach((contact, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${escapeHtml(contact.name)}</td>
-            <td>${escapeHtml(contact.role)}</td>
-            <td>${escapeHtml(contact.email)}</td>
-            <td>${escapeHtml(contact.phone)}</td>
-            <td>${escapeHtml(contact.influence)}</td>
-            <td>${escapeHtml(contact.account)}</td>
-            <td>${escapeHtml(contact.notes)}</td>
-            <td>
-                <button class="remove-item-btn" onclick="deleteGlobalContact(${idx})">&times;</button>
-            </td>
-        `;
-        elements.globalContactsBody.appendChild(tr);
-    });
-}
-
-window.deleteGlobalContact = async (idx) => {
-    if (!confirm(getTranslation('confirm_delete') || '¿Estás seguro?')) return;
-    currentConfig.contacts.splice(idx, 1);
-    await window.electronAPI.saveFile(currentConfig.directory, 'contacts.json', currentConfig.contacts);
-    renderGlobalContacts();
-};
-
-async function saveAccountContacts(accountId) {
-    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
-    const rows = Array.from(elements.accountContactsBody.querySelectorAll('tr'));
-    currentConfig.accounts[accountId].contacts = rows.map(tr => {
-        const inputs = tr.querySelectorAll('input');
-        return {
-            name: inputs[0].value,
-            role: inputs[1].value,
-            email: inputs[2].value
-        };
-    });
-    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-}
-
-window.deleteAccountContact = async (accountId, idx) => {
-    if (!confirm(getTranslation('confirm_delete') || '¿Estás seguro?')) return;
-    currentConfig.accounts[accountId].contacts.splice(idx, 1);
-    renderAccountContacts(accountId);
-};
-
-window.saveAttackPlan = async (accountId) => {
-    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
-    currentConfig.accounts[accountId].attackPlan = {
-        ...currentConfig.accounts[accountId].attackPlan, // Simplified for now
-        strategy: elements.attackPlanStrategy.value,
-        currentOwner: elements.attackPlanOwner ? elements.attackPlanOwner.value : ''
-    };
-    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
-    showToast(getTranslation('toast_attack_plan_saved') || 'Plan de Ataque guardado');
-};
-
-window.addGlobalContact = async () => {
-    if (!currentConfig.contacts) currentConfig.contacts = [];
-    currentConfig.contacts.push({ name: '', role: '', email: '', phone: '', influence: '', account: '', notes: '' });
-    renderGlobalContacts();
-};
-
-window.addAccountContact = (accountId) => {
-    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
-    if (!currentConfig.accounts[accountId].contacts) currentConfig.accounts[accountId].contacts = [];
-    currentConfig.accounts[accountId].contacts.push({ name: '', role: '', email: '' });
-    renderAccountContacts(accountId);
-};
 
 // --- LuxeEditor Implementation ---
 
