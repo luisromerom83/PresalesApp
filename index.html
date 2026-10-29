@@ -126,6 +126,7 @@
                                         <span><i class="fas fa-tasks" style="margin-right: 0.5rem; color: #72bf44;"></i> <span data-i18n="sidebar_mgmt">Gestión</span></span><span class="toggle-icon">▾</span>
                                     </div>
                                     <div id="mgmt-group-submenu" class="submenu collapsed">
+                                        <button class="nav-btn" data-target="pipeline-view" id="pipeline-nav-btn"><i class="fas fa-chart-bar"></i> <span data-i18n="sidebar_pipeline">Pipeline</span></button>
                                         <button class="nav-btn" data-target="followup-view" id="followup-nav-btn"><i class="fas fa-bell"></i> <span data-i18n="sidebar_followup">Seguimiento</span> <span id="followup-badge" class="nav-badge hidden"></span></button>
                                         <button class="nav-btn" data-target="activity-calendar-view" id="calendar-nav-btn"><i class="fas fa-calendar-alt"></i> <span data-i18n="sidebar_calendar">Calendario</span></button>
                                         <button class="nav-btn" data-target="global-contacts-view"><i class="fas fa-users"></i> <span data-i18n="sidebar_contacts">Contactos</span></button>
@@ -178,10 +179,42 @@
                     <div class="content">
 
                         <!-- Notes History View -->
+                        <!-- Pipeline dashboard -->
+                        <div id="pipeline-view" class="view">
+                            <div class="toolbar">
+                                <h2 data-i18n="view_title_pipeline">Pipeline</h2>
+                                <div class="followup-controls">
+                                    <label for="pipeline-currency-select" class="sub-text" data-i18n="label_currency">Moneda</label>
+                                    <select id="pipeline-currency-select" class="form-input"></select>
+                                    <label class="followup-check"><input type="checkbox" id="pipeline-only-mine"> <span data-i18n="followup_only_mine">Solo donde soy Lead SA</span></label>
+                                </div>
+                            </div>
+                            <div id="pipeline-kpis" class="kpi-row"></div>
+                            <p id="pipeline-currency-note" class="sub-text pipeline-note"></p>
+                            <div class="pipeline-charts">
+                                <section class="chart-card">
+                                    <h3 data-i18n="chart_amount_by_stage">Monto abierto por etapa</h3>
+                                    <div id="chart-by-stage" class="hbar-chart"></div>
+                                </section>
+                                <section class="chart-card">
+                                    <h3 data-i18n="chart_expected_close">Cierre previsto (próximos 6 meses)</h3>
+                                    <div id="chart-by-close-month" class="hbar-chart"></div>
+                                </section>
+                                <section class="chart-card">
+                                    <h3 data-i18n="chart_activity_load">Actividades por semana (próximas 8)</h3>
+                                    <div id="chart-activity-load" class="hbar-chart"></div>
+                                </section>
+                            </div>
+                        </div>
+
                         <!-- Follow-up: upcoming deadlines and neglected opportunities -->
                         <div id="followup-view" class="view">
                             <div class="toolbar">
                                 <h2 data-i18n="view_title_followup">Seguimiento</h2>
+                                <div class="followup-actions">
+                                    <button id="show-import-summary-btn" class="secondary-btn small"><i class="fas fa-file-csv"></i> <span data-i18n="btn_last_import_changes">Cambios del último CSV</span></button>
+                                    <button id="export-ics-btn" class="secondary-btn small"><i class="fas fa-calendar-plus"></i> <span data-i18n="btn_export_ics">Exportar a calendario (.ics)</span></button>
+                                </div>
                             </div>
 
                             <section class="followup-section">
@@ -1568,6 +1601,19 @@
             </div>
         </div>
     </div>
+    <!-- Summary of what changed in the last CSV import -->
+    <div id="import-summary-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="title_import_summary">Cambios del CSV importado</h3>
+                <button id="close-import-summary-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;">
+                <div id="import-summary-content"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Keyboard shortcuts (press ?) -->
     <div id="shortcuts-modal" class="modal hidden">
         <div class="modal-content small">

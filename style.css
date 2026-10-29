@@ -2739,6 +2739,43 @@ header {
     background: var(--brand-teal-dim);
 }
 
+/* Opportunity changed by the last CSV that touched it */
+tr.csv-changed td:first-child {
+    box-shadow: inset 3px 0 0 var(--brand-orange);
+}
+
+.csv-change-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    border: 1px solid var(--brand-orange);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: help;
+}
+
+.csv-change-badge.is-new {
+    border-color: var(--brand-teal, #1acbbf);
+}
+
+.csv-change-panel {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 10px;
+    border-left: 3px solid var(--brand-orange);
+    background: var(--hover-bg);
+    font-size: 0.85rem;
+}
+
 /* Modal Tabs */
 .modal-tabs {
     display: flex;
@@ -3216,6 +3253,182 @@ button:disabled {
 .followup-name {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.followup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.followup-actions .secondary-btn {
+    width: auto;
+    margin-top: 0;
+}
+
+/* --- Pipeline dashboard --- */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.kpi-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 1.2rem;
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.kpi-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+}
+
+.kpi-note {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.pipeline-note {
+    margin-bottom: 1.5rem;
+}
+
+.pipeline-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 1.25rem;
+}
+
+.chart-card {
+    padding: 1.2rem 1.4rem;
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+}
+
+.chart-card h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.hbar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hbar-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 38%) 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 4px 6px;
+    border-radius: 6px;
+    outline: none;
+}
+
+.hbar-row:hover,
+.hbar-row:focus-visible {
+    background: var(--hover-bg);
+}
+
+.hbar-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hbar-track {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+/* <= 24px thick, rounded data-end, square at the baseline */
+.hbar-bar {
+    height: 18px;
+    background: var(--primary);
+    border-radius: 0 4px 4px 0;
+    flex-shrink: 0;
+}
+
+.hbar-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.chart-tooltip {
+    position: fixed;
+    z-index: 3000;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    background: var(--brand-grey);
+    color: white;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    font-size: 0.8rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.chart-tooltip.visible {
+    opacity: 1;
+}
+
+/* --- CSV import summary --- */
+.import-section {
+    margin-top: 1.5rem;
+}
+
+.import-section h4 {
+    margin-bottom: 0.5rem;
+}
+
+.import-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.import-item:hover {
+    background: var(--hover-bg);
+}
+
+.import-item.closed {
+    border-left: 3px solid var(--brand-orange);
+}
+
+.import-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.import-item-change {
+    color: var(--text-secondary);
     white-space: nowrap;
 }
 

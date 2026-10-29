@@ -83,7 +83,7 @@ let currentConfig = {
     expandedManagerFilterId: null, // Track which filter is expanded in the settings manager
     viewHistory: [], // Stack for navigation history
     resources: [],
-    changedStages: {}, // Tracks opps whose stage changed after CSV import
+    importChanges: {}, // Last values changed by a CSV import, per opportunity (import_changes.json)
     assessmentStructure: [], // Grouped discovery questions
     managerSettings: { team: [], docs: [] }, // Hidden manager section data
     currentSort: { column: null, direction: 'asc' }, // Sorting state
@@ -558,6 +558,9 @@ document.addEventListener('click', (e) => {
     }
     if (target === 'followup-view') {
         renderFollowup();
+    }
+    if (target === 'pipeline-view') {
+        renderPipeline();
     }
     if (target === 'notes-history-view') {
         renderGlobalNotesHistory();
@@ -1394,6 +1397,8 @@ async function loadAllData(dir) {
 
         const favorites = await window.electronAPI.loadFile(dir, 'favorites.json');
         currentConfig.favorites = favorites || [];
+
+        currentConfig.importChanges = (await window.electronAPI.loadFile(dir, IMPORT_CHANGES_FILE)) || {};
 
         const resourcesData = await window.electronAPI.loadFile(dir, 'resources.json');
         currentConfig.resources = resourcesData || [];
@@ -2255,9 +2260,12 @@ window.handleExternalLink = (e, url) => {
 // --- Mapeo y Validación de CSV ---
 let pendingCsvResults = null;
 
+let pendingCsvFileName = '';
+
 elements.csvInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    pendingCsvFileName = file.name;
 
     // Copy for record keeping
     await window.electronAPI.copyFileToDir(window.electronAPI.getPathForFile(file), currentConfig.directory);
@@ -2352,7 +2360,8 @@ elements.closeCsvMappingModalBtn.onclick = () => {
 };
 
 async function processCsvImport(data, mappings) {
-    currentConfig.changedStages = {};
+    const before = new Map(currentConfig.opportunities.map(o => [o['Opportunity ID'], { ...o }]));
+    const importedIds = new Set();
 
     // Ensure we have a way to identify the key field
     const keyField = 'Opportunity ID'; // This is hardcoded as core
@@ -2379,16 +2388,11 @@ async function processCsvImport(data, mappings) {
 
         const oppId = mappedItem[keyField];
         if (!oppId) return;
+        importedIds.add(oppId);
 
         const existingIndex = currentConfig.opportunities.findIndex(o => o[keyField] === oppId);
         if (existingIndex > -1) {
             const existing = currentConfig.opportunities[existingIndex];
-            if (existing['Stage'] && mappedItem['Stage'] && existing['Stage'] !== mappedItem['Stage']) {
-                currentConfig.changedStages[oppId] = {
-                    from: existing['Stage'],
-                    to: mappedItem['Stage']
-                };
-            }
             currentConfig.opportunities[existingIndex] = { ...existing, ...mappedItem };
         } else {
             currentConfig.opportunities.push(mappedItem);
@@ -2400,6 +2404,12 @@ async function processCsvImport(data, mappings) {
     renderOpportunities();
     showToast(getTranslation('toast_csv_imported'));
     elements.csvInput.value = '';
+
+    const summary = buildImportSummary(before, importedIds, pendingCsvFileName);
+    await window.electronAPI.saveFile(currentConfig.directory, IMPORT_SUMMARY_FILE, summary);
+    await recordImportChanges(summary);
+    renderOpportunities();
+    renderImportSummary(summary);
 }
 
 
@@ -2599,7 +2609,10 @@ function collectDatedActivities() {
     for (const [oppId, mat] of Object.entries(currentConfig.materials || {})) {
         const add = (act, type, extra) => {
             const due = parseLocalDate(act.date);
-            if (due && act.activity) items.push({ type, title: act.activity, due, oppId, name: oppName(oppId), ...extra });
+            const start = parseLocalDate(act.startDate);
+            if (due && act.activity) {
+                items.push({ type, title: act.activity, due, start: start && start <= due ? start : due, oppId, name: oppName(oppId), ...extra });
+            }
         };
         ((mat.rfp && mat.rfp.activities) || []).forEach((act, rowIndex) => add(act, 'rfp', { rowIndex }));
         ((mat.demo && mat.demo.activities) || []).forEach((act, rowIndex) => add(act, 'demo', { rowIndex }));
@@ -2611,9 +2624,12 @@ function collectDatedActivities() {
         const plan = account && account.attackPlan;
         if (!plan || !plan.activities) continue;
         const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
-        plan.activities.forEach(act => {
+        plan.activities.forEach((act, rowIndex) => {
             const due = parseLocalDate(act.endDate || act.startDate);
-            if (due && act.name) items.push({ type: 'plan', title: act.name, due, accountId, name: accountName });
+            const start = parseLocalDate(act.startDate);
+            if (due && act.name) {
+                items.push({ type: 'plan', title: act.name, due, start: start && start <= due ? start : due, accountId, name: accountName, rowIndex });
+            }
         });
     }
     return items;
@@ -2789,6 +2805,455 @@ function renderFollowup() {
         renderStaleOpportunities();
     }));
 })();
+
+// --- Pipeline dashboard ---
+// Amounts are never summed across currencies: the charts show one currency at a time.
+const PIPELINE_CLOSE_WINDOW_DAYS = 90;
+const stageOrder = (stage) => {
+    const m = String(stage || '').match(/\d+/);
+    return m ? Number(m[0]) : 99;
+};
+const formatCompact = (value) => new Intl.NumberFormat(getAppLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+
+let chartTooltip = null;
+function attachChartTooltip(target, title, detail) {
+    const show = (x, y) => {
+        if (!chartTooltip) {
+            chartTooltip = document.createElement('div');
+            chartTooltip.className = 'chart-tooltip';
+            document.body.appendChild(chartTooltip);
+        }
+        chartTooltip.textContent = '';
+        const strong = document.createElement('strong');
+        strong.textContent = detail;
+        const label = document.createElement('div');
+        label.textContent = title;
+        chartTooltip.append(strong, label);
+        chartTooltip.style.left = `${x + 12}px`;
+        chartTooltip.style.top = `${y + 12}px`;
+        chartTooltip.classList.add('visible');
+    };
+    const hide = () => chartTooltip && chartTooltip.classList.remove('visible');
+    target.addEventListener('pointermove', e => show(e.clientX, e.clientY));
+    target.addEventListener('pointerleave', hide);
+    target.addEventListener('focus', () => {
+        const r = target.getBoundingClientRect();
+        show(r.left + r.width / 2, r.top);
+    });
+    target.addEventListener('blur', hide);
+}
+
+// One-series horizontal bars; every bar carries its value as a visible label (few rows),
+// the whole row is the hover/focus target. rows: [{ label, value, display, detail }]
+function renderHBarChart(container, rows, emptyMessage) {
+    container.innerHTML = '';
+    const max = Math.max(0, ...rows.map(r => r.value));
+    if (!rows.length || max === 0) {
+        container.innerHTML = `<p class="empty-state">${escapeHtml(emptyMessage)}</p>`;
+        return;
+    }
+    rows.forEach(r => {
+        const row = document.createElement('div');
+        row.className = 'hbar-row';
+        row.tabIndex = 0;
+        row.setAttribute('aria-label', `${r.label}: ${r.detail}`);
+
+        const label = document.createElement('span');
+        label.className = 'hbar-label';
+        label.textContent = r.label;
+        label.title = r.label;
+
+        const track = document.createElement('div');
+        track.className = 'hbar-track';
+        const bar = document.createElement('div');
+        bar.className = 'hbar-bar';
+        // Leave room after the longest bar for its value label
+        bar.style.width = r.value > 0 ? `max(2px, ${(r.value / max) * 78}%)` : '0';
+        const value = document.createElement('span');
+        value.className = 'hbar-value';
+        value.textContent = r.display;
+        track.append(bar, value);
+
+        row.append(label, track);
+        attachChartTooltip(row, r.label, r.detail);
+        container.appendChild(row);
+    });
+}
+
+function renderKpis(container, tiles) {
+    container.innerHTML = '';
+    tiles.forEach(t => {
+        const tile = document.createElement('div');
+        tile.className = 'kpi-tile';
+        const label = document.createElement('span');
+        label.className = 'kpi-label';
+        label.textContent = t.label;
+        const value = document.createElement('span');
+        value.className = 'kpi-value';
+        value.textContent = t.value;
+        tile.append(label, value);
+        if (t.note) {
+            const note = document.createElement('span');
+            note.className = 'kpi-note';
+            note.textContent = t.note;
+            tile.appendChild(note);
+        }
+        container.appendChild(tile);
+    });
+}
+
+function renderPipeline() {
+    const select = document.getElementById('pipeline-currency-select');
+    const onlyMine = document.getElementById('pipeline-only-mine').checked;
+    const me = normalizeName(currentConfig.user && currentConfig.user.name);
+    const today = startOfDay(new Date());
+
+    const seen = new Set();
+    const open = currentConfig.opportunities.filter(o => {
+        const id = o['Opportunity ID'];
+        if (!id || seen.has(id) || !isOpenOpportunity(o)) return false;
+        seen.add(id);
+        return !onlyMine || (me && normalizeName(o['Lead Solution Architect']) === me);
+    });
+
+    // Currency selector: currencies present in open opportunities, most frequent first
+    const byCurrency = {};
+    open.forEach(o => { const c = o['Amount Currency'] || ''; byCurrency[c] = (byCurrency[c] || 0) + 1; });
+    const currencies = Object.keys(byCurrency).filter(Boolean).sort((a, b) => byCurrency[b] - byCurrency[a]);
+    const previous = select.value;
+    select.innerHTML = currencies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)} (${byCurrency[c]})</option>`).join('');
+    if (currencies.includes(previous)) select.value = previous;
+    const currency = select.value;
+    const inCurrency = open.filter(o => (o['Amount Currency'] || '') === currency);
+    const fmtAmount = (v) => `${formatCompact(v)} ${currency}`;
+
+    const closeDate = (o) => parseCustomDate(o['Close Date']);
+    const windowEnd = new Date(today.getTime() + PIPELINE_CLOSE_WINDOW_DAYS * DAY_MS);
+    const closingSoon = open.filter(o => { const d = closeDate(o); return d && d >= today && d <= windowEnd; });
+    const closingSoonAmount = closingSoon.filter(o => (o['Amount Currency'] || '') === currency)
+        .reduce((sum, o) => sum + parseAmount(o['Amount']), 0);
+    const pastClose = open.filter(o => { const d = closeDate(o); return d && d < today; });
+    const withWork = open.filter(o => {
+        const m = currentConfig.materials[o['Opportunity ID']] || {};
+        return (m.pocs && m.pocs.length) || (m.rfp && m.rfp.activities && m.rfp.activities.length) || (m.demo && m.demo.activities && m.demo.activities.length);
+    });
+
+    renderKpis(document.getElementById('pipeline-kpis'), [
+        { label: getTranslation('kpi_open_opps'), value: open.length.toLocaleString(getAppLocale()) },
+        { label: getTranslation('kpi_open_pipeline', { currency }), value: currency ? fmtAmount(inCurrency.reduce((s, o) => s + parseAmount(o['Amount']), 0)) : '—' },
+        { label: getTranslation('kpi_closing_soon'), value: closingSoon.length.toLocaleString(getAppLocale()), note: currency ? fmtAmount(closingSoonAmount) : '' },
+        { label: getTranslation('kpi_past_close'), value: pastClose.length.toLocaleString(getAppLocale()), note: getTranslation('kpi_past_close_note') },
+        { label: getTranslation('kpi_active_work'), value: withWork.length.toLocaleString(getAppLocale()), note: getTranslation('kpi_active_work_note') }
+    ]);
+
+    const others = Object.keys(byCurrency).filter(c => c !== currency)
+        .map(c => `${c || getTranslation('label_no_currency')} ${byCurrency[c]}`).join(' · ');
+    document.getElementById('pipeline-currency-note').textContent = others
+        ? getTranslation('pipeline_currency_note', { currency, others })
+        : '';
+
+    // 1. Open amount by stage
+    const stages = {};
+    inCurrency.forEach(o => {
+        const s = o['Stage'] || '—';
+        stages[s] = stages[s] || { amount: 0, count: 0 };
+        stages[s].amount += parseAmount(o['Amount']);
+        stages[s].count++;
+    });
+    renderHBarChart(document.getElementById('chart-by-stage'),
+        Object.entries(stages).sort((a, b) => stageOrder(a[0]) - stageOrder(b[0])).map(([stage, v]) => ({
+            label: stage, value: v.amount, display: fmtAmount(v.amount),
+            detail: getTranslation('chart_detail_amount', { amount: fmtAmount(v.amount), count: v.count })
+        })),
+        getTranslation('chart_empty'));
+
+    // 2. Expected close per month (plus opportunities whose close date already passed)
+    const months = [];
+    const pastRow = { label: getTranslation('chart_past_close_row'), amount: 0, count: 0 };
+    for (let i = 0; i < 6; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString(getAppLocale(), { month: 'short', year: 'numeric' }), amount: 0, count: 0 });
+    }
+    inCurrency.forEach(o => {
+        const d = closeDate(o);
+        if (!d) return;
+        const bucket = d < today ? pastRow : months.find(m => m.key === `${d.getFullYear()}-${d.getMonth()}`);
+        if (bucket) { bucket.amount += parseAmount(o['Amount']); bucket.count++; }
+    });
+    renderHBarChart(document.getElementById('chart-by-close-month'),
+        [...(pastRow.count ? [pastRow] : []), ...months].map(m => ({
+            label: m.label, value: m.amount, display: fmtAmount(m.amount),
+            detail: getTranslation('chart_detail_amount', { amount: fmtAmount(m.amount), count: m.count })
+        })),
+        getTranslation('chart_empty'));
+
+    // 3. Activities due per week (Monday-based), next 8 weeks
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const weeks = Array.from({ length: 8 }, (_, i) => {
+        const start = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i * 7);
+        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+        return { start, end, items: [] };
+    });
+    collectDatedActivities().forEach(a => {
+        const w = weeks.find(wk => a.due >= wk.start && a.due <= wk.end);
+        if (w) w.items.push(a);
+    });
+    const dayFmt = (d) => d.toLocaleDateString(getAppLocale(), { day: 'numeric', month: 'short' });
+    renderHBarChart(document.getElementById('chart-activity-load'),
+        weeks.map(w => {
+            const byType = {};
+            w.items.forEach(a => { byType[FOLLOWUP_TYPE_LABELS[a.type]] = (byType[FOLLOWUP_TYPE_LABELS[a.type]] || 0) + 1; });
+            const breakdown = Object.entries(byType).map(([t, n]) => `${t} ${n}`).join(' · ');
+            return {
+                label: `${dayFmt(w.start)} – ${dayFmt(w.end)}`, value: w.items.length, display: String(w.items.length),
+                detail: breakdown || getTranslation('chart_no_activities')
+            };
+        }),
+        getTranslation('chart_no_activities_8w'));
+}
+
+document.getElementById('pipeline-currency-select').addEventListener('change', renderPipeline);
+document.getElementById('pipeline-only-mine').addEventListener('change', renderPipeline);
+
+// --- Calendar export (.ics) ---
+// All-day events for every dated activity from 30 days ago on. UIDs are built from the
+// activity's position, so re-importing the file updates events instead of duplicating them.
+const ICS_LOOKBACK_DAYS = 30;
+const icsEscape = (text) => String(text || '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const icsDate = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+
+// RFC 5545: lines longer than 75 octets continue on the next line after a space
+function icsFold(line) {
+    const encoder = new TextEncoder();
+    let out = '';
+    let current = '';
+    let length = 0;
+    for (const ch of line) {
+        const size = encoder.encode(ch).length;
+        if (length + size > 75) {
+            out += `${current}\r\n `;
+            current = '';
+            length = 1;
+        }
+        current += ch;
+        length += size;
+    }
+    return out + current;
+}
+
+function exportActivitiesIcs() {
+    const since = new Date(startOfDay(new Date()).getTime() - ICS_LOOKBACK_DAYS * DAY_MS);
+    const items = collectDatedActivities().filter(a => a.due >= since);
+    if (items.length === 0) {
+        showToast(getTranslation('toast_ics_empty'));
+        return;
+    }
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Presales Integrity Ledger//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+    items.forEach(a => {
+        const owner = a.oppId || a.accountId;
+        const uid = [a.type, owner, a.pocIndex ?? '', a.rowIndex ?? ''].join('-').replace(/[^A-Za-z0-9-]/g, '');
+        const end = new Date(a.due.getFullYear(), a.due.getMonth(), a.due.getDate() + 1);
+        lines.push(
+            'BEGIN:VEVENT',
+            `UID:${uid}@presales-integrity-ledger`,
+            `DTSTAMP:${stamp}`,
+            `DTSTART;VALUE=DATE:${icsDate(a.start || a.due)}`,
+            `DTEND;VALUE=DATE:${icsDate(end)}`,
+            `SUMMARY:${icsEscape(`[${FOLLOWUP_TYPE_LABELS[a.type] === '🎯' ? getTranslation('label_plan_short') : FOLLOWUP_TYPE_LABELS[a.type]}] ${a.title}`)}`,
+            `DESCRIPTION:${icsEscape(a.name)}`,
+            'TRANSP:TRANSPARENT',
+            'END:VEVENT'
+        );
+    });
+    lines.push('END:VCALENDAR');
+
+    const blob = new Blob([lines.map(icsFold).join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `presales-actividades-${icsDate(new Date())}.ics`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast(getTranslation('toast_ics_exported', { count: items.length }), 'success');
+}
+
+document.getElementById('export-ics-btn').addEventListener('click', exportActivitiesIcs);
+
+// --- Per-opportunity CSV changes ---
+// Each opportunity keeps the changes from the last import that actually changed it; an import
+// that brings it unchanged leaves the previous record in place.
+const IMPORT_CHANGES_FILE = 'import_changes.json';
+const IMPORT_FIELD_LABELS = { 'Stage': 'Stage', 'Amount': 'label_field_amount', 'Close Date': 'label_field_close_date' };
+
+async function recordImportChanges(summary) {
+    const changes = currentConfig.importChanges;
+    const stamp = { importedAt: summary.importedAt, fileName: summary.fileName };
+    const add = (id, change) => {
+        if (!changes[id] || changes[id].importedAt !== summary.importedAt) changes[id] = { ...stamp, isNew: false, changes: [] };
+        changes[id].changes.push(change);
+    };
+    summary.stageChanges.forEach(c => add(c.id, { field: 'Stage', from: c.from, to: c.to }));
+    summary.amountChanges.forEach(c => add(c.id, { field: 'Amount', from: c.from, to: c.to }));
+    summary.closeDateChanges.forEach(c => add(c.id, { field: 'Close Date', from: c.from, to: c.to }));
+    summary.added.forEach(c => { changes[c.id] = { ...stamp, isNew: true, changes: [] }; });
+    await window.electronAPI.saveFile(currentConfig.directory, IMPORT_CHANGES_FILE, changes);
+}
+
+function formatImportValue(field, value, opp) {
+    if (field !== 'Amount') return value || '—';
+    return `${parseAmount(value).toLocaleString(getAppLocale(), { maximumFractionDigits: 0 })} ${opp['Amount Currency'] || ''}`.trim();
+}
+
+function describeImportChange(entry, opp) {
+    const date = new Date(entry.importedAt).toLocaleDateString(getAppLocale());
+    if (entry.isNew) return getTranslation('import_change_new', { date });
+    const parts = entry.changes.map(c =>
+        `${getTranslation(IMPORT_FIELD_LABELS[c.field])}: ${formatImportValue(c.field, c.from, opp)} → ${formatImportValue(c.field, c.to, opp)}`);
+    return `${getTranslation('import_change_title', { date })}\n${parts.join('\n')}`;
+}
+
+function renderImportChangePanel(oppId, opp) {
+    const entry = currentConfig.importChanges[oppId];
+    if (!entry) return;
+    const panel = document.createElement('div');
+    panel.className = 'csv-change-panel';
+    const title = document.createElement('strong');
+    title.textContent = entry.isNew
+        ? getTranslation('import_change_new', { date: new Date(entry.importedAt).toLocaleDateString(getAppLocale()) })
+        : getTranslation('import_change_title', { date: new Date(entry.importedAt).toLocaleDateString(getAppLocale()) });
+    panel.appendChild(title);
+    if (entry.fileName) {
+        const file = document.createElement('span');
+        file.className = 'sub-text';
+        file.textContent = ` · ${entry.fileName}`;
+        title.after(file);
+    }
+    entry.changes.forEach(c => {
+        const line = document.createElement('div');
+        const label = document.createElement('span');
+        label.className = 'sub-text';
+        label.textContent = `${getTranslation(IMPORT_FIELD_LABELS[c.field])}: `;
+        line.append(label, `${formatImportValue(c.field, c.from, opp)} → ${formatImportValue(c.field, c.to, opp)}`);
+        panel.appendChild(line);
+    });
+    elements.detailsContent.appendChild(panel);
+}
+
+// --- CSV import summary ---
+const IMPORT_SUMMARY_FILE = 'last_import.json';
+const IMPORT_SUMMARY_LIST_LIMIT = 50;
+
+// Compares the opportunities before and after an import (both keyed by Opportunity ID)
+function buildImportSummary(before, importedIds, fileName) {
+    const after = new Map(currentConfig.opportunities.map(o => [o['Opportunity ID'], o]));
+    const brief = (o) => ({ id: o['Opportunity ID'], name: o['Opportunity Name'] || o['Opportunity ID'], account: o['Account Name'] || '' });
+    const summary = { importedAt: new Date().toISOString(), fileName, rows: importedIds.size, added: [], stageChanges: [], amountChanges: [], closeDateChanges: [], notInFile: [] };
+
+    importedIds.forEach(id => {
+        const now = after.get(id);
+        const prev = before.get(id);
+        if (!now) return;
+        if (!prev) {
+            summary.added.push({ ...brief(now), stage: now['Stage'] || '', amount: now['Amount'] || '', currency: now['Amount Currency'] || '' });
+            return;
+        }
+        if ((prev['Stage'] || '') !== (now['Stage'] || '')) {
+            summary.stageChanges.push({ ...brief(now), from: prev['Stage'] || '', to: now['Stage'] || '', closed: isOpenOpportunity(prev) && !isOpenOpportunity(now) });
+        }
+        if (parseAmount(prev['Amount']) !== parseAmount(now['Amount'])) {
+            summary.amountChanges.push({ ...brief(now), from: prev['Amount'] || '0', to: now['Amount'] || '0', currency: now['Amount Currency'] || '' });
+        }
+        if ((prev['Close Date'] || '') !== (now['Close Date'] || '')) {
+            summary.closeDateChanges.push({ ...brief(now), from: prev['Close Date'] || '—', to: now['Close Date'] || '—' });
+        }
+    });
+    // Open opportunities the file didn't mention (the report may simply be filtered)
+    before.forEach((o, id) => {
+        if (!importedIds.has(id) && isOpenOpportunity(o)) summary.notInFile.push(brief(o));
+    });
+    return summary;
+}
+
+function renderImportSummary(summary) {
+    const container = document.getElementById('import-summary-content');
+    container.innerHTML = '';
+    const header = document.createElement('p');
+    header.className = 'sub-text';
+    header.textContent = getTranslation('import_summary_header', {
+        file: summary.fileName || 'CSV',
+        date: new Date(summary.importedAt).toLocaleString(getAppLocale()),
+        rows: summary.rows
+    });
+    container.appendChild(header);
+
+    const amount = (v, c) => `${parseAmount(v).toLocaleString(getAppLocale(), { maximumFractionDigits: 0 })} ${c || ''}`.trim();
+    const sections = [
+        ['import_section_stage', summary.stageChanges, i => `${i.from} → ${i.to}`, i => i.closed],
+        ['import_section_added', summary.added, i => `${i.stage} · ${amount(i.amount, i.currency)}`],
+        ['import_section_amount', summary.amountChanges, i => `${amount(i.from, i.currency)} → ${amount(i.to, i.currency)}`],
+        ['import_section_close', summary.closeDateChanges, i => `${i.from} → ${i.to}`],
+        ['import_section_not_in_file', summary.notInFile, () => '']
+    ];
+
+    let anything = false;
+    sections.forEach(([key, list, describe, highlight]) => {
+        if (!list.length) return;
+        anything = true;
+        const section = document.createElement('section');
+        section.className = 'import-section';
+        const title = document.createElement('h4');
+        title.textContent = getTranslation(key, { count: list.length });
+        section.appendChild(title);
+        if (key === 'import_section_not_in_file') {
+            const hint = document.createElement('p');
+            hint.className = 'sub-text';
+            hint.textContent = getTranslation('import_not_in_file_hint');
+            section.appendChild(hint);
+        }
+        list.slice(0, IMPORT_SUMMARY_LIST_LIMIT).forEach(item => {
+            const row = document.createElement('div');
+            row.className = `import-item clickable${highlight && highlight(item) ? ' closed' : ''}`;
+            const name = document.createElement('span');
+            name.className = 'import-item-name';
+            name.textContent = item.account ? `${item.name} · ${item.account}` : item.name;
+            const change = document.createElement('span');
+            change.className = 'import-item-change';
+            change.textContent = describe(item);
+            row.append(name, change);
+            row.onclick = () => {
+                document.getElementById('import-summary-modal').classList.add('hidden');
+                openDetails(item.id);
+            };
+            section.appendChild(row);
+        });
+        if (list.length > IMPORT_SUMMARY_LIST_LIMIT) {
+            const more = document.createElement('p');
+            more.className = 'sub-text';
+            more.textContent = getTranslation('import_more', { count: list.length - IMPORT_SUMMARY_LIST_LIMIT });
+            section.appendChild(more);
+        }
+        container.appendChild(section);
+    });
+    if (!anything) {
+        const none = document.createElement('p');
+        none.className = 'empty-state';
+        none.textContent = getTranslation('import_no_changes');
+        container.appendChild(none);
+    }
+    document.getElementById('import-summary-modal').classList.remove('hidden');
+}
+
+document.getElementById('close-import-summary-btn').onclick = () => {
+    document.getElementById('import-summary-modal').classList.add('hidden');
+};
+
+document.getElementById('show-import-summary-btn').addEventListener('click', async () => {
+    const summary = currentConfig.directory && await window.electronAPI.loadFile(currentConfig.directory, IMPORT_SUMMARY_FILE);
+    if (summary) renderImportSummary(summary);
+    else showToast(getTranslation('toast_no_import_summary'));
+});
 
 // Open the note / activity behind a History card and highlight it
 function openHistoryItem(item) {
@@ -3327,10 +3792,10 @@ function renderOpportunityGroups(opps, visibleCols) {
                 tr.className = 'clickable';
                 const oppId = opp['Opportunity ID'];
 
-                if (currentConfig.changedStages && currentConfig.changedStages[oppId]) {
-                    tr.classList.add('stage-changed');
-                    const change = currentConfig.changedStages[oppId];
-                    tr.title = `Stage changed: ${change.from} -> ${change.to}`;
+                const importChange = currentConfig.importChanges[oppId];
+                if (importChange) {
+                    tr.classList.add('csv-changed');
+                    if (importChange.changes.some(c => c.field === 'Stage')) tr.classList.add('stage-changed');
                 }
 
                 // Open details on row click
@@ -3362,6 +3827,7 @@ function renderOpportunityGroups(opps, visibleCols) {
                 ${colsHtml}
                 <td>
                     <div style="display: flex; gap: 0.5rem; align-items: center;" onclick="event.stopPropagation()">
+                        ${importChange ? `<span class="csv-change-badge${importChange.isNew ? ' is-new' : ''}" title="${escapeHtml(describeImportChange(importChange, opp))}">${importChange.isNew ? getTranslation('badge_new') : 'Δ'}</span>` : ''}
                         <button class="favorite-btn ${currentConfig.favorites.includes(oppId) ? 'active' : ''}" onclick="toggleFavorite(${jsArg(oppId)})" title="${getTranslation('title_mark_favorite')}">
                             ${currentConfig.favorites.includes(oppId) ? '★' : '☆'}
                         </button>
@@ -3514,6 +3980,7 @@ window.openDetails = (oppId) => { console.log("Abriendo Detalles de Oportunidad"
 
     elements.detailsModalTitle.textContent = `${getTranslation('prefix_details') || 'Detalles'}: ${opp['Opportunity Name'] || oppId}`;
     elements.detailsContent.innerHTML = '';
+    renderImportChangePanel(oppId, opp);
 
     // Sort keys alphabetically but prioritize Name/ID/Account
     const keys = Object.keys(opp).sort((a, b) => {
