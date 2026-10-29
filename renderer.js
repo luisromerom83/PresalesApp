@@ -556,6 +556,9 @@ document.addEventListener('click', (e) => {
         renderOpportunities();
         renderDynamicFilters();
     }
+    if (target === 'followup-view') {
+        renderFollowup();
+    }
     if (target === 'notes-history-view') {
         renderGlobalNotesHistory();
     }
@@ -1495,6 +1498,8 @@ async function loadAllData(dir) {
 
         await window.electronAPI.createDailyBackup(dir);
         await showDataWarnings();
+        refreshFollowupBadge();
+        notifyUpcomingOncePerDay();
         return true;
     } catch (e) {
         console.warn("Renderer: Error cargando archivos:", e);
@@ -2566,6 +2571,225 @@ elements.resetStructureBtn.addEventListener('click', async () => {
     }
 });
 
+// --- Follow-up: upcoming deadlines and neglected opportunities ---
+const CLOSED_STAGE_PATTERN = /closed|lost|disqualif|inactive|terminat|cerrad|perdid|ganad|won/i;
+const UPCOMING_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const isOpenOpportunity = (opp) => !CLOSED_STAGE_PATTERN.test(opp['Stage'] || '');
+const startOfDay = (date) => { const d = new Date(date); d.setHours(0, 0, 0, 0); return d; };
+const normalizeName = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+// Activity dates are typed as days ("2026-10-28") but some are stored as UTC midnight
+// ("2026-10-28T00:00:00.000Z"), which in UTC-6 is the evening before. Both mean that local day.
+function parseLocalDate(value) {
+    if (!value) return null;
+    const s = String(value);
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T00:00:00(?:\.000)?Z$)/);
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+// Every activity with a deadline: RFP, Demo, PoC milestones and account attack plans
+function collectDatedActivities() {
+    const items = [];
+    const oppName = (id) => currentConfig.opportunities.find(o => o['Opportunity ID'] === id)?.['Opportunity Name'] || id;
+
+    for (const [oppId, mat] of Object.entries(currentConfig.materials || {})) {
+        const add = (act, type, extra) => {
+            const due = parseLocalDate(act.date);
+            if (due && act.activity) items.push({ type, title: act.activity, due, oppId, name: oppName(oppId), ...extra });
+        };
+        ((mat.rfp && mat.rfp.activities) || []).forEach((act, rowIndex) => add(act, 'rfp', { rowIndex }));
+        ((mat.demo && mat.demo.activities) || []).forEach((act, rowIndex) => add(act, 'demo', { rowIndex }));
+        (mat.pocs || []).forEach((poc, pocIndex) =>
+            (poc.timeline || []).forEach((m, rowIndex) => add(m, 'poc', { pocIndex, rowIndex })));
+    }
+
+    for (const [accountId, account] of Object.entries(currentConfig.accounts || {})) {
+        const plan = account && account.attackPlan;
+        if (!plan || !plan.activities) continue;
+        const accountName = currentConfig.opportunities.find(o => o['Account ID'] === accountId)?.['Account Name'] || accountId;
+        plan.activities.forEach(act => {
+            const due = parseLocalDate(act.endDate || act.startDate);
+            if (due && act.name) items.push({ type: 'plan', title: act.name, due, accountId, name: accountName });
+        });
+    }
+    return items;
+}
+
+function getUpcomingActivities() {
+    const today = startOfDay(new Date());
+    const limit = new Date(today.getTime() + UPCOMING_DAYS * DAY_MS);
+    return collectDatedActivities()
+        .filter(a => a.due >= today && a.due <= limit)
+        .sort((a, b) => a.due - b.due);
+}
+
+function refreshFollowupBadge() {
+    const badge = document.getElementById('followup-badge');
+    if (!badge) return;
+    const count = getUpcomingActivities().length;
+    badge.textContent = count;
+    badge.classList.toggle('hidden', count === 0);
+    badge.title = getTranslation('followup_badge_title', { count });
+}
+
+// One desktop notification per day with what is due today / this week
+async function notifyUpcomingOncePerDay() {
+    const upcoming = getUpcomingActivities();
+    if (upcoming.length === 0) return;
+    const todayKey = new Date().toDateString();
+    const settings = await window.electronAPI.getSettings();
+    if (settings.lastReminderDay === todayKey) return;
+
+    const today = startOfDay(new Date()).getTime();
+    const dueToday = upcoming.filter(a => a.due.getTime() === today).length;
+    window.electronAPI.notify({
+        title: getTranslation('reminder_title'),
+        body: getTranslation('reminder_body', { today: dueToday, week: upcoming.length })
+    });
+    await window.electronAPI.saveSettings({ lastReminderDay: todayKey });
+}
+
+function dueLabel(due) {
+    const days = Math.round((startOfDay(due) - startOfDay(new Date())) / DAY_MS);
+    if (days === 0) return getTranslation('label_today');
+    if (days === 1) return getTranslation('label_tomorrow');
+    return due.toLocaleDateString(getAppLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+const FOLLOWUP_TYPE_LABELS = { rfp: 'RFP', demo: 'Demo', poc: 'PoC', plan: '🎯' };
+
+function renderUpcomingActivities() {
+    const container = document.getElementById('followup-upcoming');
+    const upcoming = getUpcomingActivities();
+    container.innerHTML = '';
+    if (upcoming.length === 0) {
+        container.innerHTML = `<p class="empty-state">${getTranslation('followup_no_upcoming')}</p>`;
+        return;
+    }
+    const today = startOfDay(new Date()).getTime();
+    upcoming.forEach(item => {
+        const row = document.createElement('div');
+        row.className = `followup-item clickable${item.due.getTime() === today ? ' due-today' : ''}`;
+        row.innerHTML = `
+            <span class="followup-due">${escapeHtml(dueLabel(item.due))}</span>
+            <span class="note-type-badge badge-${item.type === 'plan' ? 'note' : item.type}">${FOLLOWUP_TYPE_LABELS[item.type]}</span>
+            <span class="followup-title">${escapeHtml(item.title)}</span>
+            <span class="followup-name sub-text">${escapeHtml(item.name)}</span>
+        `;
+        row.onclick = () => (item.type === 'plan' ? openAttackPlan(item.accountId) : openHistoryItem(item));
+        container.appendChild(row);
+    });
+}
+
+// Latest date anything happened on each opportunity: notes, form edits and past activities
+function getLastTouchByOpp() {
+    const now = new Date();
+    const last = {};
+    const touch = (id, value) => {
+        const d = parseLocalDate(value);
+        if (d && d <= now && (!last[id] || d > last[id])) last[id] = d;
+    };
+    for (const [id, notes] of Object.entries(currentConfig.notes || {})) (notes || []).forEach(n => touch(id, n.date));
+    for (const [id, mat] of Object.entries(currentConfig.materials || {})) {
+        touch(id, mat.lastUpdated);
+        [...((mat.rfp && mat.rfp.activities) || []), ...((mat.demo && mat.demo.activities) || [])]
+            .forEach(a => { touch(id, a.startDate); touch(id, a.date); });
+        (mat.pocs || []).forEach(p => (p.timeline || []).forEach(m => { touch(id, m.startDate); touch(id, m.date); }));
+    }
+    return last;
+}
+
+const parseAmount = (value) => parseFloat(String(value || '').replace(/[^0-9.-]/g, '')) || 0;
+
+function readFollowupPrefs() {
+    try {
+        return JSON.parse(localStorage.getItem('followupPrefs')) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveFollowupPrefs(prefs) {
+    try {
+        localStorage.setItem('followupPrefs', JSON.stringify(prefs));
+    } catch (e) { /* storage unavailable: keep defaults */ }
+}
+
+function renderStaleOpportunities() {
+    const body = document.getElementById('followup-stale-body');
+    const days = Number(document.getElementById('stale-days-select').value) || 30;
+    const includeUntouched = document.getElementById('stale-include-untouched').checked;
+    const onlyMine = document.getElementById('stale-only-mine').checked;
+    const me = normalizeName(currentConfig.user && currentConfig.user.name);
+    const lastTouch = getLastTouchByOpp();
+    const today = startOfDay(new Date());
+
+    const seen = new Set();
+    const rows = currentConfig.opportunities
+        .filter(o => {
+            const id = o['Opportunity ID'];
+            if (!id || seen.has(id) || !isOpenOpportunity(o)) return false;
+            seen.add(id);
+            return !onlyMine || (me && normalizeName(o['Lead Solution Architect']) === me);
+        })
+        .map(o => {
+            const last = lastTouch[o['Opportunity ID']];
+            return { opp: o, last, idle: last ? Math.floor((today - startOfDay(last)) / DAY_MS) : null };
+        })
+        .filter(r => (r.last ? r.idle >= days : includeUntouched))
+        .sort((a, b) => parseAmount(b.opp['Amount']) - parseAmount(a.opp['Amount']));
+
+    if (rows.length === 0) {
+        body.innerHTML = `<tr><td colspan="100" class="empty-state">${getTranslation('followup_no_stale')}</td></tr>`;
+        return;
+    }
+
+    body.innerHTML = rows.map(({ opp, last, idle }) => {
+        const id = opp['Opportunity ID'];
+        const amount = parseAmount(opp['Amount']).toLocaleString(getAppLocale(), { maximumFractionDigits: 0 });
+        const lastLabel = last
+            ? getTranslation('followup_days_ago', { days: idle })
+            : getTranslation('followup_never');
+        return `
+            <tr>
+                <td>${escapeHtml(opp['Account Name'])}</td>
+                <td>${escapeHtml(opp['Opportunity Name'])}</td>
+                <td>${escapeHtml(opp['Stage'])}</td>
+                <td style="white-space: nowrap;">${escapeHtml(amount)} ${escapeHtml(opp['Amount Currency'] || '')}</td>
+                <td style="white-space: nowrap;">${escapeHtml(opp['Close Date'])}</td>
+                <td class="${last ? '' : 'sub-text'}" style="white-space: nowrap;">${escapeHtml(lastLabel)}</td>
+                <td style="white-space: nowrap;">
+                    <button class="primary-btn small" onclick="openNotes(${jsArg(id)})">${getTranslation('btn_notes')}</button>
+                    <button class="secondary-btn small" onclick="openActivities(${jsArg(id)})">${getTranslation('btn_activities')}</button>
+                </td>
+            </tr>`;
+    }).join('');
+}
+
+function renderFollowup() {
+    renderUpcomingActivities();
+    renderStaleOpportunities();
+    refreshFollowupBadge();
+}
+
+(() => {
+    const prefs = readFollowupPrefs();
+    const daysSelect = document.getElementById('stale-days-select');
+    const untouched = document.getElementById('stale-include-untouched');
+    const onlyMine = document.getElementById('stale-only-mine');
+    if (prefs.days) daysSelect.value = String(prefs.days);
+    if (typeof prefs.includeUntouched === 'boolean') untouched.checked = prefs.includeUntouched;
+    if (typeof prefs.onlyMine === 'boolean') onlyMine.checked = prefs.onlyMine;
+    [daysSelect, untouched, onlyMine].forEach(el => el.addEventListener('change', () => {
+        saveFollowupPrefs({ days: Number(daysSelect.value), includeUntouched: untouched.checked, onlyMine: onlyMine.checked });
+        renderStaleOpportunities();
+    }));
+})();
+
 // Open the note / activity behind a History card and highlight it
 function openHistoryItem(item) {
     const oppExists = item.oppId === 'global' || currentConfig.opportunities.some(o => o['Opportunity ID'] === item.oppId);
@@ -3415,6 +3639,7 @@ document.addEventListener('click', (e) => {
 
 // Save Opportunity Description
 function persistOppDescription() {
+    if (activeOppId) ensureMaterials(activeOppId).lastUpdated = new Date().toISOString(); // for Follow-up
     if (!activeOppId) return;
 
     if (!currentConfig.materials[activeOppId]) {
@@ -3432,6 +3657,7 @@ function persistOppDescription() {
 
 // Save MEDDPICC
 function persistMeddpicc() {
+    if (activeOppId) ensureMaterials(activeOppId).lastUpdated = new Date().toISOString(); // for Follow-up
     if (!activeOppId) return;
 
     if (!currentConfig.materials[activeOppId]) {
@@ -3608,6 +3834,7 @@ function updateAssessmentMaterialsFromUI() {
 }
 
 function persistAssessment() {
+    if (activeOppId) ensureMaterials(activeOppId).lastUpdated = new Date().toISOString(); // for Follow-up
     updateAssessmentMaterialsFromUI();
     return window.electronAPI.saveFile(currentConfig.directory, 'materials.json', currentConfig.materials);
 }
@@ -4137,6 +4364,7 @@ function persistPoc() {
     const hasContent = Object.values(pocData).some(v => (Array.isArray(v) ? v.length : String(v || '').replace(/<[^>]*>/g, '').trim()));
     if (activePocIndex === null && !hasContent) return;
 
+    currentConfig.materials[activeOppId].lastUpdated = new Date().toISOString(); // for Follow-up
     if (activePocIndex !== null) {
         currentConfig.materials[activeOppId].pocs[activePocIndex] = pocData;
     } else {
@@ -4559,6 +4787,7 @@ function ensureMaterials(oppId) {
 }
 
 function persistRfp() {
+    if (activeOppId) ensureMaterials(activeOppId).lastUpdated = new Date().toISOString(); // for Follow-up
     ensureMaterials(activeOppId).rfp = {
         url: elements.rfpUrl.value,
         activities: collectActivityRows(elements.rfpActivitiesBody)
@@ -4652,6 +4881,7 @@ window.removeDemoActivity = (index) => {
 };
 
 function persistDemo() {
+    if (activeOppId) ensureMaterials(activeOppId).lastUpdated = new Date().toISOString(); // for Follow-up
     const activities = collectActivityRows(elements.demoActivitiesBody);
     ensureMaterials(activeOppId);
 
@@ -5061,12 +5291,9 @@ function getActivityForDay(year, month, day) {
         const mat = currentConfig.materials[oppId];
 
         const checkMatch = (act, type) => {
-            if (!act.date) return;
-            const deadline = new Date(act.date);
-            deadline.setHours(0, 0, 0, 0);
-            
-            const start = act.startDate ? new Date(act.startDate) : deadline;
-            start.setHours(0, 0, 0, 0);
+            const deadline = parseLocalDate(act.date);
+            if (!deadline) return;
+            const start = parseLocalDate(act.startDate) || deadline;
 
             if (targetDate >= start && targetDate <= deadline) {
                 activities.push({
@@ -5995,7 +6222,7 @@ window.saveResponsible = async (name) => {
 
 function formatToDDMMYYYY(dateInput) {
     if (!dateInput) return '—';
-    const date = new Date(dateInput);
+    const date = parseLocalDate(dateInput) || new Date(NaN);
     if (isNaN(date.getTime())) {
         return dateInput;
     }
