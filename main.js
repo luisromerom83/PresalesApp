@@ -224,23 +224,138 @@ ipcMain.handle('select-directory', async () => {
   }
 });
 
+// --- Data safety ---
+// Writes go to a temp file that is flushed and then renamed over the target, so a crash or a
+// sync client touching the file mid-write can never leave a half-written JSON behind.
+function writeJsonAtomic(filePath, data) {
+  const tmpPath = `${filePath}.tmp`;
+  const fd = fs.openSync(tmpPath, 'w');
+  try {
+    fs.writeSync(fd, JSON.stringify(data, null, 2));
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  // On Windows the rename can briefly fail while OneDrive/antivirus holds the target open
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.renameSync(tmpPath, filePath);
+      return;
+    } catch (error) {
+      if (!['EPERM', 'EBUSY', 'EACCES'].includes(error.code)) throw error;
+      if (attempt >= 4) {
+        fs.copyFileSync(tmpPath, filePath);
+        fs.unlinkSync(tmpPath);
+        return;
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * (attempt + 1));
+    }
+  }
+}
+
+const BACKUP_DIR = '.backups';
+const BACKUP_DAYS_KEPT = 7;
+const dataWarnings = []; // shown by the renderer after loading
+
+// A damaged file is renamed aside (never deleted) so it can still be inspected by hand
+function quarantineFile(filePath) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const target = filePath.replace(/\.json$/, `.corrupt-${stamp}.json`);
+  fs.renameSync(filePath, target);
+  return path.basename(target);
+}
+
+// Newest backup copy of `filename` that still parses, or null
+function findValidBackup(directory, filename) {
+  const backupRoot = path.join(directory, BACKUP_DIR);
+  if (!fs.existsSync(backupRoot)) return null;
+  const days = fs.readdirSync(backupRoot).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().reverse();
+  for (const day of days) {
+    const candidate = path.join(backupRoot, day, filename);
+    try {
+      return { day, data: JSON.parse(fs.readFileSync(candidate, 'utf8')) };
+    } catch (e) { /* missing or damaged too: try an older day */ }
+  }
+  return null;
+}
+
+// Once per day: copy every data file that parses into .backups/YYYY-MM-DD and keep the last N days.
+// With a label (e.g. before an import) it always creates .backups/YYYY-MM-DD-<label>-HHMMSS,
+// which the daily rotation never deletes.
+function createDailyBackup(directory, label) {
+  const now = new Date().toISOString();
+  const day = now.split('T')[0];
+  const backupRoot = path.join(directory, BACKUP_DIR);
+  const folder = label ? `${day}-${label}-${now.slice(11, 19).replace(/:/g, '')}` : day;
+  const target = path.join(backupRoot, folder);
+  if (fs.existsSync(target)) return { created: false };
+
+  fs.mkdirSync(target, { recursive: true });
+  let count = 0;
+  for (const name of fs.readdirSync(directory)) {
+    if (!name.endsWith('.json') || name.includes('.corrupt-')) continue;
+    const source = path.join(directory, name);
+    try {
+      JSON.parse(fs.readFileSync(source, 'utf8')); // never back up a damaged file
+      fs.copyFileSync(source, path.join(target, name));
+      count++;
+    } catch (e) {
+      console.warn(`Backup skipped ${name}: ${e.message}`);
+    }
+  }
+
+  const days = fs.readdirSync(backupRoot).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  days.slice(0, Math.max(0, days.length - BACKUP_DAYS_KEPT))
+    .forEach(old => fs.rmSync(path.join(backupRoot, old), { recursive: true, force: true }));
+
+  return { created: true, day, folder, count };
+}
+
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
-ipcMain.handle('get-settings', () => {
-  if (fs.existsSync(settingsPath)) {
+function readSettings() {
+  if (!fs.existsSync(settingsPath)) return {};
+  try {
     return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+  } catch (e) {
+    // A damaged settings file used to stop the app from starting at all
+    const kept = quarantineFile(settingsPath);
+    dataWarnings.push({ type: 'settings-reset', file: 'settings.json', kept });
+    return {};
   }
-  return {};
-});
+}
+
+ipcMain.handle('get-settings', () => readSettings());
 
 ipcMain.handle('save-settings', (event, newSettings) => {
-  let existingSettings = {};
-  if (fs.existsSync(settingsPath)) {
-    existingSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-  }
-  const mergedSettings = { ...existingSettings, ...newSettings };
-  fs.writeFileSync(settingsPath, JSON.stringify(mergedSettings, null, 2));
+  const mergedSettings = { ...readSettings(), ...newSettings };
+  writeJsonAtomic(settingsPath, mergedSettings);
   return { success: true };
+});
+
+ipcMain.handle('create-daily-backup', (event, directory, label) => {
+  try {
+    if (!directory || !fs.existsSync(directory)) return { created: false };
+    const safeLabel = typeof label === 'string' ? label.replace(/[^a-z0-9-]/gi, '') : '';
+    return createDailyBackup(directory, safeLabel || undefined);
+  } catch (error) {
+    return { created: false, error: error.message };
+  }
+});
+
+ipcMain.handle('consume-data-warnings', () => dataWarnings.splice(0));
+
+ipcMain.handle('select-backup-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'JSON', extensions: ['json'] }]
+  });
+  if (result.canceled) return null;
+  try {
+    return { data: JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8')) };
+  } catch (error) {
+    return { error: error.message };
+  }
 });
 
 ipcMain.handle('copy-file-to-dir', async (event, { sourcePath, destDir }) => {
@@ -304,8 +419,7 @@ const isPlainFileName = (name) => typeof name === 'string' && name === path.base
 ipcMain.handle('save-file', async (event, { directory, filename, data }) => {
   if (!isPlainFileName(filename)) return { success: false, error: 'Invalid file name' };
   try {
-    const filePath = path.join(directory, filename);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    writeJsonAtomic(path.join(directory, filename), data);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -314,14 +428,26 @@ ipcMain.handle('save-file', async (event, { directory, filename, data }) => {
 
 ipcMain.handle('load-file', async (event, { directory, filename }) => {
   if (!isPlainFileName(filename)) return null;
+  const filePath = path.join(directory, filename);
+  if (!fs.existsSync(filePath)) return null;
   try {
-    const filePath = path.join(directory, filename);
-    if (fs.existsSync(filePath)) {
-      const data = fs.readFileSync(filePath, 'utf8');
-      return JSON.parse(data);
-    }
-    return null;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
+    // Damaged file: set it aside and fall back to the newest valid backup. Returning null here
+    // used to make the app start empty and overwrite the file on the next save.
+    try {
+      const kept = quarantineFile(filePath);
+      const backup = findValidBackup(directory, filename);
+      if (backup) {
+        writeJsonAtomic(filePath, backup.data);
+        dataWarnings.push({ type: 'restored', file: filename, day: backup.day, kept });
+        return backup.data;
+      }
+      dataWarnings.push({ type: 'no-backup', file: filename, kept });
+    } catch (recoveryError) {
+      console.error(`Could not recover ${filename}:`, recoveryError);
+      dataWarnings.push({ type: 'no-backup', file: filename, kept: filename });
+    }
     return null;
   }
 });

@@ -658,7 +658,15 @@ const translations = {
         "msg_no_opps_match": "Ninguna oportunidad coincide con la búsqueda o los filtros activos.",
         "msg_no_matches": "No hay resultados para esta búsqueda.",
         "msg_no_contacts_yet": "Aún no hay contactos. Agrégalos desde el botón 👥 de una cuenta en Oportunidades.",
-        "msg_no_resources_yet": "Aún no hay recursos. Usa el botón para agregar el primero."
+        "msg_no_resources_yet": "Aún no hay recursos. Usa el botón para agregar el primero.",
+        "warn_data_restored": "{file} estaba dañado y se restauró la copia del {day}. El archivo dañado se guardó como {kept}.",
+        "warn_data_no_backup": "{file} estaba dañado y no hay una copia válida. Se guardó como {kept} para recuperarlo manualmente.",
+        "warn_settings_reset": "La configuración estaba dañada y se reinició. La copia se guardó como {kept}.",
+        "btn_understood": "Entendido",
+        "err_import_invalid": "El archivo no es un respaldo válido de la aplicación.",
+        "confirm_import_data": "Se reemplazarán tus notas, materiales, favoritos y cuentas con el respaldo del {date}. Antes se guardará una copia de los datos actuales en la carpeta .backups. ¿Continuar?",
+        "err_import_backup_failed": "No se pudo crear la copia de seguridad previa; la importación se canceló.",
+        "err_import_write": "Error al escribir {file} durante la importación. Tus datos anteriores están en la carpeta .backups."
     },
     "pt_BR": {
         "app_title": "Presales Integrity Ledger",
@@ -1319,7 +1327,15 @@ const translations = {
         "msg_no_opps_match": "Nenhuma oportunidade corresponde à busca ou aos filtros ativos.",
         "msg_no_matches": "Nenhum resultado para esta busca.",
         "msg_no_contacts_yet": "Ainda não há contatos. Adicione-os pelo botão 👥 de uma conta em Oportunidades.",
-        "msg_no_resources_yet": "Ainda não há recursos. Use o botão para adicionar o primeiro."
+        "msg_no_resources_yet": "Ainda não há recursos. Use o botão para adicionar o primeiro.",
+        "warn_data_restored": "{file} estava danificado e a cópia de {day} foi restaurada. O arquivo danificado foi mantido como {kept}.",
+        "warn_data_no_backup": "{file} estava danificado e não há cópia válida. Foi mantido como {kept} para recuperação manual.",
+        "warn_settings_reset": "As configurações estavam danificadas e foram redefinidas. O arquivo antigo foi mantido como {kept}.",
+        "btn_understood": "Entendi",
+        "err_import_invalid": "O arquivo não é um backup válido do aplicativo.",
+        "confirm_import_data": "Suas notas, materiais, favoritos e contas serão substituídos pelo backup de {date}. Antes, uma cópia dos dados atuais será salva na pasta .backups. Continuar?",
+        "err_import_backup_failed": "Não foi possível criar o backup de segurança; a importação foi cancelada.",
+        "err_import_write": "Erro ao gravar {file} durante a importação. Seus dados anteriores estão na pasta .backups."
     },
     "en_US": {
         "app_title": "Presales Integrity Ledger",
@@ -1980,7 +1996,15 @@ const translations = {
         "msg_no_opps_match": "No opportunities match the search or active filters.",
         "msg_no_matches": "No results for this search.",
         "msg_no_contacts_yet": "No contacts yet. Add them with the 👥 button on an account in Opportunities.",
-        "msg_no_resources_yet": "No resources yet. Use the button to add the first one."
+        "msg_no_resources_yet": "No resources yet. Use the button to add the first one.",
+        "warn_data_restored": "{file} was damaged and the backup from {day} was restored. The damaged file was kept as {kept}.",
+        "warn_data_no_backup": "{file} was damaged and there is no valid backup. It was kept as {kept} for manual recovery.",
+        "warn_settings_reset": "Settings were damaged and have been reset. The old file was kept as {kept}.",
+        "btn_understood": "Got it",
+        "err_import_invalid": "This file is not a valid app backup.",
+        "confirm_import_data": "Your notes, materials, favorites and accounts will be replaced with the backup from {date}. A copy of the current data will be saved in the .backups folder first. Continue?",
+        "err_import_backup_failed": "Could not create the safety backup; the import was cancelled.",
+        "err_import_write": "Error writing {file} during the import. Your previous data is in the .backups folder."
     }
 };
 

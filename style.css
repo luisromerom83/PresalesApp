@@ -1539,6 +1539,11 @@ textarea:focus {
     gap: 1rem;
 }
 
+/* Keep short labels like "Más tarde" on one line when the other button's text is long */
+.form-actions > button {
+    white-space: nowrap;
+}
+
 /* Notes Section */
 .notes-history {
     background: rgba(0, 0, 0, 0.2);

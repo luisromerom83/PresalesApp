@@ -1493,11 +1493,26 @@ async function loadAllData(dir) {
             migrateSecondaryFilters();
         }
 
+        await window.electronAPI.createDailyBackup(dir);
+        await showDataWarnings();
         return true;
     } catch (e) {
         console.warn("Renderer: Error cargando archivos:", e);
+        await showDataWarnings();
         return true;
     }
+}
+
+// Damaged files found while loading (restored from backup or set aside) are reported once
+async function showDataWarnings() {
+    const warnings = await window.electronAPI.consumeDataWarnings();
+    const keys = { 'restored': 'warn_data_restored', 'no-backup': 'warn_data_no_backup', 'settings-reset': 'warn_settings_reset' };
+    warnings.forEach(w => {
+        if (!keys[w.type]) return;
+        showToast(getTranslation(keys[w.type], w), 'error', {
+            actionLabel: getTranslation('btn_understood'), onAction: () => {}, duration: 30000
+        });
+    });
 }
 
 async function saveMaterials() {
@@ -5649,7 +5664,8 @@ elements.exportDataBtn.onclick = async () => {
         notes: currentConfig.notes,
         materials: currentConfig.materials,
         favorites: currentConfig.favorites,
-        accounts: currentConfig.accounts
+        accounts: currentConfig.accounts,
+        exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -5659,9 +5675,43 @@ elements.exportDataBtn.onclick = async () => {
     a.click();
 };
 
+// Restores notes, materials, favorites and accounts from a file made with "Export data".
+// The current data is copied to .backups first, so an import can always be undone by hand.
+const IMPORTABLE_DATASETS = { notes: 'notes.json', materials: 'materials.json', favorites: 'favorites.json', accounts: 'accounts.json' };
+
 elements.importDataBtn.onclick = async () => {
-    // Implementation for JSON import
-    showToast(getTranslation('toast_import_coming_soon'));
+    if (!currentConfig.directory) return;
+    const result = await window.electronAPI.selectBackupFile();
+    if (!result) return;
+
+    const data = result.data;
+    const datasets = data && typeof data === 'object'
+        ? Object.keys(IMPORTABLE_DATASETS).filter(k => data[k] && typeof data[k] === 'object')
+        : [];
+    if (result.error || datasets.length === 0) {
+        showToast(getTranslation('err_import_invalid'), 'error');
+        return;
+    }
+
+    const exportedAt = data.exportedAt ? new Date(data.exportedAt).toLocaleString(getAppLocale()) : '?';
+    if (!confirm(getTranslation('confirm_import_data', { date: exportedAt }))) return;
+
+    await flushAutosaves();
+    const backup = await window.electronAPI.createDailyBackup(currentConfig.directory, 'before-import');
+    if (!backup.created) {
+        showToast(getTranslation('err_import_backup_failed'), 'error');
+        return;
+    }
+
+    for (const key of datasets) {
+        const res = await window.electronAPI.saveFile(currentConfig.directory, IMPORTABLE_DATASETS[key], data[key]);
+        if (res && res.success === false) {
+            showToast(getTranslation('err_import_write', { file: IMPORTABLE_DATASETS[key] }), 'error');
+            return;
+        }
+    }
+    // Reload so every view picks up the imported data
+    location.reload();
 };
 
 

@@ -21,5 +21,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openPath: (path) => ipcRenderer.invoke('open-path', path),
     notify: (data) => ipcRenderer.invoke('notify', data),
     selectImage: () => ipcRenderer.invoke('select-image'),
-    getPathForFile: (file) => webUtils.getPathForFile(file)
+    getPathForFile: (file) => webUtils.getPathForFile(file),
+    createDailyBackup: (dir, label) => ipcRenderer.invoke('create-daily-backup', dir, label),
+    consumeDataWarnings: () => ipcRenderer.invoke('consume-data-warnings'),
+    selectBackupFile: () => ipcRenderer.invoke('select-backup-file')
 });
