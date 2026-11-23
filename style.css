@@ -923,6 +923,12 @@ tr:hover {
     filter: brightness(1.2);
 }
 
+/* Compact buttons (e.g. "Notes" in table rows) without the glow behind them */
+.primary-btn.small,
+.primary-btn.small:hover {
+    box-shadow: none;
+}
+
 .secondary-btn {
     background: transparent;
     color: var(--primary);
