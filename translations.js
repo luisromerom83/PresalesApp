@@ -729,7 +729,22 @@ const translations = {
         "label_field_amount": "Monto",
         "label_field_close_date": "Fecha de cierre",
         "import_change_title": "Último cambio del CSV ({date})",
-        "import_change_new": "Nueva en el CSV del {date}"
+        "import_change_new": "Nueva en el CSV del {date}",
+        "title_account_map": "Mapa de la cuenta",
+        "title_account_map_for": "Mapa: {name}",
+        "placeholder_map_search": "Buscar en el mapa…",
+        "map_show_work": "PoC, RFP, Demo y notas",
+        "map_show_contacts": "Contactos y plan",
+        "map_size_by_amount": "Tamaño por monto",
+        "btn_map_fit": "Ajustar a la vista",
+        "btn_map_reset": "Reorganizar",
+        "map_hint": "Arrastra para mover · rueda para zoom · clic en un grupo para abrirlo",
+        "map_group_open": "Abiertas",
+        "map_group_won": "Cerradas",
+        "map_group_lost": "Perdidas",
+        "map_group_inactive": "Descalificadas / inactivas",
+        "map_label_category": "Categoría",
+        "map_panel_hint": "Haz clic en una oportunidad para ver su detalle, o en PoC, RFP, Demo o Notas para abrirlos. Los nodos que arrastres quedan fijos; \"Reorganizar\" los libera."
     },
     "pt_BR": {
         "app_title": "Presales Integrity Ledger",
@@ -1461,7 +1476,22 @@ const translations = {
         "label_field_amount": "Valor",
         "label_field_close_date": "Data de fechamento",
         "import_change_title": "Última mudança do CSV ({date})",
-        "import_change_new": "Nova no CSV de {date}"
+        "import_change_new": "Nova no CSV de {date}",
+        "title_account_map": "Mapa da conta",
+        "title_account_map_for": "Mapa: {name}",
+        "placeholder_map_search": "Buscar no mapa…",
+        "map_show_work": "PoC, RFP, Demo e notas",
+        "map_show_contacts": "Contatos e plano",
+        "map_size_by_amount": "Tamanho por valor",
+        "btn_map_fit": "Ajustar à tela",
+        "btn_map_reset": "Reorganizar",
+        "map_hint": "Arraste para mover · role para zoom · clique em um grupo para abri-lo",
+        "map_group_open": "Abertas",
+        "map_group_won": "Fechadas",
+        "map_group_lost": "Perdidas",
+        "map_group_inactive": "Desqualificadas / inativas",
+        "map_label_category": "Categoria",
+        "map_panel_hint": "Clique em uma oportunidade para ver o detalhe, ou em PoC, RFP, Demo ou Notas para abri-los. Os nós arrastados ficam fixos; \"Reorganizar\" os libera."
     },
     "en_US": {
         "app_title": "Presales Integrity Ledger",
@@ -2193,7 +2223,22 @@ const translations = {
         "label_field_amount": "Amount",
         "label_field_close_date": "Close date",
         "import_change_title": "Last CSV change ({date})",
-        "import_change_new": "New in the CSV from {date}"
+        "import_change_new": "New in the CSV from {date}",
+        "title_account_map": "Account map",
+        "title_account_map_for": "Map: {name}",
+        "placeholder_map_search": "Search the map…",
+        "map_show_work": "PoC, RFP, Demo and notes",
+        "map_show_contacts": "Contacts and plan",
+        "map_size_by_amount": "Size by amount",
+        "btn_map_fit": "Fit to view",
+        "btn_map_reset": "Rearrange",
+        "map_hint": "Drag to move · scroll to zoom · click a group to open it",
+        "map_group_open": "Open",
+        "map_group_won": "Closed",
+        "map_group_lost": "Lost",
+        "map_group_inactive": "Disqualified / inactive",
+        "map_label_category": "Category",
+        "map_panel_hint": "Click an opportunity to see its details, or PoC, RFP, Demo or Notes to open them. Nodes you drag stay pinned; \"Rearrange\" releases them."
     }
 };
 

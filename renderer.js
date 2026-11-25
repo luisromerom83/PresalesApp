@@ -3255,6 +3255,637 @@ document.getElementById('show-import-summary-btn').addEventListener('click', asy
     else showToast(getTranslation('toast_no_import_summary'));
 });
 
+// --- Account map (Obsidian-style graph) ---
+// Account -> opportunity status groups -> opportunities -> work items (PoC, RFP, Demo, notes),
+// plus contacts and attack plan. Groups expand/collapse like a tree; dragged nodes stay pinned.
+// Layout (pinned positions, expanded groups) is saved per account in accounts.json; display
+// toggles are a per-viewer preference.
+const MAP_STATUS = {
+    // Validated with the dataviz palette checks (CVD separation on all pairs, every theme);
+    // each status also carries a glyph and a label, never color alone.
+    open: { color: '#2a78d6', glyph: '●', key: 'map_group_open' },
+    won: { color: '#1baf7a', glyph: '✓', key: 'map_group_won' },
+    lost: { color: '#eb6834', glyph: '✕', key: 'map_group_lost' },
+    inactive: { color: '#8a8f98', glyph: '–', key: 'map_group_inactive' }
+};
+const MAP_STATUS_ORDER = ['open', 'won', 'lost', 'inactive'];
+const MAP_WORK_GLYPHS = { poc: '🧪', rfp: '📄', demo: '📽️', notes: '📝', contact: '👤', plan: '🎯', contacts: '👥' };
+const MAP_LINK_DISTANCE = { group: 150, opp: 95, poc: 48, rfp: 48, demo: 48, notes: 48, plan: 130, contacts: 120, contact: 60 };
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function oppStatus(stage) {
+    const s = String(stage || '');
+    if (!CLOSED_STAGE_PATTERN.test(s)) return 'open';
+    if (/lost|perdid|competition/i.test(s)) return 'lost';
+    if (/disqualif|inactive|terminat|no opportunity/i.test(s)) return 'inactive';
+    return 'won';
+}
+
+const truncateLabel = (text, max = 28) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+const plainText = (html) => new DOMParser().parseFromString(String(html || ''), 'text/html').body.textContent.trim();
+
+function readMapPrefs() {
+    try {
+        return { showWork: true, showContacts: true, sizeByAmount: true, ...JSON.parse(localStorage.getItem('accountMapPrefs') || '{}') };
+    } catch (e) {
+        return { showWork: true, showContacts: true, sizeByAmount: true };
+    }
+}
+
+function saveMapPrefs(prefs) {
+    try {
+        localStorage.setItem('accountMapPrefs', JSON.stringify(prefs));
+    } catch (e) { /* storage unavailable: keep defaults */ }
+}
+
+const accountMap = {
+    accountId: null,
+    nodes: [],
+    links: [],
+    byId: new Map(),
+    view: { x: 0, y: 0, k: 1 },
+    alpha: 0,
+    frame: null,
+    selectedId: null,
+    prefs: readMapPrefs()
+};
+
+function getMapLayout(accountId) {
+    const account = currentConfig.accounts[accountId] || {};
+    const layout = account.mapLayout || {};
+    return { positions: layout.positions || {}, expanded: layout.expanded || {} };
+}
+
+const saveMapLayoutDebounced = debounce(async (accountId, layout) => {
+    if (!currentConfig.accounts[accountId]) currentConfig.accounts[accountId] = {};
+    currentConfig.accounts[accountId].mapLayout = layout;
+    await window.electronAPI.saveFile(currentConfig.directory, 'accounts.json', currentConfig.accounts);
+}, 600);
+
+function persistMapLayout() {
+    const positions = {};
+    accountMap.nodes.forEach(n => { if (n.pinned) positions[n.id] = { x: Math.round(n.x), y: Math.round(n.y) }; });
+    saveMapLayoutDebounced(accountMap.accountId, { positions, expanded: accountMap.expanded });
+}
+
+function buildAccountGraph(accountId) {
+    const prefs = accountMap.prefs;
+    const expanded = accountMap.expanded;
+    const account = currentConfig.accounts[accountId] || {};
+    const seen = new Set();
+    const opps = currentConfig.opportunities.filter(o => {
+        const id = o['Opportunity ID'];
+        if (o['Account ID'] !== accountId || !id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
+    const accountName = (opps[0] && opps[0]['Account Name']) || accountId;
+    const maxAmount = Math.max(1, ...opps.map(o => parseAmount(o['Amount'])));
+
+    const nodes = [];
+    const links = [];
+    const add = (node, parentId) => {
+        nodes.push(node);
+        if (parentId) links.push({ source: parentId, target: node.id, distance: MAP_LINK_DISTANCE[node.type] || 80 });
+    };
+
+    add({ id: 'acc', type: 'account', label: accountName, r: 26, glyph: '🏢' });
+
+    MAP_STATUS_ORDER.forEach(status => {
+        const group = opps.filter(o => oppStatus(o['Stage']) === status);
+        if (!group.length) return;
+        const groupId = `grp:${status}`;
+        const isOpen = expanded[groupId] ?? (status === 'open');
+        add({ id: groupId, type: 'group', status, label: `${getTranslation(MAP_STATUS[status].key)} (${group.length})`, r: 15, glyph: MAP_STATUS[status].glyph, expandable: true, isOpen, count: group.length }, 'acc');
+        if (!isOpen) return;
+
+        group.forEach(o => {
+            const oppId = o['Opportunity ID'];
+            const r = prefs.sizeByAmount ? 8 + 14 * Math.sqrt(parseAmount(o['Amount']) / maxAmount) : 10;
+            add({ id: `opp:${oppId}`, type: 'opp', status, label: o['Opportunity Name'] || oppId, r, glyph: MAP_STATUS[status].glyph, opp: o }, groupId);
+            if (!prefs.showWork) return;
+
+            const mat = currentConfig.materials[oppId] || {};
+            (mat.pocs || []).forEach((poc, i) => {
+                const objective = plainText(poc.objective) || getTranslation('label_no_objective');
+                add({ id: `poc:${oppId}:${i}`, type: 'poc', label: `PoC · ${objective}`, r: 7, glyph: MAP_WORK_GLYPHS.poc, oppId, pocIndex: i }, `opp:${oppId}`);
+            });
+            if (mat.rfp && ((mat.rfp.activities && mat.rfp.activities.length) || mat.rfp.url)) {
+                add({ id: `rfp:${oppId}`, type: 'rfp', label: `RFP (${(mat.rfp.activities || []).length})`, r: 7, glyph: MAP_WORK_GLYPHS.rfp, oppId }, `opp:${oppId}`);
+            }
+            if (mat.demo && ((mat.demo.activities && mat.demo.activities.length) || mat.demo.description || mat.demo.url)) {
+                add({ id: `demo:${oppId}`, type: 'demo', label: `Demo (${(mat.demo.activities || []).length})`, r: 7, glyph: MAP_WORK_GLYPHS.demo, oppId }, `opp:${oppId}`);
+            }
+            const notes = currentConfig.notes[oppId] || [];
+            if (notes.length) {
+                add({ id: `notes:${oppId}`, type: 'notes', label: `${getTranslation('btn_notes')} (${notes.length})`, r: 7, glyph: MAP_WORK_GLYPHS.notes, oppId }, `opp:${oppId}`);
+            }
+        });
+    });
+
+    if (prefs.showContacts) {
+        if (account.attackPlan) {
+            add({ id: 'plan', type: 'plan', label: getTranslation('title_attack_plan'), r: 11, glyph: MAP_WORK_GLYPHS.plan }, 'acc');
+        }
+        const contacts = (account.contacts || []).filter(c => c && c.name);
+        if (contacts.length) {
+            const isOpen = expanded['grp:contacts'] ?? (contacts.length <= 8);
+            add({ id: 'grp:contacts', type: 'contacts', label: `${getTranslation('title_account_contacts')} (${contacts.length})`, r: 12, glyph: MAP_WORK_GLYPHS.contacts, expandable: true, isOpen }, 'acc');
+            if (isOpen) {
+                contacts.forEach((c, i) => add({ id: `contact:${i}`, type: 'contact', label: c.name, r: 7, glyph: MAP_WORK_GLYPHS.contact, contact: c }, 'grp:contacts'));
+            }
+        }
+    }
+    return { nodes, links, accountName, opps };
+}
+
+// Keeps the current coordinates of nodes that survive a rebuild (e.g. after expanding a group)
+function setAccountGraph(graph) {
+    const previous = accountMap.byId;
+    const saved = accountMap.layout.positions;
+    const byId = new Map();
+    graph.nodes.forEach(n => {
+        const old = previous.get(n.id);
+        const parentLink = graph.links.find(l => l.target === n.id);
+        const parent = parentLink && (byId.get(parentLink.source) || previous.get(parentLink.source));
+        if (old) {
+            Object.assign(n, { x: old.x, y: old.y, vx: 0, vy: 0, pinned: old.pinned });
+        } else if (saved[n.id]) {
+            Object.assign(n, { x: saved[n.id].x, y: saved[n.id].y, vx: 0, vy: 0, pinned: true });
+        } else {
+            const angle = Math.random() * Math.PI * 2;
+            const base = parent || { x: 0, y: 0 };
+            Object.assign(n, { x: base.x + Math.cos(angle) * 40, y: base.y + Math.sin(angle) * 40, vx: 0, vy: 0, pinned: n.id === 'acc' });
+            if (n.id === 'acc') { n.x = 0; n.y = 0; }
+        }
+        byId.set(n.id, n);
+    });
+    accountMap.nodes = graph.nodes;
+    accountMap.links = graph.links.map(l => ({ ...l, source: byId.get(l.source), target: byId.get(l.target) }));
+    accountMap.byId = byId;
+    accountMap.neighbors = new Map(graph.nodes.map(n => [n.id, new Set([n.id])]));
+    accountMap.links.forEach(l => {
+        accountMap.neighbors.get(l.source.id).add(l.target.id);
+        accountMap.neighbors.get(l.target.id).add(l.source.id);
+    });
+}
+
+// Small force simulation: all-pairs repulsion, springs on links, weak pull to the center
+function tickAccountMap() {
+    const { nodes, links } = accountMap;
+    const alpha = accountMap.alpha;
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let d2 = dx * dx + dy * dy;
+            if (d2 < 1) { dx = Math.random() - 0.5; dy = Math.random() - 0.5; d2 = 1; }
+            const minDist = a.r + b.r + 14;
+            const force = (2200 * alpha) / Math.max(d2, minDist * minDist * 0.5);
+            const d = Math.sqrt(d2);
+            const fx = (dx / d) * force;
+            const fy = (dy / d) * force;
+            a.vx -= fx; a.vy -= fy;
+            b.vx += fx; b.vy += fy;
+        }
+    }
+    links.forEach(l => {
+        const dx = l.target.x - l.source.x;
+        const dy = l.target.y - l.source.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const k = ((d - l.distance) / d) * 0.12 * alpha;
+        l.source.vx += dx * k; l.source.vy += dy * k;
+        l.target.vx -= dx * k; l.target.vy -= dy * k;
+    });
+    nodes.forEach(n => {
+        if (n.pinned || n.dragging) { n.vx = 0; n.vy = 0; return; }
+        n.vx -= n.x * 0.004 * alpha;
+        n.vy -= n.y * 0.004 * alpha;
+        n.vx *= 0.6; n.vy *= 0.6;
+        n.x += n.vx; n.y += n.vy;
+    });
+    // Collision: push apart any two circles (plus room for labels) that overlap
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+            const min = a.r + b.r + 10;
+            if (d >= min) continue;
+            const push = (min - d) / d / 2;
+            const aFixed = a.pinned || a.dragging;
+            const bFixed = b.pinned || b.dragging;
+            if (aFixed && bFixed) continue;
+            const ka = aFixed ? 0 : (bFixed ? 2 : 1);
+            const kb = bFixed ? 0 : (aFixed ? 2 : 1);
+            a.x -= dx * push * ka; a.y -= dy * push * ka;
+            b.x += dx * push * kb; b.y += dy * push * kb;
+        }
+    }
+}
+
+function startAccountMapSimulation(alpha = 1) {
+    accountMap.alpha = Math.max(accountMap.alpha, alpha);
+    if (accountMap.frame) return;
+    const step = () => {
+        tickAccountMap();
+        updateAccountMapPositions();
+        accountMap.alpha *= 0.975;
+        if (accountMap.alpha > 0.02) {
+            accountMap.frame = requestAnimationFrame(step);
+        } else {
+            accountMap.frame = null;
+        }
+    };
+    accountMap.frame = requestAnimationFrame(step);
+}
+
+function svgEl(tag, attrs = {}) {
+    const el = document.createElementNS(SVG_NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+    return el;
+}
+
+function renderAccountMapElements() {
+    const svg = document.getElementById('account-map-svg');
+    const linksLayer = svg.querySelector('.map-links');
+    const nodesLayer = svg.querySelector('.map-nodes');
+    linksLayer.textContent = '';
+    nodesLayer.textContent = '';
+
+    accountMap.links.forEach(l => {
+        l.el = svgEl('line', { class: 'map-link' });
+        linksLayer.appendChild(l.el);
+    });
+
+    accountMap.nodes.forEach(n => {
+        const g = svgEl('g', { class: `map-node type-${n.type}${n.status ? ` status-${n.status}` : ''}`, tabindex: '0', role: 'button' });
+        g.setAttribute('aria-label', n.label);
+        const circle = svgEl('circle', { r: n.r, class: 'map-node-circle' });
+        if (n.status) circle.style.fill = MAP_STATUS[n.status].color;
+        const glyph = svgEl('text', { class: 'map-node-glyph', 'text-anchor': 'middle', dy: '0.35em' });
+        glyph.textContent = n.expandable ? (n.isOpen ? '−' : '+') : n.glyph;
+        if (n.type === 'opp' || n.type === 'account' || n.type === 'group') glyph.style.fontSize = `${Math.max(9, n.r * 0.9)}px`;
+        const label = svgEl('text', { class: 'map-node-label', 'text-anchor': 'middle', y: n.r + 13 });
+        label.textContent = truncateLabel(n.label, n.type === 'account' ? 40 : 28);
+        const title = svgEl('title');
+        title.textContent = n.opp
+            ? `${n.label}\n${n.opp['Stage'] || ''} · ${parseAmount(n.opp['Amount']).toLocaleString(getAppLocale(), { maximumFractionDigits: 0 })} ${n.opp['Amount Currency'] || ''}`
+            : n.label;
+        g.append(title, circle, glyph, label);
+        n.el = g;
+        bindAccountMapNode(n);
+        nodesLayer.appendChild(g);
+    });
+
+    applyAccountMapSearch();
+    markAccountMapSelection();
+    updateAccountMapPositions();
+}
+
+function updateAccountMapPositions() {
+    accountMap.links.forEach(l => {
+        l.el.setAttribute('x1', l.source.x);
+        l.el.setAttribute('y1', l.source.y);
+        l.el.setAttribute('x2', l.target.x);
+        l.el.setAttribute('y2', l.target.y);
+    });
+    accountMap.nodes.forEach(n => n.el && n.el.setAttribute('transform', `translate(${n.x},${n.y})`));
+}
+
+function applyAccountMapView() {
+    const { x, y, k } = accountMap.view;
+    document.getElementById('account-map-viewport').setAttribute('transform', `translate(${x},${y}) scale(${k})`);
+    // Like Obsidian, small labels appear only once you zoom in
+    document.getElementById('account-map-svg').classList.toggle('zoomed-out', k < 0.75);
+}
+
+function fitAccountMap() {
+    const svg = document.getElementById('account-map-svg');
+    const { width, height } = svg.getBoundingClientRect();
+    if (!accountMap.nodes.length || !width) return;
+    const xs = accountMap.nodes.map(n => n.x);
+    const ys = accountMap.nodes.map(n => n.y);
+    const pad = 60;
+    const minX = Math.min(...xs) - pad;
+    const maxX = Math.max(...xs) + pad;
+    const minY = Math.min(...ys) - pad;
+    const maxY = Math.max(...ys) + pad;
+    const k = Math.min(2, Math.max(0.2, Math.min(width / (maxX - minX), height / (maxY - minY))));
+    accountMap.view = { k, x: width / 2 - ((minX + maxX) / 2) * k, y: height / 2 - ((minY + maxY) / 2) * k };
+    applyAccountMapView();
+}
+
+function highlightAccountMapNeighbors(nodeId) {
+    const svg = document.getElementById('account-map-svg');
+    const neighbors = nodeId ? accountMap.neighbors.get(nodeId) : null;
+    svg.classList.toggle('has-focus', !!neighbors);
+    accountMap.nodes.forEach(n => n.el.classList.toggle('neighbor', !!neighbors && neighbors.has(n.id)));
+    accountMap.links.forEach(l => l.el.classList.toggle('neighbor', !!neighbors && (l.source.id === nodeId || l.target.id === nodeId)));
+}
+
+function bindAccountMapNode(n) {
+    n.el.addEventListener('pointerenter', () => highlightAccountMapNeighbors(n.id));
+    n.el.addEventListener('pointerleave', () => !n.dragging && highlightAccountMapNeighbors(null));
+    n.el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateAccountMapNode(n); }
+    });
+    n.el.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        n.el.setPointerCapture(e.pointerId);
+        const start = { x: e.clientX, y: e.clientY };
+        let moved = false;
+        n.dragging = true;
+        const onMove = (ev) => {
+            if (!moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 4) return;
+            moved = true;
+            n.x += (ev.clientX - start.x) / accountMap.view.k;
+            n.y += (ev.clientY - start.y) / accountMap.view.k;
+            start.x = ev.clientX;
+            start.y = ev.clientY;
+            updateAccountMapPositions();
+            startAccountMapSimulation(0.3);
+        };
+        const onUp = () => {
+            n.el.removeEventListener('pointermove', onMove);
+            n.el.removeEventListener('pointerup', onUp);
+            n.dragging = false;
+            if (moved) {
+                n.pinned = true; // dragged nodes stay where they were dropped
+                persistMapLayout();
+            } else {
+                activateAccountMapNode(n);
+            }
+        };
+        n.el.addEventListener('pointermove', onMove);
+        n.el.addEventListener('pointerup', onUp);
+    });
+}
+
+function rebuildAccountMap(alpha = 0.6) {
+    setAccountGraph(buildAccountGraph(accountMap.accountId));
+    renderAccountMapElements();
+    renderAccountMapLegend();
+    startAccountMapSimulation(alpha);
+}
+
+function activateAccountMapNode(n) {
+    if (n.expandable) {
+        accountMap.expanded[n.id] = !n.isOpen;
+        persistMapLayout();
+        rebuildAccountMap(0.6);
+        return;
+    }
+    switch (n.type) {
+        case 'poc':
+            openHistoryItem({ type: 'poc', oppId: n.oppId, pocIndex: n.pocIndex, rowIndex: null });
+            return;
+        case 'rfp':
+        case 'demo':
+            openActivities(n.oppId, n.type === 'rfp' ? 'tab-rfp' : 'tab-demo');
+            return;
+        case 'notes':
+            openNotes(n.oppId);
+            return;
+        case 'plan':
+            openAttackPlan(accountMap.accountId);
+            return;
+        case 'contact':
+            openAccountContacts(accountMap.accountId);
+            return;
+        default:
+            accountMap.selectedId = n.id;
+            markAccountMapSelection();
+            renderAccountMapPanel(n);
+    }
+}
+
+function markAccountMapSelection() {
+    accountMap.nodes.forEach(n => n.el && n.el.classList.toggle('selected', n.id === accountMap.selectedId));
+}
+
+function mapPanelButton(labelKey, onClick, primary = false) {
+    const btn = document.createElement('button');
+    btn.className = `${primary ? 'primary-btn' : 'secondary-btn'} small`;
+    btn.textContent = getTranslation(labelKey);
+    btn.onclick = onClick;
+    return btn;
+}
+
+function renderAccountMapPanel(n) {
+    const panel = document.getElementById('account-map-panel');
+    panel.textContent = '';
+    const addRow = (labelText, value) => {
+        if (!value) return;
+        const row = document.createElement('div');
+        row.className = 'map-panel-row';
+        const label = document.createElement('span');
+        label.className = 'sub-text';
+        label.textContent = labelText;
+        const val = document.createElement('span');
+        val.textContent = value;
+        row.append(label, val);
+        panel.appendChild(row);
+    };
+    const title = document.createElement('h4');
+    panel.appendChild(title);
+
+    if (n && n.opp) {
+        const o = n.opp;
+        const oppId = o['Opportunity ID'];
+        title.textContent = o['Opportunity Name'] || oppId;
+        const badge = document.createElement('span');
+        badge.className = 'map-status-pill';
+        badge.style.setProperty('--status-color', MAP_STATUS[n.status].color);
+        badge.textContent = `${MAP_STATUS[n.status].glyph} ${getTranslation(MAP_STATUS[n.status].key)}`;
+        panel.appendChild(badge);
+        addRow('Stage', o['Stage']);
+        addRow(getTranslation('followup_col_amount'), `${parseAmount(o['Amount']).toLocaleString(getAppLocale(), { maximumFractionDigits: 0 })} ${o['Amount Currency'] || ''}`);
+        addRow(getTranslation('followup_col_close'), o['Close Date']);
+        addRow('Lead SA', o['Lead Solution Architect']);
+        addRow('Owner', o['Opportunity Owner']);
+        const change = currentConfig.importChanges[oppId];
+        if (change) addRow('CSV', describeImportChange(change, o).split('\n').slice(1).join(' · ') || getTranslation('badge_new'));
+        const actions = document.createElement('div');
+        actions.className = 'map-panel-actions';
+        actions.append(
+            mapPanelButton('prefix_details', () => openDetails(oppId), true),
+            mapPanelButton('btn_notes', () => openNotes(oppId)),
+            mapPanelButton('btn_activities', () => openActivities(oppId))
+        );
+        panel.appendChild(actions);
+        return;
+    }
+
+    // Account summary (default panel)
+    const graph = accountMap.summary;
+    title.textContent = graph.accountName;
+    const account = currentConfig.accounts[accountMap.accountId] || {};
+    addRow(getTranslation('map_label_category'), account.category);
+    MAP_STATUS_ORDER.forEach(status => {
+        const count = graph.opps.filter(o => oppStatus(o['Stage']) === status).length;
+        if (count) addRow(`${MAP_STATUS[status].glyph} ${getTranslation(MAP_STATUS[status].key)}`, String(count));
+    });
+    const actions = document.createElement('div');
+    actions.className = 'map-panel-actions';
+    actions.append(
+        mapPanelButton('title_attack_plan', () => openAttackPlan(accountMap.accountId)),
+        mapPanelButton('title_account_contacts', () => openAccountContacts(accountMap.accountId))
+    );
+    panel.appendChild(actions);
+    const hint = document.createElement('p');
+    hint.className = 'sub-text';
+    hint.textContent = getTranslation('map_panel_hint');
+    panel.appendChild(hint);
+}
+
+function renderAccountMapLegend() {
+    const legend = document.getElementById('account-map-legend');
+    legend.textContent = '';
+    MAP_STATUS_ORDER.forEach(status => {
+        const count = accountMap.summary.opps.filter(o => oppStatus(o['Stage']) === status).length;
+        if (!count) return;
+        const item = document.createElement('span');
+        item.className = 'map-legend-item';
+        const swatch = document.createElement('span');
+        swatch.className = 'map-legend-swatch';
+        swatch.style.background = MAP_STATUS[status].color;
+        swatch.textContent = MAP_STATUS[status].glyph;
+        const text = document.createElement('span');
+        text.textContent = `${getTranslation(MAP_STATUS[status].key)} ${count}`;
+        item.append(swatch, text);
+        legend.appendChild(item);
+    });
+}
+
+// Search dims everything that doesn't match; a collapsed group lights up when it hides a match
+function applyAccountMapSearch() {
+    const query = normalizeName(document.getElementById('account-map-search').value);
+    const svg = document.getElementById('account-map-svg');
+    svg.classList.toggle('searching', !!query);
+    if (!query) {
+        accountMap.nodes.forEach(n => n.el && n.el.classList.remove('match'));
+        return;
+    }
+    const hiddenMatches = new Set(accountMap.summary.opps
+        .filter(o => normalizeName(o['Opportunity Name']).includes(query))
+        .map(o => `grp:${oppStatus(o['Stage'])}`));
+    accountMap.nodes.forEach(n => {
+        const match = normalizeName(n.label).includes(query) || (n.expandable && !n.isOpen && hiddenMatches.has(n.id));
+        n.el && n.el.classList.toggle('match', match);
+    });
+}
+
+window.openAccountMap = (accountId) => {
+    flushAutosaves();
+    accountMap.accountId = accountId;
+    accountMap.layout = getMapLayout(accountId);
+    accountMap.expanded = { ...accountMap.layout.expanded };
+    accountMap.byId = new Map();
+    accountMap.selectedId = null;
+    accountMap.prefs = readMapPrefs();
+    document.getElementById('map-show-work').checked = accountMap.prefs.showWork;
+    document.getElementById('map-show-contacts').checked = accountMap.prefs.showContacts;
+    document.getElementById('map-size-by-amount').checked = accountMap.prefs.sizeByAmount;
+    document.getElementById('account-map-search').value = '';
+
+    const graph = buildAccountGraph(accountId);
+    accountMap.summary = graph;
+    document.getElementById('account-map-title').textContent = getTranslation('title_account_map_for', { name: graph.accountName });
+    document.getElementById('account-map-modal').classList.remove('hidden');
+
+    setAccountGraph(graph);
+    renderAccountMapElements();
+    renderAccountMapLegend();
+    renderAccountMapPanel(null);
+    // Settle the layout off-screen first so the map opens already arranged
+    accountMap.alpha = 1;
+    for (let i = 0; i < 160; i++) { tickAccountMap(); accountMap.alpha *= 0.975; }
+    updateAccountMapPositions();
+    requestAnimationFrame(fitAccountMap);
+};
+
+(() => {
+    const svg = document.getElementById('account-map-svg');
+
+    // Pan by dragging the background
+    svg.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.map-node')) return;
+        svg.setPointerCapture(e.pointerId);
+        const start = { x: e.clientX, y: e.clientY, vx: accountMap.view.x, vy: accountMap.view.y };
+        svg.classList.add('panning');
+        const onMove = (ev) => {
+            accountMap.view.x = start.vx + ev.clientX - start.x;
+            accountMap.view.y = start.vy + ev.clientY - start.y;
+            applyAccountMapView();
+        };
+        const onUp = () => {
+            svg.classList.remove('panning');
+            svg.removeEventListener('pointermove', onMove);
+            svg.removeEventListener('pointerup', onUp);
+        };
+        svg.addEventListener('pointermove', onMove);
+        svg.addEventListener('pointerup', onUp);
+    });
+
+    // Zoom around the pointer
+    svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const rect = svg.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const { x, y, k } = accountMap.view;
+        const nk = Math.min(3, Math.max(0.2, k * Math.exp(-e.deltaY * 0.0015)));
+        accountMap.view = { k: nk, x: px - ((px - x) / k) * nk, y: py - ((py - y) / k) * nk };
+        applyAccountMapView();
+    }, { passive: false });
+
+    document.getElementById('account-map-search').addEventListener('input', applyAccountMapSearch);
+    document.getElementById('map-fit-btn').onclick = fitAccountMap;
+    document.getElementById('map-reset-btn').onclick = () => {
+        accountMap.expanded = {};
+        accountMap.layout = { positions: {}, expanded: {} };
+        accountMap.byId = new Map();
+        accountMap.nodes = [];
+        persistMapLayout();
+        setAccountGraph(buildAccountGraph(accountMap.accountId));
+        renderAccountMapElements();
+        renderAccountMapLegend();
+        accountMap.alpha = 1;
+        for (let i = 0; i < 160; i++) { tickAccountMap(); accountMap.alpha *= 0.975; }
+        updateAccountMapPositions();
+        fitAccountMap();
+    };
+    [['map-show-work', 'showWork'], ['map-show-contacts', 'showContacts'], ['map-size-by-amount', 'sizeByAmount']].forEach(([id, key]) => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            accountMap.prefs[key] = e.target.checked;
+            saveMapPrefs(accountMap.prefs);
+            rebuildAccountMap(0.5);
+        });
+    });
+    // Coming back from notes/activities/details opened from the map: redraw with the new data
+    new MutationObserver(mutations => {
+        const mapModal = document.getElementById('account-map-modal');
+        if (mapModal.classList.contains('hidden')) return;
+        const closedOther = mutations.some(m => m.target !== mapModal && m.target.classList.contains('modal')
+            && m.target.classList.contains('hidden') && !(m.oldValue || '').includes('hidden'));
+        if (!closedOther) return;
+        const selected = accountMap.byId.get(accountMap.selectedId);
+        rebuildAccountMap(0.15);
+        if (selected && selected.opp) renderAccountMapPanel(accountMap.byId.get(accountMap.selectedId) || null);
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+
+    document.getElementById('close-account-map-btn').onclick = () => {
+        if (accountMap.frame) cancelAnimationFrame(accountMap.frame);
+        accountMap.frame = null;
+        document.getElementById('account-map-modal').classList.add('hidden');
+    };
+})();
+
 // Open the note / activity behind a History card and highlight it
 function openHistoryItem(item) {
     const oppExists = item.oppId === 'global' || currentConfig.opportunities.some(o => o['Opportunity ID'] === item.oppId);
@@ -3749,6 +4380,7 @@ function renderOpportunityGroups(opps, visibleCols) {
                         🏢 ${escapeHtml(accountName)} <span class="sub-text" style="margin-left: 0.5rem;">(${escapeHtml(accountId)})</span>
                         <button class="attack-plan-btn ${hasAttackPlan ? 'active' : ''}" onclick="event.stopPropagation(); openAttackPlan(${jsArg(accountId)})" title="${getTranslation('title_attack_plan')}">🎯</button>
                         <button class="account-contacts-btn" onclick="event.stopPropagation(); openAccountContacts(${jsArg(accountId)})" title="${getTranslation('title_account_contacts')}">👥</button>
+                        <button class="account-contacts-btn" onclick="event.stopPropagation(); openAccountMap(${jsArg(accountId)})" title="${getTranslation('title_account_map')}">🕸️</button>
                     </span>
                     <select class="account-category-select" data-account-id="${escapeHtml(accountId)}" onclick="event.stopPropagation()">
                         <option value="" disabled ${!currentCategory ? 'selected' : ''}>${getTranslation('placeholder_categorize_account')}</option>
@@ -3771,7 +4403,9 @@ function renderOpportunityGroups(opps, visibleCols) {
         const select = headerTr.querySelector('select');
         select.onchange = async (e) => {
             const newCategory = e.target.value;
+            // Merge: replacing the object used to wipe the account's attack plan and contacts
             currentConfig.accounts[accountId] = {
+                ...(currentConfig.accounts[accountId] || {}),
                 category: newCategory,
                 lastUpdated: new Date().toISOString()
             };

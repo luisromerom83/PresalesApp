@@ -749,6 +749,39 @@
             </section>
 
             <!-- Modal for Notes -->
+            <!-- Account map: account -> status groups -> opportunities -> work items (Obsidian-style graph).
+                 Declared before the other modals so details/notes/activities open on top of it. -->
+            <div id="account-map-modal" class="modal hidden">
+                <div class="modal-content account-map-content">
+                    <div class="modal-header">
+                        <h3 id="account-map-title" data-i18n="title_account_map">Mapa de la cuenta</h3>
+                        <button id="close-account-map-btn" class="close-btn">&times;</button>
+                    </div>
+                    <div class="account-map-toolbar">
+                        <input type="search" id="account-map-search" class="form-input" placeholder="Buscar en el mapa…"
+                            data-i18n="placeholder_map_search" data-i18n-prop="placeholder">
+                        <label class="followup-check"><input type="checkbox" id="map-show-work" checked> <span data-i18n="map_show_work">PoC, RFP, Demo y notas</span></label>
+                        <label class="followup-check"><input type="checkbox" id="map-show-contacts" checked> <span data-i18n="map_show_contacts">Contactos y plan</span></label>
+                        <label class="followup-check"><input type="checkbox" id="map-size-by-amount" checked> <span data-i18n="map_size_by_amount">Tamaño por monto</span></label>
+                        <button id="map-fit-btn" class="secondary-btn small" data-i18n="btn_map_fit">Ajustar a la vista</button>
+                        <button id="map-reset-btn" class="secondary-btn small" data-i18n="btn_map_reset">Reorganizar</button>
+                    </div>
+                    <div class="account-map-body">
+                        <div class="account-map-canvas">
+                            <svg id="account-map-svg" role="img" aria-labelledby="account-map-title">
+                                <g id="account-map-viewport">
+                                    <g class="map-links"></g>
+                                    <g class="map-nodes"></g>
+                                </g>
+                            </svg>
+                            <div id="account-map-legend" class="account-map-legend"></div>
+                            <p class="account-map-hint sub-text" data-i18n="map_hint">Arrastra para mover · rueda para zoom · clic en un grupo para abrirlo</p>
+                        </div>
+                        <aside id="account-map-panel" class="account-map-panel"></aside>
+                    </div>
+                </div>
+            </div>
+
             <div id="notes-modal" class="modal hidden">
                 <div class="modal-content">
                     <div class="modal-header">

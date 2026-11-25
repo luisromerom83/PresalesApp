@@ -3438,6 +3438,239 @@ button:disabled {
     white-space: nowrap;
 }
 
+.account-map-content {
+    width: min(1400px, 94vw);
+    max-width: none;
+    height: 88vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.account-map-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.account-map-toolbar input[type="search"] {
+    width: 220px;
+    padding: 0.4rem 0.7rem;
+}
+
+.account-map-toolbar .secondary-btn {
+    width: auto;
+    margin-top: 0;
+}
+
+.account-map-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+}
+
+.account-map-canvas {
+    position: relative;
+    min-height: 0;
+}
+
+#account-map-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+    touch-action: none;
+}
+
+#account-map-svg.panning {
+    cursor: grabbing;
+}
+
+.map-link {
+    stroke: var(--text-secondary);
+    stroke-opacity: 0.35;
+    stroke-width: 1.5;
+    transition: stroke-opacity 0.15s;
+}
+
+.map-node {
+    cursor: pointer;
+    outline: none;
+    transition: opacity 0.15s;
+}
+
+.map-node-circle {
+    fill: var(--brand-grey);
+    stroke: var(--bg-color);
+    stroke-width: 2;
+}
+
+.map-node.type-account .map-node-circle {
+    stroke: var(--primary);
+    stroke-width: 3;
+}
+
+.map-node.type-poc .map-node-circle,
+.map-node.type-rfp .map-node-circle,
+.map-node.type-demo .map-node-circle,
+.map-node.type-notes .map-node-circle,
+.map-node.type-contact .map-node-circle,
+.map-node.type-contacts .map-node-circle,
+.map-node.type-plan .map-node-circle {
+    fill: var(--card-bg);
+    stroke: var(--text-secondary);
+    stroke-width: 1;
+}
+
+.map-node-glyph {
+    fill: white;
+    font-size: 9px;
+    pointer-events: none;
+    user-select: none;
+}
+
+.map-node-label {
+    fill: var(--text-primary);
+    font-size: 11px;
+    paint-order: stroke;
+    stroke: var(--bg-color);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+    pointer-events: none;
+    user-select: none;
+}
+
+.map-node.type-account .map-node-label {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.map-node.type-group .map-node-label {
+    font-weight: 600;
+}
+
+.map-node:hover .map-node-circle,
+.map-node:focus-visible .map-node-circle,
+.map-node.selected .map-node-circle {
+    stroke: var(--text-primary);
+    stroke-width: 3;
+}
+
+/* Hover: neighbors stay, the rest fades (Obsidian-style) */
+#account-map-svg.has-focus .map-node:not(.neighbor),
+#account-map-svg.searching .map-node:not(.match) {
+    opacity: 0.18;
+}
+
+#account-map-svg.has-focus .map-link:not(.neighbor),
+#account-map-svg.searching .map-link {
+    stroke-opacity: 0.08;
+}
+
+#account-map-svg.has-focus .map-link.neighbor {
+    stroke-opacity: 0.9;
+}
+
+/* Zoomed out: only account, groups and selected node keep their labels */
+#account-map-svg.zoomed-out .map-node:not(.type-account):not(.type-group):not(.selected):not(:hover) .map-node-label {
+    display: none;
+}
+
+.account-map-legend {
+    position: absolute;
+    left: 1rem;
+    bottom: 2.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    background: var(--card-bg);
+    font-size: 0.8rem;
+}
+
+.map-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.map-legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    color: white;
+    font-size: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.account-map-hint {
+    position: absolute;
+    left: 1rem;
+    bottom: 0.5rem;
+    margin: 0;
+    font-size: 0.75rem;
+}
+
+.account-map-panel {
+    border-left: 1px solid var(--glass-border);
+    padding: 1.2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.account-map-panel h4 {
+    margin: 0 0 0.25rem;
+    word-break: break-word;
+}
+
+.map-panel-row {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+}
+
+.map-panel-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.map-panel-actions .secondary-btn {
+    width: auto;
+    margin-top: 0;
+}
+
+.map-status-pill {
+    align-self: flex-start;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--status-color);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+@media (max-width: 1000px) {
+    .account-map-body {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) auto;
+    }
+
+    .account-map-panel {
+        border-left: none;
+        border-top: 1px solid var(--glass-border);
+        max-height: 35%;
+    }
+}
+
 .shortcuts-list {
     display: flex;
     flex-direction: column;
